@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AttendTrax – Faculty Dashboard</title>
+  <meta name="description" content="Faculty attendance marking dashboard for AttendTrax." />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>" />
+</head>
+<body>
+
+<!-- Toast & Loader -->
+<div id="toast-container"></div>
+<div id="page-loader" class="page-loader">
+  <div class="loader-ring"></div>
+  <p class="text-muted">Loading…</p>
+</div>
+
+<div class="app-layout">
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+  <!-- ══════════════════ SIDEBAR ══════════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-name">🎓 AttendTrax</div>
+      <div class="brand-sub">Faculty Portal</div>
+    </div>
+
+    <div class="sidebar-user">
+      <div class="user-name" id="sidebar-name">—</div>
+      <span class="user-role role-faculty">Faculty</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-item active" data-section="mark" id="nav-mark">
+        <span class="nav-icon">✏️</span> Mark Attendance
+      </div>
+      <div class="nav-item" data-section="records" id="nav-records">
+        <span class="nav-icon">📋</span> View Records
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="logout-btn" id="logout-btn">
+        <span>🚪</span> Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- ══════════════════ MAIN ══════════════════ -->
+  <div class="main-content">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="flex items-center gap-4">
+        <button class="menu-toggle" id="menu-toggle">☰</button>
+        <span class="topbar-title" id="section-title">Mark Attendance</span>
+      </div>
+      <span class="topbar-date" id="topbar-date"></span>
+    </header>
+
+    <main class="page-content">
+
+      <!-- ──────────────── MARK ATTENDANCE ──────────────── -->
+      <section class="section active" id="section-mark">
+        <div class="card" style="max-width:700px;margin:0 auto;">
+          <div class="card-header">
+            <h3>📝 Daily Attendance Entry</h3>
+            <span class="badge badge-info" id="today-badge">Today</span>
+          </div>
+          <div class="card-body">
+            <form id="selection-form" class="form-stack" style="gap:1rem;">
+              <div class="form-group">
+                <label class="form-label" for="sel-class">Class</label>
+                <select id="sel-class" class="form-control">
+                  <option value="">— Select Class —</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="sel-subject">Subject</label>
+                <select id="sel-subject" class="form-control" disabled>
+                  <option value="">— Select Subject —</option>
+                </select>
+              </div>
+              <button type="submit" id="load-students-btn" class="btn btn-primary" disabled>
+                📋 Load Students for Today
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Already submitted alert -->
+        <div id="already-submitted-alert" class="hidden" style="max-width:700px;margin:1rem auto 0;">
+          <div class="card" style="border-left:4px solid var(--warning);padding:1rem 1.5rem;">
+            <p style="color:var(--warning);font-weight:600;">⚠️ Daily attendance for this Class & Subject has already been submitted today and cannot be modified.</p>
+          </div>
+        </div>
+
+        <!-- Student marking table -->
+        <div id="mark-section" class="hidden" style="margin-top:1.5rem;">
+          <div class="card">
+            <div class="card-header flex items-center justify-between" style="flex-wrap:wrap;gap:0.75rem;">
+              <div>
+                <h3>🧑‍🎓 Student Attendance</h3>
+                <p class="text-xs text-muted" style="margin-top:0.25rem;">Default status is Present. Click to switch to Absent or On-Duty (OD).</p>
+              </div>
+              <div class="bulk-actions" style="margin-bottom:0;">
+                <button type="button" class="btn btn-sm btn-success" id="mark-all-present">✅ All Present</button>
+                <button type="button" class="btn btn-sm btn-danger" id="mark-all-absent">❌ All Absent</button>
+                <button type="button" class="btn btn-sm" id="mark-all-od" style="background:#fef3c7;color:#b45309;border:1px solid #fde68a;">🎖️ All On-Duty (OD)</button>
+              </div>
+            </div>
+            <div class="card-body" style="padding:1rem 1.5rem 0.5rem 1.5rem;">
+              <!-- Live Counters & Search -->
+              <div class="flex items-center justify-between" style="flex-wrap:wrap;gap:1rem;margin-bottom:1rem;">
+                <div class="live-status-bar" style="margin-bottom:0;">
+                  <div class="live-status-pill"><span class="live-status-dot dot-present"></span> Present: <strong id="live-count-p">0</strong></div>
+                  <div class="live-status-pill"><span class="live-status-dot dot-absent"></span> Absent: <strong id="live-count-a">0</strong></div>
+                  <div class="live-status-pill"><span class="live-status-dot dot-od"></span> On-Duty: <strong id="live-count-od">0</strong></div>
+                  <div class="live-status-pill" style="color:var(--gray-500);">Total: <strong id="live-count-total">0</strong></div>
+                </div>
+                <div>
+                  <input type="text" id="mark-student-search" class="form-control" placeholder="🔍 Search student..." style="width:200px;font-size:0.8rem;padding:0.4rem 0.75rem;" />
+                </div>
+              </div>
+            </div>
+            <div class="card-body" style="padding:0;">
+              <div class="table-wrapper">
+                <table class="mark-table">
+                  <thead>
+                    <tr>
+                      <th style="width:50px;">#</th>
+                      <th>Reg No</th>
+                      <th>Student Name</th>
+                      <th style="text-align:center;width:200px;">Attendance Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="students-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+            <div style="padding:1.25rem 1.5rem;border-top:1px solid var(--gray-100);display:flex;justify-content:flex-end;gap:0.75rem;">
+              <button type="button" class="btn btn-secondary" id="cancel-mark-btn">Cancel</button>
+              <button type="button" class="btn btn-primary" id="submit-attendance-btn">
+                <span id="submit-btn-text">🚀 Submit Attendance</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ──────────────── VIEW RECORDS & REPORTS ──────────────── -->
+      <section class="section" id="section-records">
+        <div class="card" style="margin-bottom:1.5rem;">
+          <div class="card-body">
+            <div class="flex items-center gap-4" style="flex-wrap:wrap;">
+              <div class="form-group" style="flex:1;min-width:220px;">
+                <label class="form-label" for="rec-class">Select Class</label>
+                <select id="rec-class" class="form-control">
+                  <option value="">— Select Class —</option>
+                </select>
+              </div>
+              <div style="align-self:flex-end;">
+                <button class="btn btn-primary" id="load-records-btn">📊 View Attendance Report</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="records-section" class="hidden">
+          <!-- Class KPI Summary -->
+          <div class="kpi-grid" style="margin-bottom:1.25rem;">
+            <div class="kpi-card">
+              <div class="kpi-info">
+                <div class="kpi-label">Class Attendance</div>
+                <div class="kpi-val" id="rep-kpi-pct">—%</div>
+                <div class="kpi-sub" id="rep-kpi-sub">Overall performance</div>
+              </div>
+              <div class="kpi-icon-box kpi-icon-blue">📊</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-info">
+                <div class="kpi-label">Enrolled Students</div>
+                <div class="kpi-val" id="rep-kpi-students">—</div>
+                <div class="kpi-sub" id="rep-kpi-students-sub">Active in class</div>
+              </div>
+              <div class="kpi-icon-box kpi-icon-purple">🧑‍🎓</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-info">
+                <div class="kpi-label">Defaulters (&lt;75%)</div>
+                <div class="kpi-val" style="color:var(--danger);" id="rep-kpi-defaulters">—</div>
+                <div class="kpi-sub">Students need attention</div>
+              </div>
+              <div class="kpi-icon-box kpi-icon-red">⚠️</div>
+            </div>
+          </div>
+
+          <!-- Report Table -->
+          <div class="card">
+            <div class="card-header flex items-center justify-between" style="flex-wrap:wrap;gap:0.75rem;">
+              <div>
+                <h3 id="records-title">Class Attendance Report</h3>
+                <p class="text-xs text-muted" style="margin-top:0.25rem;">Cumulative attendance rate and student standing</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <input type="text" id="report-search" class="form-control" placeholder="🔍 Search student..." style="width:200px;font-size:0.8rem;padding:0.35rem 0.65rem;" />
+                <button class="btn btn-secondary" id="export-faculty-report-btn" style="font-size:0.8rem;padding:0.35rem 0.75rem;">
+                  📥 Export CSV
+                </button>
+              </div>
+            </div>
+            <div class="card-body" style="padding:0;">
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Reg No</th>
+                      <th>Student Name</th>
+                      <th>Attended</th>
+                      <th>Total Sessions</th>
+                      <th>Attendance %</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="records-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div><!-- /main-content -->
+</div><!-- /app-layout -->
+
+<script src="api.js"></script>
+<script>
+// ── Auth Guard ─────────────────────────────────────────────────────────────
+if (!requireAuth('FACULTY')) { /* redirected */ }
+
+// ── Init ───────────────────────────────────────────────────────────────────
+document.getElementById('sidebar-name').textContent = getName() || '—';
+document.getElementById('topbar-date').textContent   = todayDisplay();
+document.getElementById('today-badge').textContent   = todayShort();
+
+function toggleSidebar(open) {
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  if (open === undefined) {
+    sidebar.classList.toggle('open');
+    backdrop?.classList.toggle('active', sidebar.classList.contains('open'));
+  } else if (open) {
+    sidebar.classList.add('open');
+    backdrop?.classList.add('active');
+  } else {
+    sidebar.classList.remove('open');
+    backdrop?.classList.remove('active');
+  }
+}
+
+// ── Section navigation ─────────────────────────────────────────────────────
+const sectionTitles = { mark: 'Mark Daily Attendance', records: 'Attendance Reports' };
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const sec = item.dataset.section;
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    item.classList.add('active');
+    document.getElementById(`section-${sec}`).classList.add('active');
+    document.getElementById('section-title').textContent = sectionTitles[sec] || sec;
+    if (sec === 'records') populateRecordClassDropdown();
+    toggleSidebar(false);
+  });
+});
+
+// Menu toggle (mobile/tablet)
+document.getElementById('menu-toggle').addEventListener('click', () => toggleSidebar());
+document.getElementById('sidebar-backdrop')?.addEventListener('click', () => toggleSidebar(false));
+
+// Logout
+document.getElementById('logout-btn').addEventListener('click', () => {
+  clearAuth();
+  window.location.href = 'index.html';
+});
+
+// ── Load classes ───────────────────────────────────────────────────────────
+let allClasses = [];
+async function loadClasses() {
+  showLoader(true);
+  try {
+    allClasses = await api.get('/faculty/classes');
+    const selClass = document.getElementById('sel-class');
+    selClass.innerHTML = '<option value="">— Select Class —</option>';
+    allClasses.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.ClassID; o.textContent = c.ClassName;
+      selClass.appendChild(o);
+    });
+  } catch (e) {
+    showToast(e.message, 'error');
+  } finally {
+    showLoader(false);
+  }
+}
+loadClasses();
+
+// ── Class → Subject cascade ────────────────────────────────────────────────
+document.getElementById('sel-class').addEventListener('change', async function() {
+  const classId = this.value;
+  const selSubject = document.getElementById('sel-subject');
+  const loadBtn    = document.getElementById('load-students-btn');
+
+  selSubject.innerHTML = '<option value="">— Select Subject —</option>';
+  selSubject.disabled = true;
+  loadBtn.disabled    = true;
+  resetMarkSection();
+
+  if (!classId) return;
+
+  try {
+    const subjects = await api.get(`/faculty/classes/${classId}/subjects`);
+    subjects.forEach(s => {
+      const o = document.createElement('option');
+      o.value = s.SubjectID; o.textContent = s.SubjectName;
+      selSubject.appendChild(o);
+    });
+    selSubject.disabled = false;
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
+});
+
+// ── Subject → enable Load ──────────────────────────────────────────────────
+document.getElementById('sel-subject').addEventListener('change', function() {
+  const classId   = document.getElementById('sel-class').value;
+  const subjectId = this.value;
+  document.getElementById('load-students-btn').disabled = !(classId && subjectId);
+  resetMarkSection();
+});
+
+// ── Load students for daily marking ─────────────────────────────────────────
+document.getElementById('selection-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const classId   = document.getElementById('sel-class').value;
+  const subjectId = document.getElementById('sel-subject').value;
+
+  showLoader(true);
+  try {
+    // Check if daily attendance was already submitted today
+    const check = await api.get(
+      `/faculty/attendance/check?class_id=${classId}&subject_id=${subjectId}&hour=DAY`
+    );
+    document.getElementById('already-submitted-alert').classList.toggle('hidden', !check.already_submitted);
+    document.getElementById('mark-section').classList.add('hidden');
+
+    if (check.already_submitted) { showLoader(false); return; }
+
+    // Load students
+    const students = await api.get(`/faculty/classes/${classId}/students`);
+    renderStudentTable(students);
+    document.getElementById('mark-section').classList.remove('hidden');
+  } catch (e) {
+    showToast(e.message, 'error');
+  } finally {
+    showLoader(false);
+  }
+});
+
+// ── Render student table (Default status = Present (P), Options = P, A, OD) ─
+let currentMarkingStudents = [];
+
+function updateLiveCounters() {
+  let p = 0, a = 0, od = 0;
+  document.querySelectorAll('#students-tbody .attendance-chip-group').forEach(group => {
+    const active = group.querySelector('.attendance-chip.active');
+    const val = active ? active.dataset.val : 'P';
+    if (val === 'P') p++;
+    else if (val === 'A') a++;
+    else if (val === 'OD') od++;
+  });
+  const total = p + a + od;
+  document.getElementById('live-count-p').textContent = p;
+  document.getElementById('live-count-a').textContent = a;
+  document.getElementById('live-count-od').textContent = od;
+  document.getElementById('live-count-total').textContent = total;
+}
+
+function filterMarkingStudents() {
+  const q = (document.getElementById('mark-student-search')?.value || '').trim().toLowerCase();
+  const rows = document.querySelectorAll('#students-tbody tr');
+  rows.forEach(r => {
+    const text = r.textContent.toLowerCase();
+    r.style.display = !q || text.includes(q) ? '' : 'none';
+  });
+}
+document.getElementById('mark-student-search')?.addEventListener('input', filterMarkingStudents);
+
+function renderStudentTable(students) {
+  currentMarkingStudents = students;
+  const tbody = document.getElementById('students-tbody');
+  tbody.innerHTML = '';
+  students.forEach((s, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${idx + 1}</td>
+      <td><span class="student-reg" style="font-weight:700;color:var(--gray-800);">${s.reg_no}</span></td>
+      <td><span class="student-name">${s.name}</span></td>
+      <td style="text-align:center;">
+        <div class="attendance-chip-group" data-reg="${s.reg_no}" style="display:inline-flex;gap:0.35rem;">
+          <button type="button" class="attendance-chip chip-P active" data-val="P" title="Present">P</button>
+          <button type="button" class="attendance-chip chip-A" data-val="A" title="Absent">A</button>
+          <button type="button" class="attendance-chip chip-OD" data-val="OD" title="On-Duty">OD</button>
+        </div>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+
+  // Chip click behaviour
+  tbody.querySelectorAll('.attendance-chip-group').forEach(group => {
+    group.querySelectorAll('.attendance-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        group.querySelectorAll('.attendance-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        updateLiveCounters();
+      });
+    });
+  });
+
+  updateLiveCounters();
+}
+
+// ── Bulk mark ─────────────────────────────────────────────────────────────
+function bulkMark(val) {
+  document.querySelectorAll('#students-tbody .attendance-chip-group').forEach(group => {
+    group.querySelectorAll('.attendance-chip').forEach(c => c.classList.remove('active'));
+    const target = group.querySelector(`[data-val="${val}"]`);
+    if (target) target.classList.add('active');
+  });
+  updateLiveCounters();
+}
+document.getElementById('mark-all-present').addEventListener('click', () => bulkMark('P'));
+document.getElementById('mark-all-absent').addEventListener('click',  () => bulkMark('A'));
+document.getElementById('mark-all-od').addEventListener('click',      () => bulkMark('OD'));
+
+// ── Cancel ────────────────────────────────────────────────────────────────
+document.getElementById('cancel-mark-btn').addEventListener('click', resetMarkSection);
+function resetMarkSection() {
+  document.getElementById('mark-section').classList.add('hidden');
+  document.getElementById('already-submitted-alert').classList.add('hidden');
+}
+
+// ── Submit daily attendance ────────────────────────────────────────────────
+document.getElementById('submit-attendance-btn').addEventListener('click', async () => {
+  const classId   = document.getElementById('sel-class').value;
+  const subjectId = document.getElementById('sel-subject').value;
+
+  // Collect attendance data from chips
+  const attendanceRows = [];
+  document.querySelectorAll('#students-tbody .attendance-chip-group').forEach(group => {
+    const regNo  = group.dataset.reg;
+    const active = group.querySelector('.attendance-chip.active');
+    attendanceRows.push({ reg_no: regNo, status: active ? active.dataset.val : 'P' });
+  });
+
+  if (!attendanceRows.length) { showToast('No students found.', 'warning'); return; }
+
+  const btn     = document.getElementById('submit-attendance-btn');
+  const btnText = document.getElementById('submit-btn-text');
+  btn.disabled  = true;
+  btnText.innerHTML = '<span class="spinner"></span> Submitting…';
+
+  try {
+    const res = await api.post('/faculty/attendance', {
+      class_id: classId,
+      subject_id: subjectId,
+      hour: 'DAY',
+      attendance: attendanceRows,
+    });
+    api.clearCache();
+    showToast(`✅ ${res.message}`, 'success');
+    resetMarkSection();
+    // Reset selectors
+    document.getElementById('sel-class').value = '';
+    document.getElementById('sel-subject').innerHTML = '<option value="">— Select Subject —</option>';
+    document.getElementById('sel-subject').disabled = true;
+    document.getElementById('load-students-btn').disabled = true;
+  } catch (err) {
+    showToast(err.message, 'error', 6000);
+  } finally {
+    btn.disabled  = false;
+    btnText.textContent = '🚀 Submit Attendance';
+  }
+});
+
+// ── VIEW RECORDS & REPORTS tab ─────────────────────────────────────────────
+let currentReportData = [];
+let currentReportClassId = '';
+
+async function populateRecordClassDropdown() {
+  const sel = document.getElementById('rec-class');
+  if (sel.options.length > 1) return; // already populated
+  try {
+    const classes = await api.get('/faculty/classes');
+    classes.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.ClassID; o.textContent = c.ClassName;
+      sel.appendChild(o);
+    });
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+document.getElementById('load-records-btn').addEventListener('click', async () => {
+  const classId = document.getElementById('rec-class').value;
+  if (!classId) { showToast('Please select a class.', 'warning'); return; }
+  currentReportClassId = classId;
+
+  showLoader(true);
+  try {
+    const report = await api.get(`/faculty/reports/class/${classId}`);
+    currentReportData = report || [];
+
+    const cls = allClasses.find(c => c.ClassID === classId);
+    document.getElementById('records-title').textContent =
+      `Attendance Report – ${cls ? cls.ClassName : classId}`;
+
+    // Compute KPIs
+    const totalStudents = currentReportData.length;
+    let sumPct = 0;
+    let defaultersCount = 0;
+    currentReportData.forEach(r => {
+      sumPct += (r.percentage || 0);
+      if ((r.percentage || 0) < 75 && (r.total || 0) > 0) defaultersCount++;
+    });
+    const avgPct = totalStudents ? Math.round(sumPct / totalStudents * 10) / 10 : 0;
+
+    const kpiPctEl = document.getElementById('rep-kpi-pct');
+    kpiPctEl.textContent = `${avgPct}%`;
+    kpiPctEl.style.color = avgPct >= 75 ? 'var(--success)' : 'var(--danger)';
+    document.getElementById('rep-kpi-students').textContent = totalStudents;
+    document.getElementById('rep-kpi-defaulters').textContent = defaultersCount;
+
+    filterReportTable();
+    document.getElementById('records-section').classList.remove('hidden');
+  } catch(e) {
+    showToast(e.message, 'error');
+  } finally {
+    showLoader(false);
+  }
+});
+
+function filterReportTable() {
+  const q = (document.getElementById('report-search')?.value || '').trim().toLowerCase();
+  const tbody  = document.getElementById('records-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  const filtered = currentReportData.filter(r =>
+    !q || (r.reg_no && r.reg_no.toLowerCase().includes(q)) || (r.name && r.name.toLowerCase().includes(q))
+  );
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted" style="padding:2rem;">No students found.</td></tr>';
+    return;
+  }
+
+  filtered.forEach(r => {
+    const pct = r.percentage;
+    const barCls = pct >= 80 ? 'progress-success' : pct >= 65 ? 'progress-warn' : 'progress-danger';
+    const badgeCls = pct >= 80 ? 'badge-present' : pct >= 65 ? 'badge-warning' : 'badge-absent';
+    const statusText = pct >= 75 ? '🟢 Eligible' : '🔴 Defaulter';
+
+    tbody.innerHTML += `
+      <tr>
+        <td><span class="tag" style="background:#f1f5f9;color:#334155;">${r.reg_no}</span></td>
+        <td class="font-semibold">${r.name}</td>
+        <td><strong>${r.attended}</strong></td>
+        <td>${r.total}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <div class="progress-bar-wrap" style="width:75px;">
+              <div class="progress-bar ${barCls}" style="width:${pct}%"></div>
+            </div>
+            <span class="badge ${badgeCls}">${pct}%</span>
+          </div>
+        </td>
+        <td><span class="text-xs font-semibold">${statusText}</span></td>
+      </tr>`;
+  });
+}
+
+document.getElementById('report-search')?.addEventListener('input', filterReportTable);
+
+// Export CSV for Faculty
+document.getElementById('export-faculty-report-btn')?.addEventListener('click', () => {
+  if (!currentReportData.length) { showToast('No report data to export!', 'info'); return; }
+  const header = 'Reg No,Student Name,Attended Sessions,Total Sessions,Percentage,Status\\n';
+  const rows = currentReportData.map(r =>
+    `"${r.reg_no}","${r.name}",${r.attended},${r.total},${r.percentage}%,"${r.percentage >= 75 ? 'Eligible' : 'Defaulter'}"`
+  ).join('\\n');
+  const blob = new Blob([header + rows], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `class_${currentReportClassId}_attendance_report_${todayShort()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Attendance report exported!', 'success');
+});
+</script>
+</body>
+</html>

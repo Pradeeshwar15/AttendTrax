@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AttendTrax – My Attendance</title>
+  <meta name="description" content="Student attendance portal – view your attendance summary and subject-wise breakdown." />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧑‍🎓</text></svg>" />
+  <style>
+    /* ── Student-specific overrides ─── */
+    .sidebar { background: linear-gradient(180deg, #065f46 0%, #047857 50%, #10b981 100%); }
+    .role-student { background: #d1fae5; color: #065f46; }
+
+    /* ── Donut chart ─── */
+    .donut-wrap {
+      display: flex; align-items: center; gap: 2rem;
+      flex-wrap: wrap;
+    }
+    .donut-info { flex: 1; min-width: 160px; }
+    .donut-info .big-pct { font-size: 3rem; font-weight: 800; font-family: 'Outfit',sans-serif; line-height: 1; }
+    .donut-info .pct-label { font-size: 0.85rem; color: var(--gray-500); margin-top: 0.25rem; }
+    .donut-info .pct-stats { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .pct-stat { display: flex; align-items: center; justify-content: space-between; font-size: 0.875rem; }
+    .pct-stat .label { color: var(--gray-500); }
+    .pct-stat .val   { font-weight: 600; color: var(--gray-800); }
+
+    /* ── Subject cards ─── */
+    .subject-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(220px,1fr)); gap: 1rem; }
+    .subject-card {
+      background: #fff;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow var(--transition-fast);
+    }
+    .subject-card:hover { box-shadow: var(--shadow-md); }
+    .subject-card .subj-name { font-weight: 700; font-size: 0.95rem; margin-bottom: 0.5rem; }
+    .subject-card .subj-pct  { font-size: 1.6rem; font-weight: 800; font-family: 'Outfit',sans-serif; }
+    .subj-pct.good   { color: #059669; }
+    .subj-pct.warn   { color: #d97706; }
+    .subj-pct.danger { color: #dc2626; }
+
+    /* ── Calendar table ─── */
+    .calendar-table td { text-align: center; min-width: 32px; }
+    .calendar-table th { text-align: center; }
+    .cal-P  { background: #d1fae5; color: #065f46; font-weight: 700; border-radius: 4px; }
+    .cal-A  { background: #fee2e2; color: #991b1b; font-weight: 700; border-radius: 4px; }
+    .cal-OD { background: #fef3c7; color: #b45309; font-weight: 700; border-radius: 4px; }
+    .cal-fr { color: var(--gray-400); }
+    .cal-na { color: var(--gray-300); }
+  </style>
+</head>
+<body>
+<div id="toast-container"></div>
+<div id="page-loader" class="page-loader">
+  <div class="loader-ring"></div>
+  <p class="text-muted">Loading your attendance…</p>
+</div>
+
+<div class="app-layout">
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+  <!-- ══════════════════ SIDEBAR ══════════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-name">🎓 AttendTrax</div>
+      <div class="brand-sub">Student Portal</div>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-name" id="sidebar-name">—</div>
+      <span class="user-role role-student">Student</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" data-section="overview">
+        <span class="nav-icon">📊</span> Overview
+      </div>
+      <div class="nav-item" data-section="subjects">
+        <span class="nav-icon">📚</span> Subject-wise
+      </div>
+      <div class="nav-item" data-section="history">
+        <span class="nav-icon">📅</span> Day-wise History
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" id="logout-btn">🚪 Logout</button>
+    </div>
+  </aside>
+
+  <!-- ══════════════════ MAIN ══════════════════ -->
+  <div class="main-content">
+    <header class="topbar">
+      <div class="flex items-center gap-4">
+        <button class="menu-toggle" id="menu-toggle">☰</button>
+        <span class="topbar-title" id="section-title">My Attendance Overview</span>
+      </div>
+      <span class="topbar-date" id="topbar-date"></span>
+    </header>
+
+    <main class="page-content">
+
+      <!-- ─── OVERVIEW ─── -->
+      <section class="section active" id="section-overview">
+        <!-- Profile card -->
+        <div class="card" style="margin-bottom:1.5rem;">
+          <div class="card-body" style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;">
+            <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#10b981,#059669);display:flex;align-items:center;justify-content:center;font-size:2rem;color:#fff;flex-shrink:0;">🧑‍🎓</div>
+            <div style="flex:1;">
+              <h3 id="student-full-name">—</h3>
+              <div class="flex gap-4" style="margin-top:0.35rem;flex-wrap:wrap;">
+                <span class="text-sm text-muted">📋 Reg No: <strong id="student-reg">—</strong></span>
+                <span class="text-sm text-muted">🏫 Class: <strong id="student-class">—</strong></span>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <p class="text-xs text-muted">As of today</p>
+              <p class="text-xs text-muted" id="as-of-date">—</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats row -->
+        <div class="stat-grid" style="margin-bottom:1.5rem;">
+          <div class="stat-card" style="--accent:#3b82f6;">
+            <div class="stat-label">Total Hours</div>
+            <div class="stat-value" id="stat-total">—</div>
+            <div class="stat-sub">Scheduled so far</div>
+          </div>
+          <div class="stat-card" style="--accent:#10b981;">
+            <div class="stat-label">Attended</div>
+            <div class="stat-value" id="stat-attended">—</div>
+            <div class="stat-sub">Hours present</div>
+          </div>
+          <div class="stat-card" style="--accent:#ef4444;">
+            <div class="stat-label">Absent</div>
+            <div class="stat-value" id="stat-absent">—</div>
+            <div class="stat-sub">Hours missed</div>
+          </div>
+          <div class="stat-card" style="--accent:#6366f1;">
+            <div class="stat-label">Attendance %</div>
+            <div class="stat-value" id="stat-pct">—</div>
+            <div class="stat-sub">Overall</div>
+          </div>
+        </div>
+
+        <!-- Donut + progress -->
+        <div class="card">
+          <div class="card-header"><h3>📈 Attendance Summary</h3></div>
+          <div class="card-body donut-wrap">
+            <!-- SVG donut -->
+            <div>
+              <svg width="140" height="140" viewBox="0 0 140 140">
+                <circle cx="70" cy="70" r="54" fill="none" stroke="var(--gray-200)" stroke-width="16"/>
+                <circle id="donut-circle" cx="70" cy="70" r="54" fill="none" stroke="#10b981"
+                  stroke-width="16" stroke-linecap="round"
+                  stroke-dasharray="339.29" stroke-dashoffset="339.29"
+                  transform="rotate(-90 70 70)"
+                  style="transition:stroke-dashoffset 1s ease;"/>
+                <text x="70" y="68" text-anchor="middle" font-family="Outfit,sans-serif" font-size="22" font-weight="800" fill="var(--gray-900)" id="donut-text">0%</text>
+                <text x="70" y="86" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="var(--gray-500)">Attendance</text>
+              </svg>
+            </div>
+            <div class="donut-info">
+              <div class="pct-stats">
+                <div class="pct-stat"><span class="label">Total Hours</span><span class="val" id="di-total">—</span></div>
+                <div class="pct-stat"><span class="label">Present</span><span class="val" style="color:#059669;" id="di-attended">—</span></div>
+                <div class="pct-stat"><span class="label">Absent</span><span class="val" style="color:#dc2626;" id="di-absent">—</span></div>
+              </div>
+              <div id="shortage-warning" class="hidden" style="margin-top:1rem;padding:0.75rem 1rem;background:#fef3c7;border-radius:8px;border-left:4px solid #f59e0b;">
+                <p style="font-size:0.8rem;color:#92400e;font-weight:600;" id="shortage-msg"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── SUBJECT-WISE ─── -->
+      <section class="section" id="section-subjects">
+        <div class="flex justify-between items-center" style="margin-bottom:1.25rem;">
+          <h2>📚 Subject-wise Attendance</h2>
+        </div>
+        <div class="subject-grid" id="subject-grid">
+          <p class="text-muted">Loading subjects…</p>
+        </div>
+      </section>
+
+      <!-- ─── DAY-WISE HISTORY ─── -->
+      <section class="section" id="section-history">
+        <div class="flex justify-between items-center" style="margin-bottom:1.25rem;">
+          <h2>📅 Day-wise History</h2>
+          <span class="text-sm text-muted">(Last 60 entries)</span>
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrapper">
+              <table class="calendar-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>H1</th><th>H2</th><th>H3</th><th>H4</th>
+                    <th>H5</th><th>H6</th><th>H7</th><th>H8</th>
+                  </tr>
+                </thead>
+                <tbody id="history-tbody">
+                  <tr><td colspan="9" class="text-center text-muted" style="padding:2rem;">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+if (!requireAuth('STUDENT')) { /* redirected */ }
+
+document.getElementById('sidebar-name').textContent = getName() || '—';
+document.getElementById('topbar-date').textContent   = todayDisplay();
+document.getElementById('as-of-date').textContent    = todayShort();
+
+function toggleSidebar(open) {
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  if (open === undefined) {
+    sidebar.classList.toggle('open');
+    backdrop?.classList.toggle('active', sidebar.classList.contains('open'));
+  } else if (open) {
+    sidebar.classList.add('open');
+    backdrop?.classList.add('active');
+  } else {
+    sidebar.classList.remove('open');
+    backdrop?.classList.remove('active');
+  }
+}
+
+// ── Section nav ────────────────────────────────────────────────────────────
+const secTitles = { overview: 'My Attendance Overview', subjects: 'Subject-wise Attendance', history: 'Day-wise History' };
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const sec = item.dataset.section;
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    item.classList.add('active');
+    document.getElementById(`section-${sec}`).classList.add('active');
+    document.getElementById('section-title').textContent = secTitles[sec] || sec;
+    toggleSidebar(false);
+  });
+});
+
+document.getElementById('menu-toggle').addEventListener('click', () => toggleSidebar());
+document.getElementById('sidebar-backdrop')?.addEventListener('click', () => toggleSidebar(false));
+document.getElementById('logout-btn').addEventListener('click', () => {
+  clearAuth(); window.location.href = 'index.html';
+});
+
+// ── Load data ──────────────────────────────────────────────────────────────
+let attendanceData = null;
+
+async function loadStudentData() {
+  showLoader(true);
+  try {
+    const [profile, attendance] = await Promise.all([
+      api.get('/student/profile'),
+      api.get('/student/attendance'),
+    ]);
+
+    attendanceData = attendance;
+
+    // Profile
+    document.getElementById('student-full-name').textContent = profile.Name || '—';
+    document.getElementById('student-reg').textContent       = profile.RegNo || '—';
+    document.getElementById('student-class').textContent     = profile.ClassName || '—';
+
+    // Stats
+    const total    = attendance.total_hours;
+    const attended = attendance.attended_hours;
+    const absent   = total - attended;
+    const pct      = attendance.percentage;
+
+    document.getElementById('stat-total').textContent    = total;
+    document.getElementById('stat-attended').textContent = attended;
+    document.getElementById('stat-absent').textContent   = absent;
+    document.getElementById('stat-pct').textContent      = `${pct}%`;
+
+    // Donut
+    const CIRCUMFERENCE = 339.29;
+    const offset = CIRCUMFERENCE - (pct / 100) * CIRCUMFERENCE;
+    const donut  = document.getElementById('donut-circle');
+    donut.setAttribute('stroke-dashoffset', CIRCUMFERENCE);
+    donut.setAttribute('stroke', pct >= 75 ? '#10b981' : pct >= 60 ? '#f59e0b' : '#ef4444');
+    setTimeout(() => donut.setAttribute('stroke-dashoffset', offset), 100);
+    document.getElementById('donut-text').textContent = `${pct}%`;
+
+    document.getElementById('di-total').textContent    = total;
+    document.getElementById('di-attended').textContent = attended;
+    document.getElementById('di-absent').textContent   = absent;
+
+    // Shortage warning
+    if (pct < 75 && total > 0) {
+      const needed = Math.ceil(0.75 * total - attended);
+      document.getElementById('shortage-msg').textContent =
+        `⚠️ You need ${needed} more present hour${needed !== 1 ? 's' : ''} to reach 75%.`;
+      document.getElementById('shortage-warning').classList.remove('hidden');
+    }
+
+    // Subjects
+    renderSubjectGrid(attendance.subject_summary);
+
+    // History
+    renderHistory(attendance.datewise);
+
+  } catch(e) {
+    showToast(e.message, 'error');
+  } finally {
+    showLoader(false);
+  }
+}
+loadStudentData();
+
+// ── Render subject grid ────────────────────────────────────────────────────
+function renderSubjectGrid(subjects) {
+  const grid = document.getElementById('subject-grid');
+  if (!subjects || subjects.length === 0) {
+    grid.innerHTML = '<p class="text-muted">No subject data available.</p>';
+    return;
+  }
+  grid.innerHTML = '';
+  subjects.forEach(s => {
+    const pct = s.percentage;
+    const cls = pct >= 75 ? 'good' : pct >= 60 ? 'warn' : 'danger';
+    const barCls = pct >= 75 ? 'progress-good' : pct >= 60 ? 'progress-warn' : 'progress-danger';
+    grid.innerHTML += `
+      <div class="subject-card">
+        <div class="subj-name">${s.subject_name}</div>
+        <div class="subj-pct ${cls}">${pct}%</div>
+        <div style="margin-top:0.5rem;">
+          <div class="progress-bar-wrap"><div class="progress-bar ${barCls}" style="width:${pct}%"></div></div>
+        </div>
+        <div class="flex justify-between" style="margin-top:0.4rem;">
+          <span class="text-xs text-muted">${s.attended}/${s.total} hours</span>
+          <span class="badge ${pct>=75?'badge-info':pct>=60?'badge-warning':'badge-absent'}">${pct>=75?'On Track':pct>=60?'Low':'Critical'}</span>
+        </div>
+      </div>`;
+  });
+}
+
+// ── Render history table ───────────────────────────────────────────────────
+function renderHistory(rows) {
+  const tbody = document.getElementById('history-tbody');
+  if (!rows || rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted" style="padding:2rem;">No attendance records found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = '';
+  [...rows].reverse().forEach(row => {
+    const hours = ['H1','H2','H3','H4','H5','H6','H7','H8'];
+    const cells = hours.map(h => {
+      const v = (row[h] || row['DAY'] || '-').toUpperCase();
+      const cls = v === 'P' ? 'cal-P' : v === 'A' ? 'cal-A' : v === 'OD' ? 'cal-OD' : v === '-' ? 'cal-fr' : 'cal-na';
+      return `<td class="${cls}" style="padding:4px 8px;">${v === '-' ? '—' : v}</td>`;
+    }).join('');
+    tbody.innerHTML += `<tr><td style="white-space:nowrap;font-size:0.8rem;padding:6px 12px;">${row.date}</td>${cells}</tr>`;
+  });
+}
+</script>
+</body>
+</html>

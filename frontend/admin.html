@@ -1,0 +1,1950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AttendTrax – Admin Analytics & Control Panel</title>
+  <meta name="description" content="Admin dashboard and analytics for AttendTrax – manage classes, students, faculty, and institutional attendance intelligence." />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .sidebar { background: linear-gradient(180deg, #1e1b4b 0%, #312e81 50%, #4f46e5 100%); }
+    .role-admin { background: #fef3c7; color: #92400e; }
+
+    /* Tab pills */
+    .tab-pills { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .tab-pill {
+      padding: 0.45rem 1rem;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      border: 1.5px solid var(--gray-200);
+      background: #fff;
+      color: var(--gray-500);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    .tab-pill.active {
+      background: linear-gradient(135deg, var(--indigo-600), var(--brand-600));
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 2px 8px rgb(79 70 229 / 0.3);
+    }
+
+    /* Action bar */
+    .action-bar { display: flex; justify-content: flex-end; margin-bottom: 1rem; }
+
+    /* Admin sub-tabs */
+    .admin-tab { display: none; }
+    .admin-tab.active { display: block; animation: fadeSection 0.2s ease; }
+
+    /* Import zone */
+    #drop-zone input[type=file] { display: none; }
+  </style>
+</head>
+<body>
+<div id="toast-container"></div>
+<div id="page-loader" class="page-loader">
+  <div class="loader-ring"></div>
+  <p class="text-muted">Loading…</p>
+</div>
+
+<!-- Confirm Modal -->
+<div id="confirm-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h3 id="confirm-title" style="margin-bottom:0.75rem;">Confirm Action</h3>
+    <p id="confirm-msg" style="color:var(--gray-600);margin-bottom:1.5rem;"></p>
+    <div class="flex gap-4 justify-between">
+      <button class="btn btn-secondary" id="confirm-cancel">Cancel</button>
+      <button class="btn btn-danger"    id="confirm-ok">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Generic Form Modal -->
+<div id="form-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h3 id="modal-title" style="margin-bottom:1.25rem;"></h3>
+    <div id="modal-body"></div>
+    <div class="flex gap-4 justify-between" style="margin-top:1.5rem;">
+      <button class="btn btn-secondary" id="modal-cancel">Cancel</button>
+      <button class="btn btn-primary"   id="modal-submit">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="app-layout">
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+  <!-- ══════════════════ SIDEBAR ══════════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-name">🎓 AttendTrax</div>
+      <div class="brand-sub">Admin Control Panel</div>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-name" id="sidebar-name">—</div>
+      <span class="user-role role-admin">Admin</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" data-section="dashboard">
+        <span class="nav-icon">📈</span> Dashboard & Analytics
+      </div>
+      <div class="nav-item" data-section="classes">
+        <span class="nav-icon">🏫</span> Classes
+      </div>
+      <div class="nav-item" data-section="students">
+        <span class="nav-icon">🧑‍🎓</span> Students
+      </div>
+      <div class="nav-item" data-section="faculty">
+        <span class="nav-icon">👨‍🏫</span> Faculty
+      </div>
+      <div class="nav-item" data-section="subjects">
+        <span class="nav-icon">📚</span> Subjects
+      </div>
+      <div class="nav-item" data-section="reports">
+        <span class="nav-icon">📊</span> Reports
+      </div>
+      <div class="nav-item" data-section="import">
+        <span class="nav-icon">📥</span> Import Data
+      </div>
+      <div class="nav-item" data-section="bulk">
+        <span class="nav-icon">📦</span> Bulk Setup
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" id="logout-btn">🚪 Logout</button>
+    </div>
+  </aside>
+
+  <!-- ══════════════════ MAIN ══════════════════ -->
+  <div class="main-content">
+    <header class="topbar">
+      <div class="flex items-center gap-4">
+        <button class="menu-toggle" id="menu-toggle">☰</button>
+        <span class="topbar-title" id="section-title">Dashboard & Analytics</span>
+      </div>
+      <span class="topbar-date" id="topbar-date"></span>
+    </header>
+
+    <main class="page-content">
+
+      <!-- ═══════════ ANALYTICS DASHBOARD ═══════════ -->
+      <section class="section active" id="section-dashboard">
+        <!-- Hero Header -->
+        <div class="analytics-hero">
+          <div>
+            <h2 class="analytics-hero-title">📈 Institutional Attendance Analytics</h2>
+            <p class="analytics-hero-sub">Real-time attendance intelligence, trends, slot distribution & defaulter monitoring</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="btn btn-secondary" id="refresh-analytics-btn" style="background:rgba(255,255,255,0.2);color:#fff;border-color:rgba(255,255,255,0.3);">
+              🔄 Refresh
+            </button>
+            <button class="btn btn-primary" id="export-defaulters-top-btn" style="background:#fff;color:var(--brand-900);">
+              📥 Export Defaulters CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- KPI Grid -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-info">
+              <div class="kpi-label">Overall Attendance</div>
+              <div class="kpi-val" id="kpi-overall-pct">—%</div>
+              <div class="kpi-sub" id="kpi-overall-sub">Total records: —</div>
+            </div>
+            <div class="kpi-icon-box kpi-icon-blue">📊</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-info">
+              <div class="kpi-label">Today's Attendance</div>
+              <div class="kpi-val" id="kpi-today-pct">—%</div>
+              <div class="kpi-sub" id="kpi-today-sub">Present: — | Absent: —</div>
+            </div>
+            <div class="kpi-icon-box kpi-icon-green">📅</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-info">
+              <div class="kpi-label">Active Students</div>
+              <div class="kpi-val" id="kpi-students">—</div>
+              <div class="kpi-sub" id="kpi-students-sub">— Classes enrolled</div>
+            </div>
+            <div class="kpi-icon-box kpi-icon-purple">🧑‍🎓</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-info">
+              <div class="kpi-label">Faculty & Subjects</div>
+              <div class="kpi-val" id="kpi-faculty-sub">—</div>
+              <div class="kpi-sub" id="kpi-faculty-sub-text">— Faculty · — Subjects</div>
+            </div>
+            <div class="kpi-icon-box kpi-icon-amber">👨‍🏫</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-info">
+              <div class="kpi-label">Defaulters (&lt;75%)</div>
+              <div class="kpi-val" style="color:var(--danger);" id="kpi-defaulters">—</div>
+              <div class="kpi-sub" id="kpi-defaulters-sub">Students need attention</div>
+            </div>
+            <div class="kpi-icon-box kpi-icon-red">⚠️</div>
+          </div>
+        </div>
+
+        <!-- Row 1: 14-day Trend & Status Distribution -->
+        <div class="charts-grid-2">
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div>
+                <div class="chart-card-title">📈 Daily Attendance Rate Trend</div>
+                <div class="chart-card-sub">Institution-wide attendance % over the last 14 active days</div>
+              </div>
+              <span class="badge badge-info" id="trend-badge">Last 14 Days</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="trendChart"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div>
+                <div class="chart-card-title">🍩 Overall Status Distribution</div>
+                <div class="chart-card-sub">Breakdown of all recorded sessions</div>
+              </div>
+            </div>
+            <div class="chart-container" style="display:flex;align-items:center;justify-content:center;">
+              <canvas id="statusChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 2: Class Performance & Period/Hour Distribution -->
+        <div class="charts-grid-equal">
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div>
+                <div class="chart-card-title">🏫 Class-wise Attendance Comparison</div>
+                <div class="chart-card-sub">Average attendance percentage per active class</div>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="classChart"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div>
+                <div class="chart-card-title">⏰ Period / Hour Distribution (H1 – H8)</div>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="hourChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 2.5: Section & Class Performance Deep Analytics -->
+        <div class="card" style="margin-bottom:1.5rem;">
+          <div class="card-header flex items-center justify-between" style="flex-wrap:wrap;gap:1rem;">
+            <div>
+              <h3 style="display:flex;align-items:center;gap:0.5rem;color:var(--gray-900);">
+                <span>🏫</span> Section-Wise & Class Performance Report
+              </h3>
+              <p class="text-xs text-muted" style="margin-top:0.25rem;">Overall attendance intelligence, section comparisons, and subject drilldowns</p>
+            </div>
+            <div class="flex items-center gap-2" style="flex-wrap:wrap;">
+              <input type="text" id="section-table-search" class="form-control" placeholder="🔍 Search class / section..." style="width:180px;font-size:0.8rem;padding:0.35rem 0.65rem;" />
+              <select id="section-filter-year" class="form-control" style="width:130px;font-size:0.8rem;padding:0.35rem 0.65rem;">
+                <option value="ALL">All Years</option>
+              </select>
+              <select id="section-filter-sec" class="form-control" style="width:130px;font-size:0.8rem;padding:0.35rem 0.65rem;">
+                <option value="ALL">All Sections</option>
+              </select>
+              <button class="btn btn-secondary" id="export-section-report-btn" style="font-size:0.8rem;padding:0.35rem 0.75rem;">
+                📥 Export Report CSV
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <!-- Section & Year Summary Comparison Badges -->
+            <div class="sec-summary-grid" id="sec-summary-cards-container">
+              <!-- Dynamically populated cards -->
+            </div>
+
+            <!-- Performance Table -->
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Class / Section</th>
+                    <th>Year & Sem</th>
+                    <th>Enrolled</th>
+                    <th>Overall Attendance</th>
+                    <th>Attended / Total</th>
+                    <th>Today</th>
+                    <th>Defaulters (&lt;75%)</th>
+                    <th>Health</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="section-table-tbody">
+                  <tr><td colspan="9" class="text-center text-muted" style="padding:2rem;">Loading section analytics…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 3: Defaulters Alert Table & Recent Activity Feed -->
+        <div class="charts-grid-2">
+          <!-- Defaulters Table -->
+          <div class="card" style="margin:0;">
+            <div class="card-header flex items-center justify-between" style="flex-wrap:wrap;gap:0.75rem;">
+              <div>
+                <h3 style="color:var(--danger);display:flex;align-items:center;gap:0.5rem;">
+                  <span>⚠️</span> Attendance Defaulters (&lt; 75%)
+                </h3>
+                <p class="text-xs text-muted" style="margin-top:0.25rem;">Students requiring mandatory attendance counseling</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <input type="text" id="defaulters-search" class="form-control" placeholder="🔍 Search name / reg no..." style="width:190px;font-size:0.8rem;padding:0.35rem 0.65rem;" />
+                <select id="defaulters-class-filter" class="form-control" style="width:140px;font-size:0.8rem;padding:0.35rem 0.65rem;">
+                  <option value="ALL">All Classes</option>
+                </select>
+              </div>
+            </div>
+            <div class="card-body" style="padding:0;">
+              <div class="table-wrapper" style="max-height:380px;overflow-y:auto;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Reg No</th>
+                      <th>Student Name</th>
+                      <th>Class</th>
+                      <th>Attended / Total</th>
+                      <th>Attendance %</th>
+                    </tr>
+                  </thead>
+                  <tbody id="defaulters-tbody">
+                    <tr><td colspan="5" class="text-center text-muted" style="padding:2rem;">Loading defaulters…</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Class Leaderboard & Live Audit Feed -->
+          <div class="flex flex-col gap-4">
+            <!-- Leaderboard -->
+            <div class="card" style="margin:0;">
+              <div class="card-header"><h4 style="font-size:0.95rem;">🏆 Class Performance Ranking</h4></div>
+              <div class="card-body" style="padding:0.75rem 1rem;" id="class-leaderboard-container">
+                <p class="text-xs text-muted">Calculating rankings…</p>
+              </div>
+            </div>
+
+            <!-- Recent Sessions Feed -->
+            <div class="card" style="margin:0;flex:1;">
+              <div class="card-header"><h4 style="font-size:0.95rem;">⚡ Recent Attendance Submissions</h4></div>
+              <div class="card-body" style="padding:0.75rem 1rem;">
+                <ul class="activity-feed-list" id="recent-activity-list">
+                  <li class="text-xs text-muted">Loading activity…</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ═══════════ CLASSES ═══════════ -->
+      <section class="section" id="section-classes">
+        <div class="action-bar">
+          <button class="btn btn-primary" id="add-class-btn">➕ Add Class</button>
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr><th>Class ID</th><th>Class Name</th><th>Year</th><th>Section</th><th>Semester</th><th>Status</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="classes-tbody">
+                  <tr><td colspan="7" class="text-center text-muted" style="padding:2rem;">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ STUDENTS ═══════════ -->
+      <section class="section" id="section-students">
+        <div class="flex items-center gap-4" style="margin-bottom:1rem;flex-wrap:wrap;">
+          <div class="form-group" style="flex:1;min-width:200px;">
+            <label class="form-label">Filter by Class</label>
+            <select id="student-class-filter" class="form-control">
+              <option value="">— Select Class —</option>
+            </select>
+          </div>
+          <div style="align-self:flex-end;">
+            <button class="btn btn-primary" id="add-student-btn">➕ Add Student</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr><th>Reg No</th><th>Name</th><th>Class</th><th>Status</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="students-tbody-admin">
+                  <tr><td colspan="5" class="text-center text-muted" style="padding:2rem;">Select a class to view students.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ FACULTY ═══════════ -->
+      <section class="section" id="section-faculty">
+        <div class="action-bar">
+          <button class="btn btn-primary" id="add-faculty-btn">➕ Add Faculty</button>
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr><th>Faculty ID</th><th>Name</th><th>Username</th><th>Role</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="faculty-tbody">
+                  <tr><td colspan="5" class="text-center text-muted" style="padding:2rem;">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ SUBJECTS ═══════════ -->
+      <section class="section" id="section-subjects">
+        <div class="flex items-center gap-4" style="margin-bottom:1rem;flex-wrap:wrap;">
+          <div class="form-group" style="flex:1;min-width:200px;">
+            <label class="form-label">Filter by Class</label>
+            <select id="subject-class-filter" class="form-control">
+              <option value="">— Select Class —</option>
+            </select>
+          </div>
+          <div style="align-self:flex-end;">
+            <button class="btn btn-primary" id="add-subject-btn">➕ Add Subject</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr><th>Subject ID</th><th>Subject Name</th><th>Class ID</th><th>Faculty ID</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="subjects-tbody">
+                  <tr><td colspan="5" class="text-center text-muted" style="padding:2rem;">Select a class to view subjects.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ REPORTS ═══════════ -->
+      <section class="section" id="section-reports">
+        <div class="card" style="margin-bottom:1.5rem;">
+          <div class="card-body flex items-center gap-4" style="flex-wrap:wrap;">
+            <div class="form-group" style="flex:1;min-width:200px;margin-bottom:0;">
+              <label class="form-label">Select Class</label>
+              <select id="report-class-filter" class="form-control">
+                <option value="">— Select Class —</option>
+              </select>
+            </div>
+            <div style="align-self:flex-end;display:flex;gap:0.5rem;">
+              <button class="btn btn-primary" id="load-report-btn">📊 Generate Report</button>
+              <button class="btn btn-secondary" id="export-csv-btn">📥 Export CSV</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="report-result" class="hidden">
+          <div class="card">
+            <div class="card-header flex items-center justify-between">
+              <h3 id="report-title">Attendance Report</h3>
+            </div>
+            <div class="card-body" style="padding:0;">
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr><th>Reg No</th><th>Student Name</th><th>Total Hours</th><th>Attended</th><th>Absent</th><th>Percentage</th></tr>
+                  </thead>
+                  <tbody id="report-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ IMPORT PAST ATTENDANCE ═══════════ -->
+      <section class="section" id="section-import">
+        <div class="card" style="max-width:640px;margin:0 auto;">
+          <div class="card-header"><h3>📥 Import Past Attendance Records</h3></div>
+          <div class="card-body">
+            <p class="text-sm text-muted" style="margin-bottom:1rem;">
+              Upload an <strong>.xlsx</strong> file with columns:
+              <span class="tag">Date</span>
+              <span class="tag">ClassID</span>
+              <span class="tag">Hour</span>
+              <span class="tag">SubjectID</span>
+              <span class="tag">RegNo</span>
+              <span class="tag">Status</span>
+              <span class="tag" style="opacity:.6;">FacultyID (opt)</span>
+            </p>
+            <div class="drop-zone" id="drop-zone">
+              <div class="drop-icon">📄</div>
+              <p class="font-semibold" style="margin-bottom:.25rem;">Drop your .xlsx file here</p>
+              <p class="text-sm text-muted">or click to browse</p>
+              <input type="file" id="import-file" accept=".xlsx" style="display:none;" />
+            </div>
+            <div id="file-chosen" class="hidden" style="margin-top:.75rem;padding:.75rem;background:var(--brand-50);border-radius:8px;display:flex;align-items:center;gap:.5rem;">
+              <span>📄</span>
+              <span id="file-name" class="text-sm font-semibold"></span>
+              <button class="btn btn-sm btn-secondary" id="clear-file-btn" style="margin-left:auto;">✕ Clear</button>
+            </div>
+            <div id="import-result" class="hidden" style="margin-top:1rem;padding:1rem;border-radius:8px;"></div>
+            <button class="btn btn-primary w-full" id="upload-btn" style="margin-top:1.25rem;" disabled>
+              <span id="upload-btn-text">📤 Upload &amp; Import</span>
+            </button>
+            <div style="margin-top:1.5rem;border-top:1px solid var(--gray-100);padding-top:1.25rem;">
+              <h4 style="margin-bottom:.75rem;">📋 Download Template</h4>
+              <button class="btn btn-secondary" id="download-template-btn">⬇️ Download Sample Template (.csv)</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ BULK SETUP ═══════════ -->
+      <section class="section" id="section-bulk">
+        <!-- Sub-tabs -->
+        <div class="tab-pills">
+          <button class="tab-pill active" data-bulk-tab="bulk-students">🧑‍🎓 Bulk Students</button>
+          <button class="tab-pill"        data-bulk-tab="bulk-faculty">👨‍🏫 Bulk Faculty</button>
+          <button class="tab-pill"        data-bulk-tab="bulk-subjects">📚 Bulk Subjects</button>
+        </div>
+
+        <!-- ── STUDENTS ── -->
+        <div class="admin-tab active" id="bulk-students">
+          <div class="card" style="max-width:640px;margin:0 auto;">
+            <div class="card-header"><h3>📥 Bulk Import Students</h3></div>
+            <div class="card-body">
+              <p class="text-sm text-muted" style="margin-bottom:1rem;">
+                Upload an <strong>.xlsx</strong> file with these columns:
+                <span class="tag">RegNo</span>
+                <span class="tag">Name</span>
+                <span class="tag">ClassID</span>
+                <span class="tag" style="opacity:.6;">ClassName (opt)</span>
+                <span class="tag" style="opacity:.6;">Username (opt)</span>
+                <span class="tag" style="opacity:.6;">Password (opt)</span>
+              </p>
+              <p class="text-xs text-muted" style="margin-bottom:1rem;">Username defaults to Name, Password defaults to RegNo if blank. Duplicate RegNos are skipped.</p>
+              <div class="drop-zone" id="drop-zone-students">
+                <div class="drop-icon">📄</div>
+                <p class="font-semibold" style="margin-bottom:.25rem;">Drop your .xlsx here</p>
+                <p class="text-sm text-muted">or click to browse</p>
+                <input type="file" id="import-file-students" accept=".xlsx" style="display:none;" />
+              </div>
+              <div id="file-chosen-students" class="hidden" style="margin-top:.75rem;padding:.75rem;background:var(--brand-50);border-radius:8px;display:flex;align-items:center;gap:.5rem;">
+                <span>📄</span>
+                <span id="file-name-students" class="text-sm font-semibold"></span>
+                <button class="btn btn-sm btn-secondary" id="clear-file-students" style="margin-left:auto;">✕ Clear</button>
+              </div>
+              <div id="import-result-students" class="hidden" style="margin-top:1rem;padding:1rem;border-radius:8px;"></div>
+              <button class="btn btn-primary w-full" id="upload-btn-students" style="margin-top:1.25rem;" disabled>
+                <span id="upload-btn-text-students">📤 Upload &amp; Import Students</span>
+              </button>
+              <div style="margin-top:1.5rem;border-top:1px solid var(--gray-100);padding-top:1.25rem;">
+                <h4 style="margin-bottom:.75rem;">📋 Download Template</h4>
+                <button class="btn btn-secondary" id="dl-template-students">⬇️ Students Template (.xlsx)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── FACULTY ── -->
+        <div class="admin-tab" id="bulk-faculty">
+          <div class="card" style="max-width:640px;margin:0 auto;">
+            <div class="card-header"><h3>📥 Bulk Import Faculty</h3></div>
+            <div class="card-body">
+              <p class="text-sm text-muted" style="margin-bottom:1rem;">
+                Upload an <strong>.xlsx</strong> file with:
+                <span class="tag">FacultyID</span>
+                <span class="tag">Name</span>
+                <span class="tag">Username</span>
+                <span class="tag">Password</span>
+              </p>
+              <p class="text-xs text-muted" style="margin-bottom:1rem;">Rows with a Username that already exists are skipped.</p>
+              <div class="drop-zone" id="drop-zone-faculty">
+                <div class="drop-icon">📄</div>
+                <p class="font-semibold" style="margin-bottom:.25rem;">Drop your .xlsx here</p>
+                <p class="text-sm text-muted">or click to browse</p>
+                <input type="file" id="import-file-faculty" accept=".xlsx" style="display:none;" />
+              </div>
+              <div id="file-chosen-faculty" class="hidden" style="margin-top:.75rem;padding:.75rem;background:var(--brand-50);border-radius:8px;display:flex;align-items:center;gap:.5rem;">
+                <span>📄</span>
+                <span id="file-name-faculty" class="text-sm font-semibold"></span>
+                <button class="btn btn-sm btn-secondary" id="clear-file-faculty" style="margin-left:auto;">✕ Clear</button>
+              </div>
+              <div id="import-result-faculty" class="hidden" style="margin-top:1rem;padding:1rem;border-radius:8px;"></div>
+              <button class="btn btn-primary w-full" id="upload-btn-faculty" style="margin-top:1.25rem;" disabled>
+                <span id="upload-btn-text-faculty">📤 Upload &amp; Import Faculty</span>
+              </button>
+              <div style="margin-top:1.5rem;border-top:1px solid var(--gray-100);padding-top:1.25rem;">
+                <h4 style="margin-bottom:.75rem;">📋 Download Template</h4>
+                <button class="btn btn-secondary" id="dl-template-faculty">⬇️ Faculty Template (.xlsx)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── SUBJECTS ── -->
+        <div class="admin-tab" id="bulk-subjects">
+          <div class="card" style="max-width:640px;margin:0 auto;">
+            <div class="card-header"><h3>📥 Bulk Import Subjects</h3></div>
+            <div class="card-body">
+              <p class="text-sm text-muted" style="margin-bottom:1rem;">
+                Upload an <strong>.xlsx</strong> file with:
+                <span class="tag">SubjectID</span>
+                <span class="tag">SubjectName</span>
+                <span class="tag">ClassID</span>
+                <span class="tag" style="opacity:.6;">FacultyID (opt)</span>
+              </p>
+              <p class="text-xs text-muted" style="margin-bottom:1rem;">ClassID must already exist in the Classes sheet.</p>
+              <div class="drop-zone" id="drop-zone-subjects">
+                <div class="drop-icon">📄</div>
+                <p class="font-semibold" style="margin-bottom:.25rem;">Drop your .xlsx here</p>
+                <p class="text-sm text-muted">or click to browse</p>
+                <input type="file" id="import-file-subjects" accept=".xlsx" style="display:none;" />
+              </div>
+              <div id="file-chosen-subjects" class="hidden" style="margin-top:.75rem;padding:.75rem;background:var(--brand-50);border-radius:8px;display:flex;align-items:center;gap:.5rem;">
+                <span>📄</span>
+                <span id="file-name-subjects" class="text-sm font-semibold"></span>
+                <button class="btn btn-sm btn-secondary" id="clear-file-subjects" style="margin-left:auto;">✕ Clear</button>
+              </div>
+              <div id="import-result-subjects" class="hidden" style="margin-top:1rem;padding:1rem;border-radius:8px;"></div>
+              <button class="btn btn-primary w-full" id="upload-btn-subjects" style="margin-top:1.25rem;" disabled>
+                <span id="upload-btn-text-subjects">📤 Upload &amp; Import Subjects</span>
+              </button>
+              <div style="margin-top:1.5rem;border-top:1px solid var(--gray-100);padding-top:1.25rem;">
+                <h4 style="margin-bottom:.75rem;">📋 Download Template</h4>
+                <button class="btn btn-secondary" id="dl-template-subjects">⬇️ Subjects Template (.xlsx)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+if (!requireAuth('ADMIN')) { /* redirected */ }
+
+document.getElementById('sidebar-name').textContent = getName() || '—';
+document.getElementById('topbar-date').textContent   = todayDisplay();
+
+// ── Chart Instances ─────────────────────────────────────────────────────────
+let trendChartInstance = null;
+let statusChartInstance = null;
+let classChartInstance = null;
+let hourChartInstance = null;
+let analyticsData = null;
+
+// ── Section nav ─────────────────────────────────────────────────────────────
+const sectionLoaders = {
+  dashboard: loadDashboardAnalytics,
+  classes:   loadClasses,
+  students:  () => populateStudentClassFilter(),
+  faculty:   loadFaculty,
+  subjects:  () => populateSubjectClassFilter(),
+  reports:   () => populateReportClassFilter(),
+  import:    () => {},
+  bulk:      () => {},
+};
+const secTitles = {
+  dashboard: 'Dashboard & Analytics',
+  classes:   'Classes',
+  students:  'Students',
+  faculty:   'Faculty',
+  subjects:  'Subjects',
+  reports:   'Reports',
+  import:    'Import Past Attendance',
+  bulk:      'Bulk Setup – Import from Excel',
+};
+
+function toggleSidebar(open) {
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  if (open === undefined) {
+    sidebar.classList.toggle('open');
+    backdrop?.classList.toggle('active', sidebar.classList.contains('open'));
+  } else if (open) {
+    sidebar.classList.add('open');
+    backdrop?.classList.add('active');
+  } else {
+    sidebar.classList.remove('open');
+    backdrop?.classList.remove('active');
+  }
+}
+
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const sec = item.dataset.section;
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    item.classList.add('active');
+    document.getElementById(`section-${sec}`).classList.add('active');
+    document.getElementById('section-title').textContent = secTitles[sec] || sec;
+    toggleSidebar(false);
+    if (sectionLoaders[sec]) sectionLoaders[sec]();
+  });
+});
+
+document.getElementById('menu-toggle').addEventListener('click', () => toggleSidebar());
+document.getElementById('sidebar-backdrop')?.addEventListener('click', () => toggleSidebar(false));
+document.getElementById('logout-btn').addEventListener('click', () => {
+  clearAuth(); window.location.href = 'index.html';
+});
+
+// ── Confirm modal ────────────────────────────────────────────────────────────
+let _confirmResolve = null;
+function openConfirm(title, msg) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent   = msg;
+  document.getElementById('confirm-modal').classList.remove('hidden');
+  return new Promise(res => { _confirmResolve = res; });
+}
+document.getElementById('confirm-cancel').addEventListener('click', () => {
+  document.getElementById('confirm-modal').classList.add('hidden');
+  if (_confirmResolve) _confirmResolve(false);
+});
+document.getElementById('confirm-ok').addEventListener('click', () => {
+  document.getElementById('confirm-modal').classList.add('hidden');
+  if (_confirmResolve) _confirmResolve(true);
+});
+
+// ── Form modal ───────────────────────────────────────────────────────────────
+let _formResolve = null;
+function openFormModal(title, bodyHtml) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML    = bodyHtml;
+  document.getElementById('form-modal').classList.remove('hidden');
+  return new Promise(res => { _formResolve = res; });
+}
+document.getElementById('modal-cancel').addEventListener('click', () => {
+  document.getElementById('form-modal').classList.add('hidden');
+  if (_formResolve) _formResolve(null);
+});
+document.getElementById('modal-submit').addEventListener('click', () => {
+  document.getElementById('form-modal').classList.add('hidden');
+  const inputs  = document.querySelectorAll('#modal-body [data-field]');
+  const result  = {};
+  inputs.forEach(el => { result[el.dataset.field] = el.value.trim(); });
+  if (_formResolve) _formResolve(result);
+});
+
+// ════════════════════════════════════════════════════════════════
+//  ANALYTICS DASHBOARD
+// ════════════════════════════════════════════════════════════════
+async function loadDashboardAnalytics() {
+  showLoader(true);
+  try {
+    analyticsData = await api.get('/admin/analytics');
+    renderKpis(analyticsData);
+    renderTrendChart(analyticsData.trend || []);
+    renderStatusChart(analyticsData.status_distribution || {});
+    renderClassChart(analyticsData.class_stats || []);
+    renderHourChart(analyticsData.hour_stats || []);
+    renderSectionSummaries(analyticsData.section_summaries || [], analyticsData.year_summaries || []);
+    populateSectionFilters(analyticsData.class_stats || []);
+    renderSectionTable(analyticsData.class_stats || []);
+    renderDefaulters(analyticsData.defaulters || []);
+    populateDefaulterClassFilter(analyticsData.class_stats || []);
+    renderLeaderboards(analyticsData.class_stats || []);
+    renderRecentActivity(analyticsData.recent_activity || []);
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    showLoader(false);
+  }
+}
+
+document.getElementById('refresh-analytics-btn').addEventListener('click', () => {
+  api.clearCache();
+  showToast('Refreshing analytics…', 'info', 1500);
+  loadDashboardAnalytics();
+});
+
+function renderKpis(d) {
+  // Overall %
+  const pct = d.overall_percentage || 0;
+  const pctEl = document.getElementById('kpi-overall-pct');
+  pctEl.textContent = `${pct}%`;
+  pctEl.style.color = pct >= 75 ? 'var(--success)' : pct >= 60 ? 'var(--warning)' : 'var(--danger)';
+  document.getElementById('kpi-overall-sub').textContent = `${d.attended_hours || 0} attended / ${d.total_hours || 0} total`;
+
+  // Today %
+  const today = d.today || {};
+  document.getElementById('kpi-today-pct').textContent = `${today.percentage || 0}%`;
+  document.getElementById('kpi-today-sub').textContent = `Present: ${today.attended || 0} | Absent: ${today.absent || 0}`;
+
+  // Students
+  document.getElementById('kpi-students').textContent = d.total_students || 0;
+  document.getElementById('kpi-students-sub').textContent = `${d.total_classes || 0} active classes`;
+
+  // Faculty & Subjects
+  document.getElementById('kpi-faculty-sub').textContent = `${d.total_faculty || 0} / ${d.total_subjects || 0}`;
+  document.getElementById('kpi-faculty-sub-text').textContent = `${d.total_faculty || 0} Faculty · ${d.total_subjects || 0} Subjects`;
+
+  // Defaulters
+  document.getElementById('kpi-defaulters').textContent = d.defaulters_count || 0;
+  document.getElementById('kpi-defaulters-sub').textContent = `${d.defaulters_count || 0} students under 75% threshold`;
+}
+
+// ── 1. Daily Trend Chart ───────────────────────────────────────────────────
+function renderTrendChart(trend) {
+  const ctx = document.getElementById('trendChart');
+  if (!ctx) return;
+  if (trendChartInstance) trendChartInstance.destroy();
+
+  const labels = trend.length ? trend.map(t => t.date) : ['No Data'];
+  const values = trend.length ? trend.map(t => t.percentage) : [0];
+
+  trendChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Attendance Rate (%)',
+        data: values,
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.08)',
+        borderWidth: 3,
+        fill: true,
+        tension: 0.35,
+        pointBackgroundColor: '#2563eb',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          min: 0,
+          max: 100,
+          ticks: { callback: v => v + '%' },
+          grid: { color: 'rgba(0,0,0,0.05)' }
+        },
+        x: { grid: { display: false } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `Attendance: ${ctx.parsed.y}%`
+          }
+        }
+      }
+    }
+  });
+}
+
+// ── 2. Status Distribution Doughnut Chart ──────────────────────────────────
+function renderStatusChart(dist) {
+  const ctx = document.getElementById('statusChart');
+  if (!ctx) return;
+  if (statusChartInstance) statusChartInstance.destroy();
+
+  const data = [dist.present || 0, dist.absent || 0, dist.on_duty || 0];
+
+  statusChartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Present (P)', 'Absent (A)', 'On-Duty / Leave (-)'],
+      datasets: [{
+        data: data.reduce((a, b) => a + b, 0) ? data : [1, 0, 0],
+        backgroundColor: ['#10b981', '#ef4444', '#f59e0b'],
+        borderWidth: 2,
+        borderColor: '#fff',
+        hoverOffset: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '70%',
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+// ── 3. Class-Wise Comparison Bar Chart ─────────────────────────────────────
+function renderClassChart(classes) {
+  const ctx = document.getElementById('classChart');
+  if (!ctx) return;
+  if (classChartInstance) classChartInstance.destroy();
+
+  const labels = classes.length ? classes.map(c => c.class_id) : ['No Classes'];
+  const values = classes.length ? classes.map(c => c.percentage) : [0];
+  const bgColors = values.map(v => v >= 75 ? 'rgba(16, 185, 129, 0.85)' : v >= 60 ? 'rgba(245, 158, 11, 0.85)' : 'rgba(239, 68, 68, 0.85)');
+
+  classChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Attendance %',
+        data: values,
+        backgroundColor: bgColors,
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          min: 0,
+          max: 100,
+          ticks: { callback: v => v + '%' },
+          grid: { color: 'rgba(0,0,0,0.05)' }
+        },
+        x: { grid: { display: false } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: items => {
+              const idx = items[0].dataIndex;
+              return classes[idx]?.class_name || classes[idx]?.class_id;
+            },
+            label: ctx => `Attendance: ${ctx.parsed.y}%`
+          }
+        }
+      }
+    }
+  });
+}
+
+// ── 4. Slot/Hour Distribution Bar Chart ────────────────────────────────────
+function renderHourChart(hours) {
+  const ctx = document.getElementById('hourChart');
+  if (!ctx) return;
+  if (hourChartInstance) hourChartInstance.destroy();
+
+  const labels = hours.map(h => h.hour);
+  const values = hours.map(h => h.percentage);
+
+  hourChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Slot Attendance %',
+        data: values,
+        backgroundColor: 'rgba(99, 102, 241, 0.8)',
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          min: 0,
+          max: 100,
+          ticks: { callback: v => v + '%' },
+          grid: { color: 'rgba(0,0,0,0.05)' }
+        },
+        x: { grid: { display: false } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: items => hours[items[0].dataIndex]?.label || items[0].label,
+            label: ctx => `Attendance: ${ctx.parsed.y}%`
+          }
+        }
+      }
+    }
+  });
+}
+
+// ── 4.5. Section & Class Performance Logic ─────────────────────────────────
+let currentClassStats = [];
+
+function renderSectionSummaries(secSummaries, yrSummaries) {
+  const container = document.getElementById('sec-summary-cards-container');
+  if (!container) return;
+  if (!secSummaries.length && !yrSummaries.length) {
+    container.innerHTML = '<p class="text-xs text-muted">No section breakdown available.</p>';
+    return;
+  }
+
+  let html = '';
+  secSummaries.forEach(s => {
+    const pct = s.percentage;
+    const color = pct >= 80 ? 'var(--success)' : pct >= 65 ? 'var(--warning)' : 'var(--danger)';
+    html += `
+      <div class="sec-summary-card">
+        <div class="sec-summary-title">
+          <span>Section ${s.section}</span>
+          <span class="badge badge-info" style="font-size:0.7rem;">${s.student_count} Enrolled</span>
+        </div>
+        <div class="sec-summary-val" style="color:${color};">${pct}%</div>
+        <div class="sec-summary-sub">${s.attended} / ${s.total} hrs · ${s.defaulters_count} defaulters</div>
+      </div>`;
+  });
+
+  yrSummaries.forEach(y => {
+    const pct = y.percentage;
+    const color = pct >= 80 ? 'var(--success)' : pct >= 65 ? 'var(--warning)' : 'var(--danger)';
+    html += `
+      <div class="sec-summary-card">
+        <div class="sec-summary-title">
+          <span>Year ${y.year}</span>
+          <span class="badge badge-secondary" style="font-size:0.7rem;">${y.student_count} Enrolled</span>
+        </div>
+        <div class="sec-summary-val" style="color:${color};">${pct}%</div>
+        <div class="sec-summary-sub">${y.attended} / ${y.total} hrs · ${y.defaulters_count} defaulters</div>
+      </div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+function populateSectionFilters(classes) {
+  const yearSel = document.getElementById('section-filter-year');
+  const secSel = document.getElementById('section-filter-sec');
+  if (!yearSel || !secSel) return;
+
+  const years = [...new Set(classes.map(c => c.year).filter(Boolean))].sort();
+  const sections = [...new Set(classes.map(c => c.section).filter(Boolean))].sort();
+
+  yearSel.innerHTML = '<option value="ALL">All Years</option>';
+  years.forEach(y => {
+    yearSel.innerHTML += `<option value="${y}">Year ${y}</option>`;
+  });
+
+  secSel.innerHTML = '<option value="ALL">All Sections</option>';
+  sections.forEach(s => {
+    secSel.innerHTML += `<option value="${s}">Section ${s}</option>`;
+  });
+}
+
+function renderSectionTable(classes) {
+  currentClassStats = classes;
+  filterSectionTable();
+}
+
+function filterSectionTable() {
+  const q = (document.getElementById('section-table-search')?.value || '').trim().toLowerCase();
+  const yearFilter = document.getElementById('section-filter-year')?.value || 'ALL';
+  const secFilter = document.getElementById('section-filter-sec')?.value || 'ALL';
+  const tbody = document.getElementById('section-table-tbody');
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+
+  const filtered = currentClassStats.filter(c => {
+    const matchesQ = !q || (c.class_id && c.class_id.toLowerCase().includes(q)) || (c.class_name && c.class_name.toLowerCase().includes(q));
+    const matchesYear = yearFilter === 'ALL' || String(c.year) === yearFilter;
+    const matchesSec = secFilter === 'ALL' || String(c.section) === secFilter;
+    return matchesQ && matchesYear && matchesSec;
+  });
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted" style="padding:2rem;">No matching classes or sections found.</td></tr>';
+    return;
+  }
+
+  filtered.forEach(c => {
+    const pct = c.percentage;
+    const barCls = pct >= 80 ? 'progress-success' : pct >= 65 ? 'progress-warn' : 'progress-danger';
+    const healthBadge = pct >= 80 ? '<span class="health-badge health-healthy">🟢 Healthy</span>' : pct >= 65 ? '<span class="health-badge health-moderate">🟡 Moderate</span>' : '<span class="health-badge health-critical">🔴 At Risk</span>';
+    const defaulterBadge = c.defaulters_count > 0 ? `<span class="badge badge-absent" style="font-weight:700;">⚠️ ${c.defaulters_count}</span>` : '<span class="badge badge-present">0</span>';
+    const todayStr = c.today_total > 0 ? `${c.today_attended}/${c.today_total} (${c.today_percentage}%)` : '<span class="text-muted text-xs">—</span>';
+
+    tbody.innerHTML += `
+      <tr>
+        <td>
+          <div style="font-weight:700;color:var(--gray-900);">${c.class_name || c.class_id}</div>
+          <div class="text-xs text-muted">ID: <span class="tag" style="padding:0.1rem 0.4rem;font-size:0.7rem;">${c.class_id}</span> · Sec ${c.section || '—'}</div>
+        </td>
+        <td>
+          <span class="badge badge-secondary">Yr ${c.year || '—'} · Sem ${c.semester || '—'}</span>
+        </td>
+        <td><strong>${c.student_count}</strong></td>
+        <td>
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <div class="progress-bar-wrap" style="width:75px;"><div class="progress-bar ${barCls}" style="width:${pct}%"></div></div>
+            <strong style="font-size:0.88rem;">${pct}%</strong>
+          </div>
+        </td>
+        <td>${c.attended} / ${c.total} <span class="text-xs text-muted">(${c.absent} abs)</span></td>
+        <td>${todayStr}</td>
+        <td>${defaulterBadge}</td>
+        <td>${healthBadge}</td>
+        <td>
+          <button class="btn btn-secondary btn-sm" onclick="openClassDrilldownModal('${c.class_id}')" style="font-size:0.75rem;padding:0.25rem 0.55rem;">
+            🔍 Drilldown
+          </button>
+        </td>
+      </tr>`;
+  });
+}
+
+function openClassDrilldownModal(classId) {
+  const cls = currentClassStats.find(c => c.class_id === classId);
+  if (!cls) return;
+
+  let subRows = '';
+  if (cls.subject_breakdown && cls.subject_breakdown.length) {
+    cls.subject_breakdown.forEach(s => {
+      const sPct = s.percentage;
+      const barCls = sPct >= 80 ? 'progress-success' : sPct >= 65 ? 'progress-warn' : 'progress-danger';
+      subRows += `
+        <div class="subject-breakdown-item">
+          <div>
+            <div style="font-weight:700;font-size:0.85rem;color:var(--gray-800);">${s.subject_name} (${s.subject_id})</div>
+            <div class="text-xs text-muted">${s.attended} attended / ${s.total} total sessions</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <div class="progress-bar-wrap" style="width:80px;"><div class="progress-bar ${barCls}" style="width:${sPct}%"></div></div>
+            <strong style="font-size:0.85rem;">${sPct}%</strong>
+          </div>
+        </div>`;
+    });
+  } else {
+    subRows = '<p class="text-xs text-muted" style="padding:0.5rem 0;">No subject-specific attendance recorded for this class yet.</p>';
+  }
+
+  const modalHtml = `
+    <div style="display:flex;flex-direction:column;gap:1rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;background:var(--gray-50);padding:0.75rem 1rem;border-radius:var(--radius-sm);border:1px solid var(--gray-200);">
+        <div>
+          <h4 style="margin:0;font-size:1.1rem;color:var(--brand-900);">${cls.class_name} (${cls.class_id})</h4>
+          <span class="text-xs text-muted">Year ${cls.year} · Section ${cls.section} · Semester ${cls.semester}</span>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:1.4rem;font-weight:800;font-family:'Outfit',sans-serif;color:${cls.percentage >= 75 ? 'var(--success)' : 'var(--danger)'};">${cls.percentage}%</div>
+          <div class="text-xs text-muted">Overall Attendance</div>
+        </div>
+      </div>
+
+      <div class="sec-summary-grid" style="margin:0;">
+        <div class="sec-summary-card">
+          <div class="sec-summary-title">Students</div>
+          <div class="sec-summary-val">${cls.student_count}</div>
+          <div class="sec-summary-sub">Active enrolled</div>
+        </div>
+        <div class="sec-summary-card">
+          <div class="sec-summary-title">Hours Logged</div>
+          <div class="sec-summary-val">${cls.total}</div>
+          <div class="sec-summary-sub">${cls.attended} present · ${cls.absent} absent</div>
+        </div>
+        <div class="sec-summary-card">
+          <div class="sec-summary-title">Defaulters</div>
+          <div class="sec-summary-val" style="color:var(--danger);">${cls.defaulters_count}</div>
+          <div class="sec-summary-sub">&lt; 75% threshold</div>
+        </div>
+      </div>
+
+      <div>
+        <h5 style="margin:0.5rem 0 0.25rem 0;font-size:0.9rem;color:var(--gray-800);">📚 Subject-Wise Attendance Breakdown</h5>
+        <div class="subject-breakdown-list">
+          ${subRows}
+        </div>
+      </div>
+    </div>
+  `;
+
+  openFormModal(`🔍 Class & Section Performance Drilldown`, modalHtml);
+}
+
+function exportSectionReportCsv() {
+  if (!currentClassStats.length) {
+    showToast('No class stats to export!', 'info');
+    return;
+  }
+  const header = 'Class ID,Class Name,Year,Section,Semester,Enrolled Students,Overall Percentage,Attended Hours,Total Hours,Absent Hours,Today Total,Today Attended,Defaulters Count\\n';
+  const rows = currentClassStats.map(c =>
+    `"${c.class_id}","${c.class_name}","${c.year}","${c.section}","${c.semester}",${c.student_count},${c.percentage}%,${c.attended},${c.total},${c.absent},${c.today_total},${c.today_attended},${c.defaulters_count}`
+  ).join('\\n');
+  const blob = new Blob([header + rows], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `section_wise_performance_report_${todayShort()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Section Performance Report exported!', 'success');
+}
+
+document.getElementById('section-table-search')?.addEventListener('input', filterSectionTable);
+document.getElementById('section-filter-year')?.addEventListener('change', filterSectionTable);
+document.getElementById('section-filter-sec')?.addEventListener('change', filterSectionTable);
+document.getElementById('export-section-report-btn')?.addEventListener('click', exportSectionReportCsv);
+
+// ── 5. Defaulters Table & Search ───────────────────────────────────────────
+let currentDefaulters = [];
+function renderDefaulters(defaulters) {
+  currentDefaulters = defaulters;
+  filterDefaulters();
+}
+
+function populateDefaulterClassFilter(classes) {
+  const sel = document.getElementById('defaulters-class-filter');
+  sel.innerHTML = '<option value="ALL">All Classes</option>';
+  classes.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.class_id;
+    opt.textContent = c.class_name || c.class_id;
+    sel.appendChild(opt);
+  });
+}
+
+function filterDefaulters() {
+  const q = (document.getElementById('defaulters-search').value || '').trim().toLowerCase();
+  const classFilter = document.getElementById('defaulters-class-filter').value;
+  const tbody = document.getElementById('defaulters-tbody');
+  tbody.innerHTML = '';
+
+  const filtered = currentDefaulters.filter(d => {
+    const matchesQ = !q || d.reg_no.toLowerCase().includes(q) || d.name.toLowerCase().includes(q);
+    const matchesClass = classFilter === 'ALL' || d.class_id === classFilter;
+    return matchesQ && matchesClass;
+  });
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:2rem;">🎉 No defaulters found in this selection (&lt; 75%).</td></tr>';
+    return;
+  }
+
+  filtered.forEach(d => {
+    const pct = d.percentage;
+    const barCls = pct >= 60 ? 'progress-warn' : 'progress-danger';
+    const badgeCls = pct >= 60 ? 'badge-warning' : 'badge-absent';
+    tbody.innerHTML += `
+      <tr>
+        <td><span class="tag" style="background:#fee2e2;color:#991b1b;">${d.reg_no}</span></td>
+        <td class="font-semibold">${d.name}</td>
+        <td>${d.class_name || d.class_id}</td>
+        <td>${d.attended} / ${d.total} hrs</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <div class="progress-bar-wrap" style="width:70px;"><div class="progress-bar ${barCls}" style="width:${pct}%"></div></div>
+            <span class="badge ${badgeCls}">${pct}%</span>
+          </div>
+        </td>
+      </tr>`;
+  });
+}
+
+document.getElementById('defaulters-search').addEventListener('input', filterDefaulters);
+document.getElementById('defaulters-class-filter').addEventListener('change', filterDefaulters);
+
+// Export Defaulters CSV
+function exportDefaultersCsv() {
+  if (!currentDefaulters.length) {
+    showToast('No defaulters to export!', 'info');
+    return;
+  }
+  const header = 'Reg No,Student Name,Class ID,Class Name,Attended Hours,Total Hours,Absent Hours,Percentage\n';
+  const rows = currentDefaulters.map(d =>
+    `"${d.reg_no}","${d.name}","${d.class_id}","${d.class_name || d.class_id}",${d.attended},${d.total},${d.absent},${d.percentage}%`
+  ).join('\n');
+  const blob = new Blob([header + rows], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `attendance_defaulters_${todayShort()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Defaulters list exported!', 'success');
+}
+
+document.getElementById('export-defaulters-top-btn').addEventListener('click', exportDefaultersCsv);
+
+// ── 6. Leaderboard & Recent Activity ───────────────────────────────────────
+function renderLeaderboards(classes) {
+  const container = document.getElementById('class-leaderboard-container');
+  if (!classes.length) {
+    container.innerHTML = '<p class="text-xs text-muted">No classes recorded.</p>';
+    return;
+  }
+  const topClasses = classes.slice(0, 3);
+  const medals = ['🥇', '🥈', '🥉'];
+  let html = '<div style="display:flex;flex-direction:column;gap:0.5rem;">';
+  topClasses.forEach((c, idx) => {
+    html += `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0.4rem 0.6rem;background:var(--gray-50);border-radius:6px;">
+        <div class="flex items-center gap-2">
+          <span>${medals[idx] || '⭐'}</span>
+          <div>
+            <div style="font-weight:700;font-size:0.85rem;">${c.class_name || c.class_id}</div>
+            <div style="font-size:0.72rem;color:var(--gray-500);">${c.student_count} students</div>
+          </div>
+        </div>
+        <span class="badge badge-info" style="font-weight:700;">${c.percentage}%</span>
+      </div>`;
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function renderRecentActivity(activity) {
+  const list = document.getElementById('recent-activity-list');
+  list.innerHTML = '';
+  if (!activity.length) {
+    list.innerHTML = '<li class="text-xs text-muted" style="padding:0.5rem;">No recent submissions recorded.</li>';
+    return;
+  }
+  activity.forEach(a => {
+    list.innerHTML += `
+      <li class="activity-feed-item">
+        <div class="feed-left">
+          <span class="feed-icon">📝</span>
+          <div>
+            <div class="feed-main">${a.class_name || a.class_id} · ${a.hour} (${a.subject_id})</div>
+            <div class="feed-sub">Marked by ${a.faculty_id} · ${a.date}</div>
+          </div>
+        </div>
+        <div class="feed-stat">
+          <span class="badge badge-info" style="font-size:0.75rem;">${a.present} P / ${a.absent} A</span>
+        </div>
+      </li>`;
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+//  CLASSES
+// ════════════════════════════════════════════════════════════════
+let allClasses = [];
+async function loadClasses() {
+  showLoader(true);
+  try {
+    allClasses = await api.get('/admin/classes');
+    renderClasses(allClasses);
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+}
+
+function renderClasses(classes) {
+  const tbody = document.getElementById('classes-tbody');
+  tbody.innerHTML = '';
+  if (!classes.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:2rem;">No classes found.</td></tr>';
+    return;
+  }
+  classes.forEach(c => {
+    tbody.innerHTML += `
+      <tr>
+        <td><span class="tag">${c.ClassID}</span></td>
+        <td class="font-semibold">${c.ClassName}</td>
+        <td>${c.Year || '—'}</td>
+        <td>${c.Section || '—'}</td>
+        <td>${c.Semester || '—'}</td>
+        <td><span class="badge ${c.Status==='ACTIVE'?'badge-info':'badge-absent'}">${c.Status}</span></td>
+        <td>
+          <div class="flex gap-2">
+            <button class="btn btn-sm btn-secondary rename-class-btn" data-id="${c.ClassID}" data-name="${c.ClassName}">✏️ Rename</button>
+            <button class="btn btn-sm btn-danger deactivate-class-btn" data-id="${c.ClassID}">🗑️</button>
+          </div>
+        </td>
+      </tr>`;
+  });
+  document.querySelectorAll('.rename-class-btn').forEach(btn => btn.addEventListener('click', renameClass));
+  document.querySelectorAll('.deactivate-class-btn').forEach(btn => btn.addEventListener('click', deactivateClass));
+}
+
+document.getElementById('add-class-btn').addEventListener('click', async () => {
+  const result = await openFormModal('➕ Add New Class', `
+    <div class="form-stack" style="gap:1rem;">
+      <div class="form-group"><label class="form-label">Class ID</label><input data-field="class_id" class="form-control" placeholder="e.g. CSE3A" /></div>
+      <div class="form-group"><label class="form-label">Class Name</label><input data-field="class_name" class="form-control" placeholder="e.g. CSE III Year A" /></div>
+      <div class="form-group"><label class="form-label">Year</label><input data-field="year" class="form-control" placeholder="e.g. 3" /></div>
+      <div class="form-group"><label class="form-label">Section</label><input data-field="section" class="form-control" placeholder="e.g. A" /></div>
+      <div class="form-group"><label class="form-label">Semester</label><input data-field="semester" class="form-control" placeholder="e.g. 5" /></div>
+    </div>`);
+  if (!result || !result.class_id || !result.class_name) return;
+  showLoader(true);
+  try {
+    await api.post('/admin/classes', result);
+    showToast('Class added successfully!', 'success');
+    loadClasses();
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+});
+
+async function renameClass(e) {
+  const id   = e.currentTarget.dataset.id;
+  const name = e.currentTarget.dataset.name;
+  const result = await openFormModal('✏️ Rename Class', `
+    <div class="form-group">
+      <label class="form-label">New Class Name</label>
+      <input data-field="new_name" class="form-control" value="${name}" />
+    </div>`);
+  if (!result?.new_name) return;
+  showLoader(true);
+  try {
+    await api.patch(`/admin/classes/${id}/rename`, { new_name: result.new_name });
+    showToast('Class renamed.','success');
+    loadClasses();
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+}
+
+async function deactivateClass(e) {
+  const id = e.currentTarget.dataset.id;
+  const ok = await openConfirm('Deactivate Class', `Are you sure you want to deactivate class "${id}"? This will hide it from the system.`);
+  if (!ok) return;
+  showLoader(true);
+  try {
+    await api.delete(`/admin/classes/${id}`);
+    showToast('Class deactivated.','success');
+    loadClasses();
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  STUDENTS
+// ════════════════════════════════════════════════════════════════
+async function populateStudentClassFilter() {
+  const sel = document.getElementById('student-class-filter');
+  if (sel.options.length > 1) return;
+  const classes = await api.get('/admin/classes').catch(() => []);
+  const allOpt = document.createElement('option');
+  allOpt.value = 'ALL'; allOpt.textContent = '🌐 All Classes (View All)';
+  sel.appendChild(allOpt);
+  classes.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c.ClassID; o.textContent = c.ClassName;
+    sel.appendChild(o);
+  });
+}
+
+document.getElementById('student-class-filter').addEventListener('change', async function() {
+  const classId = this.value;
+  const tbody = document.getElementById('students-tbody-admin');
+  if (!classId) { tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:2rem;">Select a class.</td></tr>'; return; }
+  showLoader(true);
+  try {
+    const endpoint = classId === 'ALL' ? '/admin/students' : `/admin/classes/${classId}/students`;
+    const students = await api.get(endpoint);
+    tbody.innerHTML = '';
+    if (!students.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:2rem;">No students found.</td></tr>';
+    } else {
+      students.forEach(s => {
+        tbody.innerHTML += `
+          <tr>
+            <td><span class="tag">${s.RegNo}</span></td>
+            <td class="font-semibold">${s.Name}</td>
+            <td>${s.ClassName || s.ClassID}</td>
+            <td><span class="badge ${s.Status==='ACTIVE'?'badge-info':'badge-absent'}">${s.Status}</span></td>
+            <td>
+              <button class="btn btn-sm btn-danger deactivate-student-btn" data-reg="${s.RegNo}" data-name="${s.Name}">🗑️ Remove</button>
+            </td>
+          </tr>`;
+      });
+      document.querySelectorAll('.deactivate-student-btn').forEach(btn => btn.addEventListener('click', deactivateStudent));
+    }
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+});
+
+document.getElementById('add-student-btn').addEventListener('click', async () => {
+  const classId = document.getElementById('student-class-filter').value;
+  const classes = allClasses.length ? allClasses : await api.get('/admin/classes').catch(() => []);
+  const opts = classes.map(c => `<option value="${c.ClassID}" ${c.ClassID===classId?'selected':''}>${c.ClassName}</option>`).join('');
+  const result = await openFormModal('➕ Add Student', `
+    <div class="form-stack" style="gap:1rem;">
+      <div class="form-group"><label class="form-label">Reg No</label><input data-field="reg_no" class="form-control" placeholder="e.g. 23CS001" /></div>
+      <div class="form-group"><label class="form-label">Full Name</label><input data-field="name" class="form-control" placeholder="Student full name" /></div>
+      <div class="form-group"><label class="form-label">Class</label><select data-field="class_id" class="form-control"><option value="">— Select —</option>${opts}</select></div>
+      <div class="form-group"><label class="form-label">Login Username (optional, defaults to Name)</label><input data-field="username" class="form-control" placeholder="Leave blank to use Name" /></div>
+      <div class="form-group"><label class="form-label">Login Password (optional, defaults to Reg No)</label><input data-field="password" class="form-control" type="password" placeholder="Leave blank to use Reg No" /></div>
+    </div>`);
+  if (!result?.reg_no || !result?.name || !result?.class_id) return;
+  showLoader(true);
+  try {
+    await api.post('/admin/students', result);
+    showToast(`Student '${result.name}' added!`,'success');
+    document.getElementById('student-class-filter').dispatchEvent(new Event('change'));
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+});
+
+async function deactivateStudent(e) {
+  const reg  = e.currentTarget.dataset.reg;
+  const name = e.currentTarget.dataset.name;
+  const ok = await openConfirm('Remove Student', `Remove ${name} (${reg}) from the active roster?`);
+  if (!ok) return;
+  showLoader(true);
+  try {
+    await api.delete(`/admin/students/${reg}`);
+    showToast('Student deactivated.','success');
+    document.getElementById('student-class-filter').dispatchEvent(new Event('change'));
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  FACULTY
+// ════════════════════════════════════════════════════════════════
+async function loadFaculty() {
+  showLoader(true);
+  try {
+    const faculty = await api.get('/admin/faculty');
+    const tbody = document.getElementById('faculty-tbody');
+    tbody.innerHTML = '';
+    if (!faculty.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:2rem;">No faculty accounts yet. Click ➕ Add Faculty above.</td></tr>';
+      return;
+    }
+    faculty.forEach(f => {
+      tbody.innerHTML += `
+        <tr>
+          <td><span class="tag">${f.FacultyID}</span></td>
+          <td class="font-semibold">${f.Name}</td>
+          <td>${f.Username}</td>
+          <td><span class="badge badge-info">${f.Role}</span></td>
+          <td>
+            <button class="btn btn-sm btn-danger delete-faculty-btn" data-username="${f.Username}" data-name="${f.Name}">🗑️ Delete</button>
+          </td>
+        </tr>`;
+    });
+    document.querySelectorAll('.delete-faculty-btn').forEach(btn => btn.addEventListener('click', deleteFaculty));
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+}
+
+async function deleteFaculty(e) {
+  const username = e.currentTarget.dataset.username;
+  const name     = e.currentTarget.dataset.name;
+  const ok = await openConfirm('Delete Faculty Account', `Delete login account for ${name} (${username})?`);
+  if (!ok) return;
+  showLoader(true);
+  try {
+    await api.delete(`/admin/users/${username}`);
+    showToast('Faculty deleted.','success');
+    loadFaculty();
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+}
+
+document.getElementById('add-faculty-btn').addEventListener('click', async () => {
+  const result = await openFormModal('➕ Add Faculty Account', `
+    <div class="form-stack" style="gap:1rem;">
+      <div class="form-group"><label class="form-label">Faculty ID</label><input data-field="faculty_id" class="form-control" placeholder="e.g. FAC001" /></div>
+      <div class="form-group"><label class="form-label">Full Name</label><input data-field="name" class="form-control" placeholder="Faculty full name" /></div>
+      <div class="form-group"><label class="form-label">Username</label><input data-field="username" class="form-control" placeholder="Login username" /></div>
+      <div class="form-group"><label class="form-label">Password</label><input data-field="password" class="form-control" type="password" placeholder="Login password" /></div>
+    </div>`);
+  if (!result?.faculty_id || !result?.name || !result?.username || !result?.password) {
+    showToast('All fields are required.','warning'); return;
+  }
+  showLoader(true);
+  try {
+    await api.post('/admin/faculty', result);
+    showToast(`Faculty '${result.name}' added!`,'success');
+    loadFaculty();
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+});
+
+// ════════════════════════════════════════════════════════════════
+//  SUBJECTS
+// ════════════════════════════════════════════════════════════════
+async function populateSubjectClassFilter() {
+  const sel = document.getElementById('subject-class-filter');
+  if (sel.options.length > 1) return;
+  const classes = allClasses.length ? allClasses : await api.get('/admin/classes').catch(() => []);
+  const allOpt = document.createElement('option');
+  allOpt.value = 'ALL'; allOpt.textContent = '🌐 All Classes (View All)';
+  sel.appendChild(allOpt);
+  classes.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c.ClassID; o.textContent = c.ClassName;
+    sel.appendChild(o);
+  });
+}
+
+document.getElementById('subject-class-filter').addEventListener('change', async function() {
+  const classId = this.value;
+  const tbody = document.getElementById('subjects-tbody');
+  if (!classId) { tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:2rem;">Select a class.</td></tr>'; return; }
+  showLoader(true);
+  try {
+    const endpoint = classId === 'ALL' ? '/admin/subjects' : `/admin/classes/${classId}/subjects`;
+    const subs = await api.get(endpoint);
+    tbody.innerHTML = '';
+    if (!subs.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:2rem;">No subjects yet.</td></tr>';
+      return;
+    }
+    subs.forEach(s => {
+      tbody.innerHTML += `
+        <tr>
+          <td><span class="tag">${s.SubjectID}</span></td>
+          <td class="font-semibold">${s.SubjectName}</td>
+          <td>${s.ClassID}</td>
+          <td>${s.FacultyID || '—'}</td>
+          <td>
+            <button class="btn btn-sm btn-danger del-subject-btn" data-id="${s.SubjectID}" data-name="${s.SubjectName}">🗑️ Remove</button>
+          </td>
+        </tr>`;
+    });
+    document.querySelectorAll('.del-subject-btn').forEach(btn => btn.addEventListener('click', deleteSubject));
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+});
+
+document.getElementById('add-subject-btn').addEventListener('click', async () => {
+  const classId = document.getElementById('subject-class-filter').value;
+  if (!classId) { showToast('Select a class first.','warning'); return; }
+  const result = await openFormModal('➕ Add Subject', `
+    <div class="form-stack" style="gap:1rem;">
+      <div class="form-group"><label class="form-label">Subject ID</label><input data-field="subject_id" class="form-control" placeholder="e.g. CS301" /></div>
+      <div class="form-group"><label class="form-label">Subject Name</label><input data-field="subject_name" class="form-control" placeholder="e.g. Data Structures" /></div>
+      <div class="form-group"><label class="form-label">Faculty ID (optional)</label><input data-field="faculty_id" class="form-control" placeholder="e.g. FAC001" /></div>
+    </div>`);
+  if (!result?.subject_id || !result?.subject_name) return;
+  showLoader(true);
+  try {
+    await api.post('/admin/subjects', { ...result, class_id: classId === 'ALL' ? (allClasses[0]?.ClassID || '') : classId });
+    showToast(`Subject '${result.subject_name}' added!`,'success');
+    document.getElementById('subject-class-filter').dispatchEvent(new Event('change'));
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+});
+
+async function deleteSubject(e) {
+  const id   = e.currentTarget.dataset.id;
+  const name = e.currentTarget.dataset.name;
+  const ok = await openConfirm('Remove Subject', `Remove subject "${name}" (${id})?`);
+  if (!ok) return;
+  showLoader(true);
+  try {
+    await api.delete(`/admin/subjects/${id}`);
+    showToast('Subject deactivated.','success');
+    document.getElementById('subject-class-filter').dispatchEvent(new Event('change'));
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  REPORTS
+// ════════════════════════════════════════════════════════════════
+let reportData = [];
+async function populateReportClassFilter() {
+  const sel = document.getElementById('report-class-filter');
+  if (sel.options.length > 1) return;
+  const classes = allClasses.length ? allClasses : await api.get('/admin/classes').catch(() => []);
+  classes.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c.ClassID; o.textContent = c.ClassName;
+    sel.appendChild(o);
+  });
+}
+
+document.getElementById('load-report-btn').addEventListener('click', async () => {
+  const classId = document.getElementById('report-class-filter').value;
+  if (!classId) { showToast('Select a class.','warning'); return; }
+  showLoader(true);
+  try {
+    reportData = await api.get(`/admin/reports/class/${classId}`);
+    const cls  = allClasses.find(c => c.ClassID === classId);
+    document.getElementById('report-title').textContent = `Attendance – ${cls?.ClassName || classId}`;
+    renderReport(reportData);
+    document.getElementById('report-result').classList.remove('hidden');
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+});
+
+function renderReport(data) {
+  const tbody = document.getElementById('report-tbody');
+  tbody.innerHTML = '';
+  data.forEach(r => {
+    const pct = r.percentage;
+    const barCls  = pct>=75?'progress-good':pct>=60?'progress-warn':'progress-danger';
+    const badgeCls= pct>=75?'badge-info':pct>=60?'badge-warning':'badge-absent';
+    tbody.innerHTML += `
+      <tr>
+        <td>${r.reg_no}</td>
+        <td class="font-semibold">${r.name}</td>
+        <td>${r.total}</td>
+        <td>${r.attended}</td>
+        <td>${r.total - r.attended}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <div class="progress-bar-wrap" style="width:80px;"><div class="progress-bar ${barCls}" style="width:${pct}%"></div></div>
+            <span class="badge ${badgeCls}">${pct}%</span>
+          </div>
+        </td>
+      </tr>`;
+  });
+}
+
+// CSV export
+document.getElementById('export-csv-btn').addEventListener('click', () => {
+  if (!reportData.length) { showToast('No data to export.','warning'); return; }
+  const header = 'Reg No,Name,Total Hours,Attended,Absent,Percentage\n';
+  const rows   = reportData.map(r => `${r.reg_no},${r.name},${r.total},${r.attended},${r.total-r.attended},${r.percentage}%`).join('\n');
+  const blob   = new Blob([header + rows], { type: 'text/csv' });
+  const url    = URL.createObjectURL(blob);
+  const a      = document.createElement('a');
+  a.href = url; a.download = 'attendance_report.csv'; a.click();
+  URL.revokeObjectURL(url);
+});
+
+// ════════════════════════════════════════════════════════════════
+//  IMPORT PAST ATTENDANCE
+// ════════════════════════════════════════════════════════════════
+const dropZone  = document.getElementById('drop-zone');
+const fileInput = document.getElementById('import-file');
+let importFile  = null;
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragging'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragging'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('dragging');
+  const f = e.dataTransfer.files[0];
+  if (f?.name.endsWith('.xlsx')) setImportFile(f);
+  else showToast('Please drop a .xlsx file.','warning');
+});
+fileInput.addEventListener('change', e => { if (e.target.files[0]) setImportFile(e.target.files[0]); });
+
+function setImportFile(f) {
+  importFile = f;
+  document.getElementById('file-name').textContent = f.name;
+  document.getElementById('file-chosen').classList.remove('hidden');
+  document.getElementById('upload-btn').disabled = false;
+  document.getElementById('import-result').classList.add('hidden');
+}
+
+document.getElementById('clear-file-btn').addEventListener('click', () => {
+  importFile = null;
+  fileInput.value = '';
+  document.getElementById('file-chosen').classList.add('hidden');
+  document.getElementById('upload-btn').disabled = true;
+  document.getElementById('import-result').classList.add('hidden');
+});
+
+document.getElementById('upload-btn').addEventListener('click', async () => {
+  if (!importFile) return;
+  const btn     = document.getElementById('upload-btn');
+  const btnText = document.getElementById('upload-btn-text');
+  btn.disabled  = true;
+  btnText.innerHTML = '<span class="spinner"></span> Importing…';
+  const resultEl = document.getElementById('import-result');
+
+  const formData = new FormData();
+  formData.append('file', importFile);
+
+  try {
+    const res = await api.upload('/admin/import/attendance', formData);
+    resultEl.style.background = '#d1fae5';
+    resultEl.innerHTML = `
+      <p style="color:#065f46;font-weight:700;margin-bottom:0.5rem;">✅ Import Successful!</p>
+      <p class="text-sm">${res.message}</p>
+      <div class="flex gap-4" style="margin-top:0.5rem;">
+        <span class="badge badge-info">Total rows: ${res.total_rows}</span>
+        <span class="badge badge-info">Inserted: ${res.inserted}</span>
+        <span class="badge badge-warning">Skipped: ${res.skipped}</span>
+      </div>`;
+    resultEl.classList.remove('hidden');
+  } catch(e) {
+    resultEl.style.background = '#fee2e2';
+    resultEl.innerHTML = `<p style="color:#991b1b;font-weight:700;">❌ Import Failed</p><p class="text-sm">${e.message}</p>`;
+    resultEl.classList.remove('hidden');
+  } finally {
+    btn.disabled  = false;
+    btnText.textContent = '📤 Upload & Import';
+  }
+});
+
+// Template download
+document.getElementById('download-template-btn').addEventListener('click', () => {
+  const header = 'Date,ClassID,Hour,SubjectID,RegNo,Status,FacultyID\n';
+  const sample = '29-09-2026,CSE3A,H1,CS301,23CS001,P,FAC001\n29-09-2026,CSE3A,H1,CS301,23CS002,A,FAC001\n';
+  const blob   = new Blob([header + sample], { type: 'text/csv' });
+  const url    = URL.createObjectURL(blob);
+  const a      = document.createElement('a');
+  a.href = url; a.download = 'attendance_import_template.csv'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('Template downloaded! Open it in Excel and save as .xlsx before uploading.','info', 5000);
+});
+
+// ════════════════════════════════════════════════════════════════
+//  BULK SETUP – sub-tab switching
+// ════════════════════════════════════════════════════════════════
+document.querySelectorAll('[data-bulk-tab]').forEach(pill => {
+  pill.addEventListener('click', () => {
+    document.querySelectorAll('[data-bulk-tab]').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+    pill.classList.add('active');
+    document.getElementById(pill.dataset.bulkTab).classList.add('active');
+  });
+});
+
+// ── Generic upload widget wiring ─────────────────────────────────────────────
+function wireBulkUpload({ dropId, inputId, fileChosenId, fileNameId, clearBtnId,
+                          resultId, uploadBtnId, uploadBtnTextId, endpoint, templateFn }) {
+  const dropZone  = document.getElementById(dropId);
+  const fileInput = document.getElementById(inputId);
+  let currentFile = null;
+
+  dropZone.addEventListener('click', () => fileInput.click());
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragging'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragging'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('dragging');
+    const f = e.dataTransfer.files[0];
+    if (f?.name.toLowerCase().endsWith('.xlsx')) setFile(f);
+    else showToast('Please drop a .xlsx file.', 'warning');
+  });
+  fileInput.addEventListener('change', e => { if (e.target.files[0]) setFile(e.target.files[0]); });
+
+  function setFile(f) {
+    currentFile = f;
+    document.getElementById(fileNameId).textContent = f.name;
+    document.getElementById(fileChosenId).classList.remove('hidden');
+    document.getElementById(uploadBtnId).disabled = false;
+    document.getElementById(resultId).classList.add('hidden');
+  }
+
+  document.getElementById(clearBtnId).addEventListener('click', () => {
+    currentFile = null; fileInput.value = '';
+    document.getElementById(fileChosenId).classList.add('hidden');
+    document.getElementById(uploadBtnId).disabled = true;
+    document.getElementById(resultId).classList.add('hidden');
+  });
+
+  document.getElementById(uploadBtnId).addEventListener('click', async () => {
+    if (!currentFile) return;
+    const btn     = document.getElementById(uploadBtnId);
+    const btnText = document.getElementById(uploadBtnTextId);
+    btn.disabled  = true;
+    btnText.innerHTML = '<span class="spinner"></span> Importing…';
+    const resultEl = document.getElementById(resultId);
+    const formData = new FormData();
+    formData.append('file', currentFile);
+    try {
+      const res = await api.upload(endpoint, formData);
+      resultEl.style.cssText = 'background:#d1fae5;border:1px solid #6ee7b7;';
+      resultEl.innerHTML = `
+        <p style="color:#065f46;font-weight:700;margin-bottom:.5rem;">✅ Import Successful!</p>
+        <p class="text-sm">${res.message}</p>
+        <div class="flex gap-4" style="margin-top:.5rem;flex-wrap:wrap;">
+          <span class="badge badge-info">Inserted: ${res.inserted}</span>
+          <span class="badge badge-warning">Skipped: ${res.skipped ?? 0}</span>
+        </div>`;
+      resultEl.classList.remove('hidden');
+      showToast(res.message, 'success');
+    } catch(e) {
+      resultEl.style.cssText = 'background:#fee2e2;border:1px solid #fca5a5;';
+      resultEl.innerHTML = `<p style="color:#991b1b;font-weight:700;">❌ Import Failed</p><p class="text-sm">${e.message}</p>`;
+      resultEl.classList.remove('hidden');
+      showToast('Import failed. Check the error details.', 'error');
+    } finally {
+      btn.disabled  = false;
+      btnText.innerHTML = btnText.innerHTML.replace(/<span.*<\/span>\s*/, '');
+      btnText.textContent = uploadBtnTextId.replace('upload-btn-text-', '📤 Upload & Import ');
+    }
+  });
+
+  const dlBtn = document.getElementById('dl-template-' + endpoint.split('/').pop());
+  if (dlBtn) dlBtn.addEventListener('click', templateFn);
+}
+
+// ── Wire each bulk tab ───────────────────────────────────────────────────────
+wireBulkUpload({
+  dropId: 'drop-zone-students', inputId: 'import-file-students',
+  fileChosenId: 'file-chosen-students', fileNameId: 'file-name-students',
+  clearBtnId: 'clear-file-students', resultId: 'import-result-students',
+  uploadBtnId: 'upload-btn-students', uploadBtnTextId: 'upload-btn-text-students',
+  endpoint: '/admin/import/students',
+  templateFn: () => downloadCsvTemplate(
+    'students_import_template.csv',
+    'RegNo,Name,ClassID,ClassName,Username,Password\n23CS001,Arjun Kumar,CSE3A,CSE III Year A,,\n23CS002,Priya Sharma,CSE3A,CSE III Year A,,\n',
+    'Open in Excel → File → Save As → .xlsx before uploading.'
+  ),
+});
+
+wireBulkUpload({
+  dropId: 'drop-zone-faculty', inputId: 'import-file-faculty',
+  fileChosenId: 'file-chosen-faculty', fileNameId: 'file-name-faculty',
+  clearBtnId: 'clear-file-faculty', resultId: 'import-result-faculty',
+  uploadBtnId: 'upload-btn-faculty', uploadBtnTextId: 'upload-btn-text-faculty',
+  endpoint: '/admin/import/faculty',
+  templateFn: () => downloadCsvTemplate(
+    'faculty_import_template.csv',
+    'FacultyID,Name,Username,Password\nFAC001,Dr. Ramesh Babu,ramesh.babu,Pass@123\nFAC002,Prof. Kavitha,kavitha.r,Pass@456\n',
+    'Fill in your faculty details and save as .xlsx.'
+  ),
+});
+
+wireBulkUpload({
+  dropId: 'drop-zone-subjects', inputId: 'import-file-subjects',
+  fileChosenId: 'file-chosen-subjects', fileNameId: 'file-name-subjects',
+  clearBtnId: 'clear-file-subjects', resultId: 'import-result-subjects',
+  uploadBtnId: 'upload-btn-subjects', uploadBtnTextId: 'upload-btn-text-subjects',
+  endpoint: '/admin/import/subjects',
+  templateFn: () => downloadCsvTemplate(
+    'subjects_import_template.csv',
+    'SubjectID,SubjectName,ClassID,FacultyID\nCS301,Data Structures,CSE3A,FAC001\nCS302,Computer Networks,CSE3A,FAC002\n',
+    'ClassID must match an existing class. FacultyID is optional.'
+  ),
+});
+
+function downloadCsvTemplate(filename, csvContent, toastMsg) {
+  const blob = new Blob([csvContent], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+  showToast(toastMsg, 'info', 6000);
+}
+
+// ── Initial Load: Analytics Dashboard ────────────────────────────────────────
+loadDashboardAnalytics();
+</script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: attendtrax-api
+    env: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD_HASH
+        sync: false
+      - key: ADMIN_NAME
+        value: System Administrator
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 480
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: SPREADSHEET_FOLDER_ID
+        sync: false
+      - key: USERS_SHEET_ID
+        sync: false
+      - key: CLASSES_SHEET_ID
+        sync: false
+      - key: STUDENTS_SHEET_ID
+        sync: false
+      - key: SUBJECTS_SHEET_ID
+        sync: false
+      - key: ATTENDANCE_LOG_SHEET_ID
+        sync: false
