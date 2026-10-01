@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AttendTrax – My Attendance</title>
+  <meta name="description" content="Student attendance portal – view your overall and subject-wise attendance summary." />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" onload="this.rel='stylesheet'" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" /></noscript>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23059669'/><text y='.9em' font-size='60' x='50%' text-anchor='middle' dy='.1em' fill='white' font-family='sans-serif' font-weight='bold'>S</text></svg>" />
+  <style>
+    /* Student – green sidebar */
+    .sidebar {
+      background: linear-gradient(180deg, #064e3b 0%, #065f46 50%, #059669 100%);
+    }
+    .sidebar-brand .brand-name { color: #fff; }
+    .sidebar-brand .brand-sub  { color: rgb(255 255 255 / 0.50); }
+    .sidebar-user .user-avatar { background: rgb(255 255 255 / 0.18); }
+    .nav-item.active           { border-left-color: #6ee7b7; }
+
+    /* Profile card avatar */
+    .profile-avatar {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #10b981, #059669);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .profile-avatar svg { color: #fff; }
+
+    /* Big percentage display */
+    .big-pct {
+      font-size: 2.75rem;
+      font-weight: 800;
+      font-family: 'Outfit', sans-serif;
+      line-height: 1;
+    }
+    .pct-label { font-size: 0.8rem; color: var(--gray-500); margin-top: 0.2rem; }
+
+    /* Shortage warning */
+    .shortage-box {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.625rem;
+      padding: 0.75rem 1rem;
+      background: #fef3c7;
+      border: 1px solid #fde68a;
+      border-left: 3px solid #f59e0b;
+      border-radius: var(--radius-md);
+      margin-top: 1rem;
+    }
+    .shortage-box svg { flex-shrink: 0; color: #b45309; margin-top: 2px; }
+    .shortage-box p   { font-size: 0.825rem; color: #92400e; font-weight: 600; }
+
+    /* Calendar table */
+    .calendar-table td { text-align: center; min-width: 30px; }
+    .calendar-table th { text-align: center; }
+    .cal-P  { background: #d1fae5; color: #065f46; font-weight: 700; border-radius: 4px; }
+    .cal-A  { background: #fee2e2; color: #991b1b; font-weight: 700; border-radius: 4px; }
+    .cal-fr { color: var(--gray-300); }
+    .cal-na { color: var(--gray-200); }
+
+    /* Section heading */
+    .section-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.1rem;
+    }
+    .section-heading h2 { font-size: 1.05rem; font-weight: 700; }
+    .section-heading span { font-size: 0.8rem; color: var(--gray-400); }
+
+    @media (max-width: 480px) {
+      .profile-avatar { width: 44px; height: 44px; }
+      .big-pct { font-size: 2.2rem; }
+      .donut-wrap { gap: 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+<div id="toast-container"></div>
+<div id="page-loader" class="page-loader">
+  <div class="loader-ring"></div>
+  <p>Loading your attendance&hellip;</p>
+</div>
+
+<!-- Sidebar overlay -->
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+<div class="app-layout">
+  <!-- ══════════════════ SIDEBAR ══════════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-name">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+          <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/>
+        </svg>
+        AttendTrax
+      </div>
+      <div class="brand-sub">Student Portal</div>
+    </div>
+
+    <div class="sidebar-user">
+      <div class="user-avatar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+        </svg>
+      </div>
+      <div class="user-info">
+        <div class="user-name" id="sidebar-name">—</div>
+        <span class="user-role role-student">Student</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-item active" data-section="overview">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+          </svg>
+        </span>
+        Overview
+      </div>
+      <div class="nav-item" data-section="subjects">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
+          </svg>
+        </span>
+        Subject-wise
+      </div>
+      <div class="nav-item" data-section="history">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </span>
+        Day-wise History
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="logout-btn" id="logout-btn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <!-- ══════════════════ MAIN ══════════════════ -->
+  <div class="main-content">
+    <header class="topbar">
+      <div class="flex items-center gap-4">
+        <button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <span class="topbar-title" id="section-title">My Attendance</span>
+      </div>
+      <span class="topbar-date" id="topbar-date"></span>
+    </header>
+
+    <main class="page-content">
+
+      <!-- ─── OVERVIEW ─── -->
+      <section class="section active" id="section-overview">
+
+        <!-- Profile card -->
+        <div class="card" style="margin-bottom:1rem;">
+          <div class="card-body" style="display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;">
+            <div class="profile-avatar">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+              </svg>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <h3 id="student-full-name" style="font-size:1rem;">—</h3>
+              <div class="flex gap-4" style="margin-top:0.25rem;flex-wrap:wrap;">
+                <span class="text-sm text-muted">Reg No: <strong id="student-reg">—</strong></span>
+                <span class="text-sm text-muted">Class: <strong id="student-class">—</strong></span>
+              </div>
+            </div>
+            <div style="text-align:right;flex-shrink:0;">
+              <p class="text-xs text-muted">As of today</p>
+              <p class="text-xs text-muted" id="as-of-date">—</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats row -->
+        <div class="stat-grid" style="margin-bottom:1rem;">
+          <div class="stat-card" style="--accent:#3b82f6;">
+            <div class="stat-label">Total Hours</div>
+            <div class="stat-value" id="stat-total">—</div>
+            <div class="stat-sub">Scheduled so far</div>
+          </div>
+          <div class="stat-card" style="--accent:#10b981;">
+            <div class="stat-label">Attended</div>
+            <div class="stat-value" id="stat-attended">—</div>
+            <div class="stat-sub">Hours present</div>
+          </div>
+          <div class="stat-card" style="--accent:#ef4444;">
+            <div class="stat-label">Absent</div>
+            <div class="stat-value" id="stat-absent">—</div>
+            <div class="stat-sub">Hours missed</div>
+          </div>
+          <div class="stat-card" style="--accent:#6366f1;">
+            <div class="stat-label">Attendance</div>
+            <div class="stat-value" id="stat-pct">—</div>
+            <div class="stat-sub">Overall percentage</div>
+          </div>
+        </div>
+
+        <!-- Donut + progress -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Attendance Summary</h3>
+          </div>
+          <div class="card-body donut-wrap">
+            <!-- SVG donut -->
+            <div style="flex-shrink:0;">
+              <svg width="130" height="130" viewBox="0 0 130 130">
+                <circle cx="65" cy="65" r="52" fill="none" stroke="var(--gray-200)" stroke-width="14"/>
+                <circle id="donut-circle" cx="65" cy="65" r="52" fill="none" stroke="#10b981"
+                  stroke-width="14" stroke-linecap="round"
+                  stroke-dasharray="326.73" stroke-dashoffset="326.73"
+                  transform="rotate(-90 65 65)"
+                  style="transition:stroke-dashoffset 1s cubic-bezier(.4,0,.2,1);"/>
+                <text x="65" y="62" text-anchor="middle" font-family="Outfit,sans-serif" font-size="20" font-weight="800" fill="var(--gray-900)" id="donut-text">0%</text>
+                <text x="65" y="78" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" fill="var(--gray-400)">Attendance</text>
+              </svg>
+            </div>
+            <div class="donut-info">
+              <div class="pct-stats">
+                <div class="pct-stat">
+                  <span class="label">Total Hours</span>
+                  <span class="val" id="di-total">—</span>
+                </div>
+                <div class="pct-stat">
+                  <span class="label">Present</span>
+                  <span class="val" style="color:#059669;" id="di-attended">—</span>
+                </div>
+                <div class="pct-stat">
+                  <span class="label">Absent</span>
+                  <span class="val" style="color:#dc2626;" id="di-absent">—</span>
+                </div>
+              </div>
+
+              <div id="shortage-warning" class="shortage-box hidden">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <p id="shortage-msg"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── SUBJECT-WISE ─── -->
+      <section class="section" id="section-subjects">
+        <div class="section-heading">
+          <h2>Subject-wise Attendance</h2>
+        </div>
+        <div class="subject-grid" id="subject-grid">
+          <p class="text-muted text-sm">Loading subjects&hellip;</p>
+        </div>
+      </section>
+
+      <!-- ─── DAY-WISE HISTORY ─── -->
+      <section class="section" id="section-history">
+        <div class="section-heading">
+          <h2>Day-wise History</h2>
+          <span>Last 60 entries</span>
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrapper">
+              <table class="calendar-table">
+                <thead>
+                  <tr>
+                    <th style="text-align:left;white-space:nowrap;">Date</th>
+                    <th>H1</th><th>H2</th><th>H3</th><th>H4</th>
+                    <th>H5</th><th>H6</th><th>H7</th><th>H8</th>
+                  </tr>
+                </thead>
+                <tbody id="history-tbody">
+                  <tr><td colspan="9" class="empty-state">Loading&hellip;</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+if (!requireAuth('STUDENT')) { /* redirected */ }
+
+document.getElementById('sidebar-name').textContent = getName() || '—';
+document.getElementById('topbar-date').textContent  = todayDisplay();
+document.getElementById('as-of-date').textContent   = todayShort();
+
+// ── Section nav ────────────────────────────────────────────────────────────
+const secTitles = {
+  overview: 'My Attendance',
+  subjects: 'Subject-wise Attendance',
+  history:  'Day-wise History'
+};
+const sidebarEl = document.getElementById('sidebar');
+const overlayEl = document.getElementById('sidebar-overlay');
+
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const sec = item.dataset.section;
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    item.classList.add('active');
+    document.getElementById(`section-${sec}`).classList.add('active');
+    document.getElementById('section-title').textContent = secTitles[sec] || sec;
+    sidebarEl.classList.remove('open');
+  });
+});
+
+document.getElementById('menu-toggle').addEventListener('click', () => {
+  sidebarEl.classList.toggle('open');
+});
+overlayEl.addEventListener('click', () => sidebarEl.classList.remove('open'));
+document.getElementById('logout-btn').addEventListener('click', () => {
+  clearAuth(); window.location.href = 'index.html';
+});
+
+// ── Load data ──────────────────────────────────────────────────────────────
+let attendanceData = null;
+
+async function loadStudentData() {
+  showLoader(true);
+  try {
+    const [profile, attendance] = await Promise.all([
+      api.get('/student/profile'),
+      api.get('/student/attendance'),
+    ]);
+
+    attendanceData = attendance;
+
+    // Profile
+    document.getElementById('student-full-name').textContent = profile.Name    || '—';
+    document.getElementById('student-reg').textContent       = profile.RegNo   || '—';
+    document.getElementById('student-class').textContent     = profile.ClassName || '—';
+
+    // Stats
+    const total    = attendance.total_hours;
+    const attended = attendance.attended_hours;
+    const absent   = total - attended;
+    const pct      = attendance.percentage;
+
+    document.getElementById('stat-total').textContent    = total;
+    document.getElementById('stat-attended').textContent = attended;
+    document.getElementById('stat-absent').textContent   = absent;
+    document.getElementById('stat-pct').textContent      = `${pct}%`;
+
+    // Donut – circumference = 2π × 52 ≈ 326.73
+    const CIRCUMFERENCE = 326.73;
+    const offset = CIRCUMFERENCE - (pct / 100) * CIRCUMFERENCE;
+    const donut  = document.getElementById('donut-circle');
+    const donutColor = pct >= 75 ? '#10b981' : pct >= 60 ? '#f59e0b' : '#ef4444';
+    donut.setAttribute('stroke', donutColor);
+    donut.setAttribute('stroke-dashoffset', CIRCUMFERENCE);
+    setTimeout(() => donut.setAttribute('stroke-dashoffset', offset), 80);
+    document.getElementById('donut-text').textContent = `${pct}%`;
+
+    document.getElementById('di-total').textContent    = total;
+    document.getElementById('di-attended').textContent = attended;
+    document.getElementById('di-absent').textContent   = absent;
+
+    // Shortage warning
+    if (pct < 75 && total > 0) {
+      const needed = Math.ceil(0.75 * total - attended);
+      document.getElementById('shortage-msg').textContent =
+        `You need ${needed} more present hour${needed !== 1 ? 's' : ''} to reach 75%.`;
+      document.getElementById('shortage-warning').classList.remove('hidden');
+    }
+
+    // Subjects & History
+    renderSubjectGrid(attendance.subject_summary);
+    renderHistory(attendance.datewise);
+
+  } catch(e) {
+    showToast(e.message, 'error');
+  } finally {
+    showLoader(false);
+  }
+}
+loadStudentData();
+
+// ── Render subject grid ────────────────────────────────────────────────────
+const SUBJECT_COLORS = ['#3b82f6','#10b981','#8b5cf6','#f59e0b','#ef4444','#06b6d4','#ec4899','#84cc16'];
+function renderSubjectGrid(subjects) {
+  const grid = document.getElementById('subject-grid');
+  if (!subjects || subjects.length === 0) {
+    grid.innerHTML = '<p class="text-muted text-sm">No subject data available.</p>';
+    return;
+  }
+  grid.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  subjects.forEach((s, i) => {
+    const pct    = s.percentage;
+    const cls    = pct >= 75 ? 'good' : pct >= 60 ? 'warn' : 'danger';
+    const barCls = pct >= 75 ? 'progress-good' : pct >= 60 ? 'progress-warn' : 'progress-danger';
+    const color  = SUBJECT_COLORS[i % SUBJECT_COLORS.length];
+    const card   = document.createElement('div');
+    card.className = 'subject-card';
+    card.style.setProperty('--subj-accent', color);
+    card.innerHTML = `
+      <div class="subj-name">${s.subject_name}</div>
+      <div class="subj-pct ${cls}">${pct}%</div>
+      <div style="margin-top:0.5rem;">
+        <div class="progress-bar-wrap"><div class="progress-bar ${barCls}" style="width:${pct}%"></div></div>
+      </div>
+      <div class="flex justify-between" style="margin-top:0.4rem;">
+        <span class="text-xs text-muted">${s.attended} / ${s.total} hours</span>
+        <span class="badge ${pct>=75?'badge-info':pct>=60?'badge-warning':'badge-absent'}">${pct>=75?'On Track':pct>=60?'Low':'Critical'}</span>
+      </div>`;
+    frag.appendChild(card);
+  });
+  grid.appendChild(frag);
+}
+
+// ── Render history table ───────────────────────────────────────────────────
+function renderHistory(rows) {
+  const tbody = document.getElementById('history-tbody');
+  if (!rows || rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No attendance records found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  [...rows].reverse().forEach(row => {
+    const hours = ['H1','H2','H3','H4','H5','H6','H7','H8'];
+    const tr    = document.createElement('tr');
+    const cells = hours.map(h => {
+      const v   = row[h] || '-';
+      const cls = v === 'P' ? 'cal-P' : v === 'A' ? 'cal-A' : v === '-' ? 'cal-fr' : 'cal-na';
+      return `<td class="${cls}" style="padding:4px 6px;">${v === '-' ? '—' : v}</td>`;
+    }).join('');
+    tr.innerHTML = `<td style="white-space:nowrap;font-size:0.8rem;padding:6px 10px;font-weight:500;">${row.date}</td>${cells}`;
+    frag.appendChild(tr);
+  });
+  tbody.appendChild(frag);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AttendTrax – Admin Dashboard</title>
+  <meta name="description" content="Admin control panel for AttendTrax – manage classes, students, faculty, subjects, and attendance data." />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" onload="this.rel='stylesheet'" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" /></noscript>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231e40af'/><text y='.9em' font-size='60' x='50%' text-anchor='middle' dy='.1em' fill='white' font-family='sans-serif' font-weight='bold'>A</text></svg>" />
+  <style>
+    /* Admin-specific sidebar gradient */
+    .sidebar { background: linear-gradient(180deg, #1e1b4b 0%, #312e81 50%, #4f46e5 100%); }
+    .role-admin { background: #fef3c7; color: #92400e; }
+
+    /* Refresh data btn */
+    .refresh-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      background: rgb(255 255 255 / 0.10);
+      border: 1px solid rgb(255 255 255 / 0.15);
+      border-radius: var(--radius-sm);
+      color: rgb(255 255 255 / 0.75);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      margin-bottom: 0.75rem;
+      font-family: inherit;
+    }
+    .refresh-btn:hover { background: rgb(255 255 255 / 0.16); color: #fff; }
+    .refresh-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* Filter row */
+    .filter-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 0.875rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .filter-row .form-group { flex: 1; min-width: 200px; }
+  </style>
+</head>
+<body>
+<div id="toast-container"></div>
+<div id="page-loader" class="page-loader">
+  <div class="loader-ring"></div>
+  <p>Loading data&hellip;</p>
+</div>
+
+<!-- Confirm Modal -->
+<div id="confirm-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title" id="confirm-title">Confirm Action</span>
+    </div>
+    <p id="confirm-msg" style="color:var(--gray-600);font-size:0.9rem;margin-bottom:1.5rem;line-height:1.6;"></p>
+    <div class="flex gap-4 justify-between">
+      <button class="btn btn-secondary" id="confirm-cancel">Cancel</button>
+      <button class="btn btn-danger"    id="confirm-ok">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Generic Form Modal -->
+<div id="form-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title"></span>
+    </div>
+    <div id="modal-body"></div>
+    <div class="flex gap-4 justify-between" style="margin-top:1.5rem;">
+      <button class="btn btn-secondary" id="modal-cancel">Cancel</button>
+      <button class="btn btn-primary"   id="modal-submit">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sidebar overlay for mobile -->
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+<div class="app-layout">
+  <!-- ══════════════════ SIDEBAR ══════════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-name">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+          <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/>
+        </svg>
+        AttendTrax
+      </div>
+      <div class="brand-sub">Admin Control Panel</div>
+    </div>
+
+    <div class="sidebar-user">
+      <div class="user-avatar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+        </svg>
+      </div>
+      <div class="user-info">
+        <div class="user-name" id="sidebar-name">—</div>
+        <span class="user-role role-admin">Admin</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-item active" data-section="classes">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+        </span>
+        Classes
+      </div>
+      <div class="nav-item" data-section="students">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
+          </svg>
+        </span>
+        Students
+      </div>
+      <div class="nav-item" data-section="faculty">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+        </span>
+        Faculty
+      </div>
+      <div class="nav-item" data-section="subjects">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
+          </svg>
+        </span>
+        Subjects
+      </div>
+      <div class="nav-item" data-section="reports">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 20V10M12 20V4M6 20v-6"/>
+          </svg>
+        </span>
+        Reports
+      </div>
+      <div class="nav-item" data-section="import">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+        </span>
+        Import Attendance
+      </div>
+      <div class="nav-item" data-section="bulk">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
+            <path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/>
+          </svg>
+        </span>
+        Bulk Setup
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="refresh-btn" id="refresh-cache-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+        </svg>
+        Refresh Data
+      </button>
+      <button class="logout-btn" id="logout-btn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <!-- ══════════════════ MAIN ══════════════════ -->
+  <div class="main-content">
+    <header class="topbar">
+      <div class="flex items-center gap-4">
+        <button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <span class="topbar-title" id="section-title">Classes</span>
+      </div>
+      <span class="topbar-date" id="topbar-date"></span>
+    </header>
+
+    <main class="page-content">
+
+      <!-- ═══════════ CLASSES ═══════════ -->
+      <section class="section active" id="section-classes">
+        <div class="action-bar">
+          <div><!-- spacer --></div>
+          <div class="action-bar-right">
+            <button class="btn btn-primary" id="add-class-btn">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Class
+            </button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Class ID</th>
+                    <th>Class Name</th>
+                    <th>Year</th>
+                    <th>Section</th>
+                    <th>Semester</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="classes-tbody">
+                  <tr><td colspan="7" class="empty-state">Loading&hellip;</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ STUDENTS ═══════════ -->
+      <section class="section" id="section-students">
+        <div class="filter-row">
+          <div class="form-group">
+            <label class="form-label">Filter by Class</label>
+            <select id="student-class-filter" class="form-control">
+              <option value="">— All Classes —</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" id="add-student-btn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Student
+          </button>
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr><th>Reg No</th><th>Name</th><th>Class</th><th>Status</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="students-tbody-admin">
+                  <tr><td colspan="5" class="empty-state">Select a class to view students.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ FACULTY ═══════════ -->
+      <section class="section" id="section-faculty">
+        <div class="action-bar">
+          <div></div>
+          <div class="action-bar-right">
+            <button class="btn btn-primary" id="add-faculty-btn">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Faculty
+            </button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr><th>Faculty ID</th><th>Name</th><th>Username</th><th>Role</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="faculty-tbody">
+                  <tr><td colspan="5" class="empty-state">Loading&hellip;</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ SUBJECTS ═══════════ -->
+      <section class="section" id="section-subjects">
+        <div class="filter-row">
+          <div class="form-group">
+            <label class="form-label">Select Class</label>
+            <select id="subject-class-filter" class="form-control">
+              <option value="">— Select Class —</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" id="add-subject-btn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Subject
+          </button>
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr><th>Subject ID</th><th>Subject Name</th><th>Class</th><th>Faculty ID</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="subjects-tbody">
+                  <tr><td colspan="5" class="empty-state">Select a class to view subjects.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ REPORTS ═══════════ -->
+      <section class="section" id="section-reports">
+        <div class="card" style="margin-bottom:1.25rem;">
+          <div class="card-body">
+            <div class="filter-row" style="margin-bottom:0;">
+              <div class="form-group">
+                <label class="form-label">Select Class</label>
+                <select id="report-class-filter" class="form-control">
+                  <option value="">— Select Class —</option>
+                </select>
+              </div>
+              <button class="btn btn-primary" id="load-report-btn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                Generate Report
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="report-result" class="hidden">
+          <div class="card">
+            <div class="card-header">
+              <h3 id="report-title">Attendance Report</h3>
+              <button class="btn btn-secondary btn-sm" id="export-csv-btn">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export CSV
+              </button>
+            </div>
+            <div class="card-body" style="padding:0;">
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr><th>Reg No</th><th>Name</th><th>Total Hours</th><th>Attended</th><th>Absent</th><th>Attendance %</th></tr>
+                  </thead>
+                  <tbody id="report-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ IMPORT ═══════════ -->
+      <section class="section" id="section-import">
+        <div class="card" style="max-width:600px;margin:0 auto;">
+          <div class="card-header">
+            <h3>Import Past Attendance</h3>
+          </div>
+          <div class="card-body">
+            <p class="text-sm text-muted" style="margin-bottom:0.75rem;">
+              Upload an <strong>.xlsx</strong> file with the following columns:
+            </p>
+            <div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:1rem;">
+              <span class="tag">Date</span>
+              <span class="tag">ClassID</span>
+              <span class="tag">Hour</span>
+              <span class="tag">SubjectID</span>
+              <span class="tag">RegNo</span>
+              <span class="tag">Status</span>
+              <span class="tag" style="opacity:0.65;">FacultyID (optional)</span>
+            </div>
+            <p class="text-xs text-muted" style="margin-bottom:1.25rem;">
+              Date format: <code>DD-MM-YYYY</code> &nbsp;|&nbsp; Hour: <code>H1</code>&ndash;<code>H8</code> &nbsp;|&nbsp; Status: <code>P</code>, <code>A</code>, or <code>-</code>
+            </p>
+
+            <div class="drop-zone" id="drop-zone">
+              <div class="drop-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+                </svg>
+              </div>
+              <p class="font-semibold" style="margin-bottom:0.2rem;font-size:0.9rem;">Drop your .xlsx file here</p>
+              <p class="text-sm text-muted">or click to browse your files</p>
+              <input type="file" id="import-file" accept=".xlsx" style="display:none;" />
+            </div>
+
+            <div id="file-chosen" class="file-chosen-strip hidden" style="margin-top:0.75rem;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--brand-600)" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <span id="file-name" class="file-name"></span>
+              <button class="btn btn-sm btn-ghost" id="clear-file-btn" style="padding:0.2rem 0.5rem;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+
+            <div id="import-result" class="hidden import-result"></div>
+
+            <button class="btn btn-primary w-full" id="upload-btn" style="margin-top:1.25rem;" disabled>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+              <span id="upload-btn-text">Upload &amp; Import</span>
+            </button>
+
+            <hr class="divider" style="margin-top:1.5rem;" />
+            <h4 style="margin-bottom:0.5rem;">Download Template</h4>
+            <p class="text-sm text-muted" style="margin-bottom:0.75rem;">Download a sample Excel template with the correct column headers.</p>
+            <button class="btn btn-secondary" id="download-template-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download Template (.xlsx)
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ BULK SETUP ═══════════ -->
+      <section class="section" id="section-bulk">
+        <div class="tab-pills" id="bulk-tabs">
+          <button class="tab-pill active" data-bulk-tab="bulk-students">Import Students</button>
+          <button class="tab-pill" data-bulk-tab="bulk-faculty">Import Faculty</button>
+          <button class="tab-pill" data-bulk-tab="bulk-subjects">Import Subjects</button>
+        </div>
+
+        <!-- ── STUDENTS ── -->
+        <div class="admin-tab active" id="bulk-students">
+          <div class="card" style="max-width:640px;margin:0 auto;">
+            <div class="card-header"><h3>Bulk Import Students</h3></div>
+            <div class="card-body">
+              <p class="text-sm text-muted" style="margin-bottom:0.75rem;">
+                Upload an <strong>.xlsx</strong> file with two columns:
+                <span class="tag" style="margin-left:0.25rem;">register no</span>
+                <span class="tag" style="margin-left:0.25rem;">student name</span>
+              </p>
+              <p class="text-xs text-muted" style="margin-bottom:1rem;">Login username = student name &nbsp;|&nbsp; Password = register number &nbsp;|&nbsp; Duplicate Reg Nos are skipped.</p>
+
+              <div class="form-group" style="margin-bottom:1.1rem;">
+                <label class="form-label" for="bulk-students-class-sel">Select Class <span style="color:#e11d48;font-style:normal;">*</span></label>
+                <select id="bulk-students-class-sel" class="form-control">
+                  <option value="">— Select a class —</option>
+                </select>
+              </div>
+
+              <div class="drop-zone" id="drop-zone-students">
+                <div class="drop-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
+                  </svg>
+                </div>
+                <p class="font-semibold" style="margin-bottom:0.2rem;font-size:0.9rem;">Drop your .xlsx here</p>
+                <p class="text-sm text-muted">or click to browse</p>
+                <input type="file" id="import-file-students" accept=".xlsx" style="display:none;" />
+              </div>
+
+              <div id="file-chosen-students" class="file-chosen-strip hidden" style="margin-top:0.75rem;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--brand-600)" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <span id="file-name-students" class="file-name"></span>
+                <button class="btn btn-sm btn-ghost" id="clear-file-students" style="padding:0.2rem 0.5rem;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+              <div id="import-result-students" class="hidden import-result"></div>
+              <button class="btn btn-primary w-full" id="upload-btn-students" style="margin-top:1.25rem;" disabled>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+                <span id="upload-btn-text-students">Upload &amp; Import Students</span>
+              </button>
+              <hr class="divider" />
+              <h4 style="margin-bottom:0.4rem;">Download Template</h4>
+              <p class="text-xs text-muted" style="margin-bottom:0.75rem;">Your Excel sheet should have exactly these two column headers in row 1.</p>
+              <button class="btn btn-secondary btn-sm" id="dl-template-students">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Students Template (.xlsx)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── FACULTY ── -->
+        <div class="admin-tab" id="bulk-faculty">
+          <div class="card" style="max-width:640px;margin:0 auto;">
+            <div class="card-header"><h3>Bulk Import Faculty</h3></div>
+            <div class="card-body">
+              <p class="text-sm text-muted" style="margin-bottom:0.75rem;">
+                Upload an <strong>.xlsx</strong> file with columns:
+                <span class="tag" style="margin-left:0.25rem;">FacultyID</span>
+                <span class="tag" style="margin-left:0.25rem;">Name</span>
+                <span class="tag" style="margin-left:0.25rem;">Username</span>
+                <span class="tag" style="margin-left:0.25rem;">Password</span>
+              </p>
+              <p class="text-xs text-muted" style="margin-bottom:1rem;">Rows with an existing Username are skipped.</p>
+
+              <div class="drop-zone" id="drop-zone-faculty">
+                <div class="drop-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
+                  </svg>
+                </div>
+                <p class="font-semibold" style="margin-bottom:0.2rem;font-size:0.9rem;">Drop your .xlsx here</p>
+                <p class="text-sm text-muted">or click to browse</p>
+                <input type="file" id="import-file-faculty" accept=".xlsx" style="display:none;" />
+              </div>
+              <div id="file-chosen-faculty" class="file-chosen-strip hidden" style="margin-top:0.75rem;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--brand-600)" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <span id="file-name-faculty" class="file-name"></span>
+                <button class="btn btn-sm btn-ghost" id="clear-file-faculty" style="padding:0.2rem 0.5rem;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+              <div id="import-result-faculty" class="hidden import-result"></div>
+              <button class="btn btn-primary w-full" id="upload-btn-faculty" style="margin-top:1.25rem;" disabled>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+                <span id="upload-btn-text-faculty">Upload &amp; Import Faculty</span>
+              </button>
+              <hr class="divider" />
+              <h4 style="margin-bottom:0.4rem;">Download Template</h4>
+              <button class="btn btn-secondary btn-sm" id="dl-template-faculty">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Faculty Template (.xlsx)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── SUBJECTS ── -->
+        <div class="admin-tab" id="bulk-subjects">
+          <div class="card" style="max-width:640px;margin:0 auto;">
+            <div class="card-header"><h3>Bulk Import Subjects</h3></div>
+            <div class="card-body">
+              <p class="text-sm text-muted" style="margin-bottom:0.75rem;">
+                Upload an <strong>.xlsx</strong> file with columns:
+                <span class="tag" style="margin-left:0.25rem;">SubjectID</span>
+                <span class="tag" style="margin-left:0.25rem;">SubjectName</span>
+                <span class="tag" style="margin-left:0.25rem;">ClassID</span>
+                <span class="tag" style="margin-left:0.25rem;opacity:0.65;">FacultyID (opt)</span>
+              </p>
+              <p class="text-xs text-muted" style="margin-bottom:1rem;">ClassID must already exist in the system.</p>
+
+              <div class="drop-zone" id="drop-zone-subjects">
+                <div class="drop-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
+                  </svg>
+                </div>
+                <p class="font-semibold" style="margin-bottom:0.2rem;font-size:0.9rem;">Drop your .xlsx here</p>
+                <p class="text-sm text-muted">or click to browse</p>
+                <input type="file" id="import-file-subjects" accept=".xlsx" style="display:none;" />
+              </div>
+              <div id="file-chosen-subjects" class="file-chosen-strip hidden" style="margin-top:0.75rem;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--brand-600)" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <span id="file-name-subjects" class="file-name"></span>
+                <button class="btn btn-sm btn-ghost" id="clear-file-subjects" style="padding:0.2rem 0.5rem;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+              <div id="import-result-subjects" class="hidden import-result"></div>
+              <button class="btn btn-primary w-full" id="upload-btn-subjects" style="margin-top:1.25rem;" disabled>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+                <span id="upload-btn-text-subjects">Upload &amp; Import Subjects</span>
+              </button>
+              <hr class="divider" />
+              <h4 style="margin-bottom:0.4rem;">Download Template</h4>
+              <button class="btn btn-secondary btn-sm" id="dl-template-subjects">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Subjects Template (.xlsx)
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+if (!requireAuth('ADMIN')) { /* redirected */ }
+
+document.getElementById('sidebar-name').textContent = getName() || '—';
+document.getElementById('topbar-date').textContent   = todayDisplay();
+
+// ── Section nav ─────────────────────────────────────────────────────────────
+const sectionLoaders = {
+  classes:  loadClasses,
+  students: () => populateStudentClassFilter(),
+  faculty:  loadFaculty,
+  subjects: () => populateSubjectClassFilter(),
+  reports:  () => populateReportClassFilter(),
+  import:   () => {},
+  bulk:     () => populateBulkStudentsClassSel(),
+};
+const secTitles = {
+  classes: 'Classes',
+  students: 'Students',
+  faculty: 'Faculty',
+  subjects: 'Subjects',
+  reports: 'Reports',
+  import: 'Import Past Attendance',
+  bulk: 'Bulk Setup'
+};
+
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const sec = item.dataset.section;
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    item.classList.add('active');
+    document.getElementById(`section-${sec}`).classList.add('active');
+    document.getElementById('section-title').textContent = secTitles[sec] || sec;
+    closeSidebar();
+    if (sectionLoaders[sec]) sectionLoaders[sec]();
+  });
+});
+
+// Mobile menu
+const sidebarEl = document.getElementById('sidebar');
+const overlayEl = document.getElementById('sidebar-overlay');
+
+function closeSidebar() {
+  sidebarEl.classList.remove('open');
+}
+document.getElementById('menu-toggle').addEventListener('click', () => {
+  sidebarEl.classList.toggle('open');
+});
+overlayEl.addEventListener('click', closeSidebar);
+
+document.getElementById('logout-btn').addEventListener('click', () => {
+  clearAuth(); window.location.href = 'index.html';
+});
+
+// Refresh cache
+document.getElementById('refresh-cache-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('refresh-cache-btn');
+  btn.disabled = true;
+  const origText = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner"></span> Refreshing&hellip;';
+  try {
+    await api.post('/admin/cache/refresh', {});
+    showToast('Cache cleared. Reloading fresh data…', 'success');
+    allClasses = [];
+    loadClasses();
+    const activeNav = document.querySelector('.nav-item.active');
+    if (activeNav) {
+      const sec = activeNav.dataset.section;
+      if (sectionLoaders[sec] && sec !== 'classes') sectionLoaders[sec]();
+    }
+  } catch(e) {
+    showToast('Refresh failed: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = origText;
+  }
+});
+
+// ── Confirm modal ────────────────────────────────────────────────────────────
+let _confirmResolve = null;
+function openConfirm(title, msg) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent   = msg;
+  document.getElementById('confirm-modal').classList.remove('hidden');
+  return new Promise(res => { _confirmResolve = res; });
+}
+document.getElementById('confirm-cancel').addEventListener('click', () => {
+  document.getElementById('confirm-modal').classList.add('hidden');
+  if (_confirmResolve) _confirmResolve(false);
+});
+document.getElementById('confirm-ok').addEventListener('click', () => {
+  document.getElementById('confirm-modal').classList.add('hidden');
+  if (_confirmResolve) _confirmResolve(true);
+});
+
+// ── Form modal ───────────────────────────────────────────────────────────────
+let _formResolve = null;
+function openFormModal(title, bodyHtml) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML    = bodyHtml;
+  document.getElementById('form-modal').classList.remove('hidden');
+  return new Promise(res => { _formResolve = res; });
+}
+document.getElementById('modal-cancel').addEventListener('click', () => {
+  document.getElementById('form-modal').classList.add('hidden');
+  if (_formResolve) _formResolve(null);
+});
+document.getElementById('modal-submit').addEventListener('click', () => {
+  document.getElementById('form-modal').classList.add('hidden');
+  const inputs = document.querySelectorAll('#modal-body [data-field]');
+  const result = {};
+  inputs.forEach(el => { result[el.dataset.field] = el.value.trim(); });
+  if (_formResolve) _formResolve(result);
+});
+
+// ════════════════════════════════════════════════════════════════
+//  CLASSES
+// ════════════════════════════════════════════════════════════════
+let allClasses = [];
+async function loadClasses() {
+  showLoader(true);
+  try {
+    allClasses = await api.get('/admin/classes');
+    renderClasses(allClasses);
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+}
+
+function renderClasses(classes) {
+  const tbody = document.getElementById('classes-tbody');
+  tbody.innerHTML = '';
+  if (!classes.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No classes found.</td></tr>';
+    return;
+  }
+  const rows = document.createDocumentFragment();
+  classes.forEach(c => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span class="tag">${c.ClassID}</span></td>
+      <td class="font-semibold">${c.ClassName}</td>
+      <td>${c.Year || '—'}</td>
+      <td>${c.Section || '—'}</td>
+      <td>${c.Semester || '—'}</td>
+      <td><span class="badge ${c.Status==='ACTIVE'?'badge-info':'badge-absent'}">${c.Status}</span></td>
+      <td>
+        <div class="flex gap-2">
+          <button class="btn btn-sm btn-secondary rename-class-btn" data-id="${c.ClassID}" data-name="${c.ClassName}">Rename</button>
+          <button class="btn btn-sm btn-danger deactivate-class-btn" data-id="${c.ClassID}" title="Deactivate">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+          </button>
+        </div>
+      </td>`;
+    rows.appendChild(tr);
+  });
+  tbody.appendChild(rows);
+  document.querySelectorAll('.rename-class-btn').forEach(btn => btn.addEventListener('click', renameClass));
+  document.querySelectorAll('.deactivate-class-btn').forEach(btn => btn.addEventListener('click', deactivateClass));
+}
+
+document.getElementById('add-class-btn').addEventListener('click', async () => {
+  const result = await openFormModal('Add New Class', `
+    <div class="form-stack">
+      <div class="form-group"><label class="form-label">Class ID</label><input data-field="class_id" class="form-control" placeholder="e.g. CSE3A" /></div>
+      <div class="form-group"><label class="form-label">Class Name</label><input data-field="class_name" class="form-control" placeholder="e.g. CSE III Year A" /></div>
+      <div class="form-group"><label class="form-label">Year</label><input data-field="year" class="form-control" placeholder="e.g. 3" /></div>
+      <div class="form-group"><label class="form-label">Section</label><input data-field="section" class="form-control" placeholder="e.g. A" /></div>
+      <div class="form-group"><label class="form-label">Semester</label><input data-field="semester" class="form-control" placeholder="e.g. 5" /></div>
+    </div>`);
+  if (!result || !result.class_id || !result.class_name) return;
+  showLoader(true);
+  try {
+    await api.post('/admin/classes', result);
+    showToast('Class added successfully.', 'success');
+    loadClasses();
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+});
+
+async function renameClass(e) {
+  const id   = e.currentTarget.dataset.id;
+  const name = e.currentTarget.dataset.name;
+  const result = await openFormModal('Rename Class', `
+    <div class="form-group">
+      <label class="form-label">New Class Name</label>
+      <input data-field="new_name" class="form-control" value="${name}" />
+    </div>`);
+  if (!result?.new_name) return;
+  showLoader(true);
+  try {
+    await api.patch(`/admin/classes/${id}/rename`, { new_name: result.new_name });
+    showToast('Class renamed successfully.','success');
+    loadClasses();
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+}
+
+async function deactivateClass(e) {
+  const id = e.currentTarget.dataset.id;
+  const ok = await openConfirm('Deactivate Class', `Are you sure you want to deactivate class "${id}"? It will be hidden from the system.`);
+  if (!ok) return;
+  showLoader(true);
+  try {
+    await api.delete(`/admin/classes/${id}`);
+    showToast('Class deactivated.','success');
+    loadClasses();
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  STUDENTS
+// ════════════════════════════════════════════════════════════════
+async function populateStudentClassFilter() {
+  const sel = document.getElementById('student-class-filter');
+  if (sel.options.length > 1) return;
+  const classes = await api.get('/admin/classes').catch(() => []);
+  classes.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c.ClassID; o.textContent = c.ClassName;
+    sel.appendChild(o);
+  });
+}
+
+document.getElementById('student-class-filter').addEventListener('change', async function() {
+  const classId = this.value;
+  const tbody = document.getElementById('students-tbody-admin');
+  if (!classId) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Select a class to view students.</td></tr>';
+    return;
+  }
+  showLoader(true);
+  try {
+    const students = await api.get(`/admin/classes/${classId}/students`);
+    tbody.innerHTML = '';
+    if (!students.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No students found in this class.</td></tr>';
+      return;
+    }
+    const frag = document.createDocumentFragment();
+    students.forEach(s => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><span class="tag">${s.RegNo}</span></td>
+        <td class="font-semibold">${s.Name}</td>
+        <td>${s.ClassName}</td>
+        <td><span class="badge ${s.Status==='ACTIVE'?'badge-info':'badge-absent'}">${s.Status}</span></td>
+        <td>
+          <button class="btn btn-sm btn-danger deactivate-student-btn" data-reg="${s.RegNo}" data-name="${s.Name}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+            Remove
+          </button>
+        </td>`;
+      frag.appendChild(tr);
+    });
+    tbody.appendChild(frag);
+    document.querySelectorAll('.deactivate-student-btn').forEach(btn => btn.addEventListener('click', deactivateStudent));
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+});
+
+document.getElementById('add-student-btn').addEventListener('click', async () => {
+  const classId = document.getElementById('student-class-filter').value;
+  const classes = allClasses.length ? allClasses : await api.get('/admin/classes').catch(() => []);
+  const opts = classes.map(c => `<option value="${c.ClassID}" ${c.ClassID===classId?'selected':''}>${c.ClassName}</option>`).join('');
+  const result = await openFormModal('Add Student', `
+    <div class="form-stack">
+      <div class="form-group"><label class="form-label">Register No</label><input data-field="reg_no" class="form-control" placeholder="e.g. 23CS001" /></div>
+      <div class="form-group"><label class="form-label">Full Name</label><input data-field="name" class="form-control" placeholder="Student full name" /></div>
+      <div class="form-group"><label class="form-label">Class</label><select data-field="class_id" class="form-control"><option value="">— Select —</option>${opts}</select></div>
+      <div class="form-group"><label class="form-label">Login Username <span class="text-muted font-semibold" style="font-size:0.75rem;">(optional, defaults to Reg No)</span></label><input data-field="username" class="form-control" placeholder="Leave blank to use Reg No" /></div>
+      <div class="form-group"><label class="form-label">Login Password <span class="text-muted font-semibold" style="font-size:0.75rem;">(optional, defaults to Reg No)</span></label><input data-field="password" class="form-control" type="password" placeholder="Leave blank to use Reg No" /></div>
+    </div>`);
+  if (!result?.reg_no || !result?.name || !result?.class_id) return;
+  showLoader(true);
+  try {
+    await api.post('/admin/students', result);
+    showToast(`Student '${result.name}' added.`,'success');
+    document.getElementById('student-class-filter').dispatchEvent(new Event('change'));
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+});
+
+async function deactivateStudent(e) {
+  const reg  = e.currentTarget.dataset.reg;
+  const name = e.currentTarget.dataset.name;
+  const ok = await openConfirm('Remove Student', `Remove ${name} (${reg}) from the active roster?`);
+  if (!ok) return;
+  showLoader(true);
+  try {
+    await api.delete(`/admin/students/${reg}`);
+    showToast('Student removed.','success');
+    document.getElementById('student-class-filter').dispatchEvent(new Event('change'));
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  FACULTY
+// ════════════════════════════════════════════════════════════════
+async function loadFaculty() {
+  showLoader(true);
+  try {
+    const faculty = await api.get('/admin/faculty');
+    const tbody = document.getElementById('faculty-tbody');
+    tbody.innerHTML = '';
+    if (!faculty.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No faculty accounts found.</td></tr>';
+      return;
+    }
+    const frag = document.createDocumentFragment();
+    faculty.forEach(f => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><span class="tag">${f.FacultyID}</span></td>
+        <td class="font-semibold">${f.Name}</td>
+        <td>${f.Username}</td>
+        <td><span class="badge role-faculty">${f.Role}</span></td>
+        <td>
+          <button class="btn btn-sm btn-danger deactivate-faculty-btn" data-username="${f.Username}" data-name="${f.Name}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+            Remove
+          </button>
+        </td>`;
+      frag.appendChild(tr);
+    });
+    tbody.appendChild(frag);
+    document.querySelectorAll('.deactivate-faculty-btn').forEach(btn => btn.addEventListener('click', deactivateFaculty));
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+}
+
+async function deactivateFaculty(e) {
+  const username = e.currentTarget.dataset.username;
+  const name     = e.currentTarget.dataset.name;
+  const ok = await openConfirm('Remove Faculty', `Are you sure you want to remove faculty account "${name}" (${username})?`);
+  if (!ok) return;
+  showLoader(true);
+  try {
+    await api.delete(`/admin/users/${username}`);
+    showToast('Faculty removed successfully.','success');
+    loadFaculty();
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+}
+document.getElementById('add-faculty-btn').addEventListener('click', async () => {
+  const result = await openFormModal('Add Faculty Account', `
+    <div class="form-stack">
+      <div class="form-group"><label class="form-label">Faculty ID</label><input data-field="faculty_id" class="form-control" placeholder="e.g. FAC001" /></div>
+      <div class="form-group"><label class="form-label">Full Name</label><input data-field="name" class="form-control" placeholder="Faculty full name" /></div>
+      <div class="form-group"><label class="form-label">Username</label><input data-field="username" class="form-control" placeholder="Login username" /></div>
+      <div class="form-group"><label class="form-label">Password</label><input data-field="password" class="form-control" type="password" placeholder="Login password" /></div>
+    </div>`);
+  if (!result?.faculty_id || !result?.name || !result?.username || !result?.password) {
+    showToast('All fields are required.','warning'); return;
+  }
+  showLoader(true);
+  try {
+    await api.post('/admin/faculty', result);
+    showToast(`Faculty '${result.name}' added.`,'success');
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+});
+
+// ════════════════════════════════════════════════════════════════
+//  SUBJECTS
+// ════════════════════════════════════════════════════════════════
+async function populateSubjectClassFilter() {
+  const sel = document.getElementById('subject-class-filter');
+  if (sel.options.length > 1) return;
+  const classes = allClasses.length ? allClasses : await api.get('/admin/classes').catch(() => []);
+  classes.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c.ClassID; o.textContent = c.ClassName;
+    sel.appendChild(o);
+  });
+}
+
+document.getElementById('subject-class-filter').addEventListener('change', async function() {
+  const classId = this.value;
+  const tbody = document.getElementById('subjects-tbody');
+  if (!classId) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Select a class to view subjects.</td></tr>';
+    return;
+  }
+  showLoader(true);
+  try {
+    const subs = await api.get(`/admin/classes/${classId}/subjects`);
+    tbody.innerHTML = '';
+    if (!subs.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No subjects found for this class.</td></tr>';
+      return;
+    }
+    const frag = document.createDocumentFragment();
+    subs.forEach(s => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><span class="tag">${s.SubjectID}</span></td>
+        <td class="font-semibold">${s.SubjectName}</td>
+        <td>${s.ClassID}</td>
+        <td>${s.FacultyID || '—'}</td>
+        <td>
+          <button class="btn btn-sm btn-danger del-subject-btn" data-id="${s.SubjectID}" data-name="${s.SubjectName}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+            Remove
+          </button>
+        </td>`;
+      frag.appendChild(tr);
+    });
+    tbody.appendChild(frag);
+    document.querySelectorAll('.del-subject-btn').forEach(btn => btn.addEventListener('click', deleteSubject));
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+});
+
+document.getElementById('add-subject-btn').addEventListener('click', async () => {
+  const classId = document.getElementById('subject-class-filter').value;
+  if (!classId) { showToast('Select a class first.','warning'); return; }
+  const result = await openFormModal('Add Subject', `
+    <div class="form-stack">
+      <div class="form-group"><label class="form-label">Subject ID</label><input data-field="subject_id" class="form-control" placeholder="e.g. CS301" /></div>
+      <div class="form-group"><label class="form-label">Subject Name</label><input data-field="subject_name" class="form-control" placeholder="e.g. Data Structures" /></div>
+      <div class="form-group"><label class="form-label">Faculty ID <span class="text-muted font-semibold" style="font-size:0.75rem;">(optional)</span></label><input data-field="faculty_id" class="form-control" placeholder="e.g. FAC001" /></div>
+    </div>`);
+  if (!result?.subject_id || !result?.subject_name) return;
+  result.class_id = classId;
+  showLoader(true);
+  try {
+    await api.post('/admin/subjects', result);
+    showToast('Subject added.','success');
+    document.getElementById('subject-class-filter').dispatchEvent(new Event('change'));
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+});
+
+async function deleteSubject(e) {
+  const id   = e.currentTarget.dataset.id;
+  const name = e.currentTarget.dataset.name;
+  const ok = await openConfirm('Remove Subject', `Remove subject "${name}" (${id})?`);
+  if (!ok) return;
+  showLoader(true);
+  try {
+    await api.delete(`/admin/subjects/${id}`);
+    showToast('Subject removed.','success');
+    document.getElementById('subject-class-filter').dispatchEvent(new Event('change'));
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  REPORTS
+// ════════════════════════════════════════════════════════════════
+let reportData = [];
+async function populateReportClassFilter() {
+  const sel = document.getElementById('report-class-filter');
+  if (sel.options.length > 1) return;
+  const classes = allClasses.length ? allClasses : await api.get('/admin/classes').catch(() => []);
+  classes.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c.ClassID; o.textContent = c.ClassName;
+    sel.appendChild(o);
+  });
+}
+
+document.getElementById('load-report-btn').addEventListener('click', async () => {
+  const classId = document.getElementById('report-class-filter').value;
+  if (!classId) { showToast('Select a class first.','warning'); return; }
+  showLoader(true);
+  try {
+    reportData = await api.get(`/admin/reports/class/${classId}`);
+    const cls  = allClasses.find(c => c.ClassID === classId);
+    document.getElementById('report-title').textContent = `Attendance — ${cls?.ClassName || classId}`;
+    renderReport(reportData);
+    document.getElementById('report-result').classList.remove('hidden');
+  } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+});
+
+function renderReport(data) {
+  const tbody = document.getElementById('report-tbody');
+  tbody.innerHTML = '';
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No attendance data found.</td></tr>';
+    return;
+  }
+  const frag = document.createDocumentFragment();
+  data.forEach(r => {
+    const pct = r.percentage;
+    const barCls   = pct>=75?'progress-good':pct>=60?'progress-warn':'progress-danger';
+    const badgeCls = pct>=75?'badge-info':pct>=60?'badge-warning':'badge-absent';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${r.reg_no}</td>
+      <td class="font-semibold">${r.name}</td>
+      <td>${r.total}</td>
+      <td>${r.attended}</td>
+      <td>${r.total - r.attended}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:0.6rem;">
+          <div class="progress-bar-wrap" style="width:72px;"><div class="progress-bar ${barCls}" style="width:${pct}%"></div></div>
+          <span class="badge ${badgeCls}">${pct}%</span>
+        </div>
+      </td>`;
+    frag.appendChild(tr);
+  });
+  tbody.appendChild(frag);
+}
+
+document.getElementById('export-csv-btn').addEventListener('click', () => {
+  if (!reportData.length) { showToast('No data to export.','warning'); return; }
+  const header = 'Reg No,Name,Total Hours,Attended,Absent,Percentage\n';
+  const rows   = reportData.map(r => `${r.reg_no},${r.name},${r.total},${r.attended},${r.total-r.attended},${r.percentage}%`).join('\n');
+  const blob   = new Blob([header + rows], { type: 'text/csv' });
+  const url    = URL.createObjectURL(blob);
+  const a      = document.createElement('a');
+  a.href = url; a.download = 'attendance_report.csv'; a.click();
+  URL.revokeObjectURL(url);
+});
+
+// ════════════════════════════════════════════════════════════════
+//  IMPORT
+// ════════════════════════════════════════════════════════════════
+const dropZone  = document.getElementById('drop-zone');
+const fileInput = document.getElementById('import-file');
+let importFile  = null;
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragging'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragging'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('dragging');
+  const f = e.dataTransfer.files[0];
+  if (f?.name.toLowerCase().endsWith('.xlsx')) setImportFile(f);
+  else showToast('Please drop a .xlsx file.','warning');
+});
+fileInput.addEventListener('change', e => { if (e.target.files[0]) setImportFile(e.target.files[0]); });
+
+function setImportFile(f) {
+  importFile = f;
+  document.getElementById('file-name').textContent = f.name;
+  document.getElementById('file-chosen').classList.remove('hidden');
+  document.getElementById('upload-btn').disabled = false;
+  document.getElementById('import-result').classList.add('hidden');
+}
+
+document.getElementById('clear-file-btn').addEventListener('click', () => {
+  importFile = null;
+  fileInput.value = '';
+  document.getElementById('file-chosen').classList.add('hidden');
+  document.getElementById('upload-btn').disabled = true;
+  document.getElementById('import-result').classList.add('hidden');
+});
+
+document.getElementById('upload-btn').addEventListener('click', async () => {
+  if (!importFile) return;
+  const btn     = document.getElementById('upload-btn');
+  const btnText = document.getElementById('upload-btn-text');
+  btn.disabled  = true;
+  btnText.innerHTML = '<span class="spinner"></span>&nbsp;Importing&hellip;';
+  const resultEl = document.getElementById('import-result');
+  const formData = new FormData();
+  formData.append('file', importFile);
+  try {
+    const res = await api.upload('/admin/import/attendance', formData);
+    resultEl.className = 'import-result success';
+    resultEl.innerHTML = `
+      <div class="result-title">Import Successful</div>
+      <p class="text-sm" style="margin-bottom:0.5rem;">${res.message}</p>
+      <div class="flex gap-4" style="flex-wrap:wrap;">
+        <span class="badge badge-info">Total rows: ${res.total_rows}</span>
+        <span class="badge badge-info">Inserted: ${res.inserted}</span>
+        <span class="badge badge-warning">Skipped: ${res.skipped}</span>
+      </div>`;
+    resultEl.classList.remove('hidden');
+  } catch(e) {
+    resultEl.className = 'import-result error';
+    resultEl.innerHTML = `<div class="result-title">Import Failed</div><p class="text-sm">${e.message}</p>`;
+    resultEl.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+    btnText.innerHTML = 'Upload &amp; Import';
+  }
+});
+
+document.getElementById('download-template-btn').addEventListener('click', () => {
+  const header = 'Date,ClassID,Hour,SubjectID,RegNo,Status,FacultyID\n';
+  const sample = '29-09-2026,CSE3A,H1,CS301,23CS001,P,FAC001\n29-09-2026,CSE3A,H1,CS301,23CS002,A,FAC001\n';
+  const blob   = new Blob([header + sample], { type: 'text/csv' });
+  const url    = URL.createObjectURL(blob);
+  const a      = document.createElement('a');
+  a.href = url; a.download = 'attendance_import_template.csv'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('Template downloaded. Open in Excel and save as .xlsx before uploading.','info', 5000);
+});
+
+// ════════════════════════════════════════════════════════════════
+//  BULK SETUP
+// ════════════════════════════════════════════════════════════════
+document.querySelectorAll('[data-bulk-tab]').forEach(pill => {
+  pill.addEventListener('click', () => {
+    document.querySelectorAll('[data-bulk-tab]').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+    pill.classList.add('active');
+    document.getElementById(pill.dataset.bulkTab).classList.add('active');
+  });
+});
+
+// Generic bulk upload wiring
+function wireBulkUpload({ dropId, inputId, fileChosenId, fileNameId, clearBtnId,
+                          resultId, uploadBtnId, uploadBtnTextId, endpoint, templateFn }) {
+  const dz  = document.getElementById(dropId);
+  const fi  = document.getElementById(inputId);
+  let file  = null;
+
+  dz.addEventListener('click', () => fi.click());
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragging'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragging'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('dragging');
+    const f = e.dataTransfer.files[0];
+    if (f?.name.toLowerCase().endsWith('.xlsx')) setFile(f);
+    else showToast('Please drop a .xlsx file.', 'warning');
+  });
+  fi.addEventListener('change', e => { if (e.target.files[0]) setFile(e.target.files[0]); });
+
+  function setFile(f) {
+    file = f;
+    document.getElementById(fileNameId).textContent = f.name;
+    document.getElementById(fileChosenId).classList.remove('hidden');
+    document.getElementById(uploadBtnId).disabled = false;
+    document.getElementById(resultId).classList.add('hidden');
+  }
+
+  document.getElementById(clearBtnId).addEventListener('click', () => {
+    file = null; fi.value = '';
+    document.getElementById(fileChosenId).classList.add('hidden');
+    document.getElementById(uploadBtnId).disabled = true;
+    document.getElementById(resultId).classList.add('hidden');
+  });
+
+  document.getElementById(uploadBtnId).addEventListener('click', async () => {
+    if (!file) return;
+    const btn     = document.getElementById(uploadBtnId);
+    const btnText = document.getElementById(uploadBtnTextId);
+    btn.disabled  = true;
+    btnText.innerHTML = '<span class="spinner"></span>&nbsp;Importing&hellip;';
+    const resultEl = document.getElementById(resultId);
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await api.upload(endpoint, formData);
+      resultEl.className = 'import-result success';
+      resultEl.innerHTML = `
+        <div class="result-title">Import Successful</div>
+        <p class="text-sm" style="margin-bottom:0.5rem;">${res.message}</p>
+        <div class="flex gap-4" style="flex-wrap:wrap;">
+          <span class="badge badge-info">Inserted: ${res.inserted}</span>
+          <span class="badge badge-warning">Skipped: ${res.skipped ?? 0}</span>
+        </div>`;
+      resultEl.classList.remove('hidden');
+      showToast(res.message, 'success');
+    } catch(e) {
+      resultEl.className = 'import-result error';
+      resultEl.innerHTML = `<div class="result-title">Import Failed</div><p class="text-sm">${e.message}</p>`;
+      resultEl.classList.remove('hidden');
+      showToast('Import failed. Check the error details.', 'error');
+    } finally {
+      btn.disabled  = false;
+      const cleanName = endpoint.split('/').pop();
+      btnText.innerHTML = `Upload &amp; Import ${cleanName.charAt(0).toUpperCase() + cleanName.slice(1)}`;
+    }
+  });
+
+  const dlBtn = document.getElementById('dl-template-' + endpoint.split('/').pop());
+  if (dlBtn) dlBtn.addEventListener('click', templateFn);
+}
+
+// Populate class dropdown for bulk students
+async function populateBulkStudentsClassSel() {
+  const sel = document.getElementById('bulk-students-class-sel');
+  if (sel.options.length > 1) return;
+  const classes = allClasses.length ? allClasses : await api.get('/admin/classes').catch(() => []);
+  classes.filter(c => c.Status === 'ACTIVE').forEach(c => {
+    const o = document.createElement('option');
+    o.value = c.ClassID; o.textContent = c.ClassName;
+    sel.appendChild(o);
+  });
+}
+
+// Students bulk upload (custom – needs class_id)
+(function wireStudentsBulkUpload() {
+  const dz = document.getElementById('drop-zone-students');
+  const fi = document.getElementById('import-file-students');
+  let file = null;
+
+  dz.addEventListener('click', () => fi.click());
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragging'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragging'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('dragging');
+    const f = e.dataTransfer.files[0];
+    if (f?.name.toLowerCase().endsWith('.xlsx')) setStudentFile(f);
+    else showToast('Please drop a .xlsx file.', 'warning');
+  });
+  fi.addEventListener('change', e => { if (e.target.files[0]) setStudentFile(e.target.files[0]); });
+
+  function setStudentFile(f) {
+    file = f;
+    document.getElementById('file-name-students').textContent = f.name;
+    document.getElementById('file-chosen-students').classList.remove('hidden');
+    document.getElementById('upload-btn-students').disabled = false;
+    document.getElementById('import-result-students').classList.add('hidden');
+  }
+
+  document.getElementById('clear-file-students').addEventListener('click', () => {
+    file = null; fi.value = '';
+    document.getElementById('file-chosen-students').classList.add('hidden');
+    document.getElementById('upload-btn-students').disabled = true;
+    document.getElementById('import-result-students').classList.add('hidden');
+  });
+
+  document.getElementById('upload-btn-students').addEventListener('click', async () => {
+    if (!file) return;
+    const classId = document.getElementById('bulk-students-class-sel').value;
+    if (!classId) { showToast('Please select a class before uploading.', 'warning'); return; }
+
+    const btn     = document.getElementById('upload-btn-students');
+    const btnText = document.getElementById('upload-btn-text-students');
+    btn.disabled  = true;
+    btnText.innerHTML = '<span class="spinner"></span>&nbsp;Importing&hellip;';
+    const resultEl = document.getElementById('import-result-students');
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('class_id', classId);
+
+    try {
+      const res = await api.upload('/admin/import/students', formData);
+      resultEl.className = 'import-result success';
+      resultEl.innerHTML = `
+        <div class="result-title">Import Successful</div>
+        <p class="text-sm" style="margin-bottom:0.5rem;">${res.message}</p>
+        <div class="flex gap-4" style="flex-wrap:wrap;">
+          <span class="badge badge-info">Inserted: ${res.inserted}</span>
+          <span class="badge badge-warning">Skipped: ${res.skipped ?? 0}</span>
+          <span class="badge badge-info">Class: ${res.class}</span>
+        </div>`;
+      resultEl.classList.remove('hidden');
+      showToast(res.message, 'success');
+    } catch(e) {
+      resultEl.className = 'import-result error';
+      resultEl.innerHTML = `<div class="result-title">Import Failed</div><p class="text-sm">${e.message}</p>`;
+      resultEl.classList.remove('hidden');
+      showToast('Import failed. Check error details.', 'error');
+    } finally {
+      btn.disabled = false;
+      btnText.innerHTML = 'Upload &amp; Import Students';
+    }
+  });
+
+  document.getElementById('dl-template-students').addEventListener('click', () => {
+    downloadCsvTemplate(
+      'students_import_template.csv',
+      'register no,student name\n23CS001,Arjun Kumar\n23CS002,Priya Sharma\n23CS003,Karthik Rajan\n',
+      'Open in Excel, fill your data, then Save As → Excel Workbook (.xlsx) before uploading.'
+    );
+  });
+})();
+
+wireBulkUpload({
+  dropId: 'drop-zone-faculty', inputId: 'import-file-faculty',
+  fileChosenId: 'file-chosen-faculty', fileNameId: 'file-name-faculty',
+  clearBtnId: 'clear-file-faculty', resultId: 'import-result-faculty',
+  uploadBtnId: 'upload-btn-faculty', uploadBtnTextId: 'upload-btn-text-faculty',
+  endpoint: '/admin/import/faculty',
+  templateFn: () => downloadCsvTemplate(
+    'faculty_import_template.csv',
+    'FacultyID,Name,Username,Password\nFAC001,Dr. Ramesh Babu,ramesh.babu,Pass@123\nFAC002,Prof. Kavitha,kavitha.r,Pass@456\n',
+    'Fill in your faculty details and save as .xlsx.'
+  ),
+});
+
+wireBulkUpload({
+  dropId: 'drop-zone-subjects', inputId: 'import-file-subjects',
+  fileChosenId: 'file-chosen-subjects', fileNameId: 'file-name-subjects',
+  clearBtnId: 'clear-file-subjects', resultId: 'import-result-subjects',
+  uploadBtnId: 'upload-btn-subjects', uploadBtnTextId: 'upload-btn-text-subjects',
+  endpoint: '/admin/import/subjects',
+  templateFn: () => downloadCsvTemplate(
+    'subjects_import_template.csv',
+    'SubjectID,SubjectName,ClassID,FacultyID\nCS301,Data Structures,CSE3A,FAC001\nCS302,Computer Networks,CSE3A,FAC002\n',
+    'ClassID must match an existing class. FacultyID is optional.'
+  ),
+});
+
+function downloadCsvTemplate(filename, csvContent, toastMsg) {
+  const blob = new Blob([csvContent], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+  showToast(toastMsg, 'info', 6000);
+}
+
+// Initial load
+loadClasses();
+</script>
+</body>
+</html>
