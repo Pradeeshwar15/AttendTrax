@@ -775,18 +775,20 @@ async function loadDashboardAnalytics() {
   showLoader(true);
   try {
     analyticsData = await api.get('/admin/analytics');
-    renderKpis(analyticsData);
-    renderTrendChart(analyticsData.trend || []);
-    renderStatusChart(analyticsData.status_distribution || {});
-    renderClassChart(analyticsData.class_stats || []);
-    renderHourChart(analyticsData.hour_stats || []);
-    renderSectionSummaries(analyticsData.section_summaries || [], analyticsData.year_summaries || []);
-    populateSectionFilters(analyticsData.class_stats || []);
-    renderSectionTable(analyticsData.class_stats || []);
-    renderDefaulters(analyticsData.defaulters || []);
-    populateDefaulterClassFilter(analyticsData.class_stats || []);
-    renderLeaderboards(analyticsData.class_stats || []);
-    renderRecentActivity(analyticsData.recent_activity || []);
+    if (!analyticsData) return;
+
+    try { renderKpis(analyticsData); } catch (e) { console.warn('KPI render:', e); }
+    try { if (typeof Chart !== 'undefined') renderTrendChart(analyticsData.trend || []); } catch (e) { console.warn('Trend chart:', e); }
+    try { if (typeof Chart !== 'undefined') renderStatusChart(analyticsData.status_distribution || {}); } catch (e) { console.warn('Status chart:', e); }
+    try { if (typeof Chart !== 'undefined') renderClassChart(analyticsData.class_stats || []); } catch (e) { console.warn('Class chart:', e); }
+    try { if (typeof Chart !== 'undefined') renderHourChart(analyticsData.hour_stats || []); } catch (e) { console.warn('Hour chart:', e); }
+    try { renderSectionSummaries(analyticsData.section_summaries || [], analyticsData.year_summaries || []); } catch (e) { console.warn('Section summaries:', e); }
+    try { populateSectionFilters(analyticsData.class_stats || []); } catch (e) { console.warn('Section filters:', e); }
+    try { renderSectionTable(analyticsData.class_stats || []); } catch (e) { console.warn('Section table:', e); }
+    try { renderDefaulters(analyticsData.defaulters || []); } catch (e) { console.warn('Defaulters:', e); }
+    try { populateDefaulterClassFilter(analyticsData.class_stats || []); } catch (e) { console.warn('Defaulters filter:', e); }
+    try { renderLeaderboards(analyticsData.class_stats || []); } catch (e) { console.warn('Leaderboards:', e); }
+    try { renderRecentActivity(analyticsData.recent_activity || []); } catch (e) { console.warn('Recent activity:', e); }
   } catch (err) {
     showToast(err.message, 'error');
   } finally {

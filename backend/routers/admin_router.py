@@ -209,7 +209,7 @@ async def delete_user(username: str, _=_admin_dep):
 # ANALYTICS & DASHBOARD
 # ─────────────────────────────────────────────────────────────────────────────
 @router.get("/analytics")
-async def get_analytics(_=_admin_dep):
+def get_analytics(_=_admin_dep):
     return sheets.get_admin_analytics()
 
 
@@ -217,12 +217,12 @@ async def get_analytics(_=_admin_dep):
 # REPORTS
 # ─────────────────────────────────────────────────────────────────────────────
 @router.get("/reports/class/{class_id}")
-async def class_report(class_id: str, _=_admin_dep):
+def class_report(class_id: str, _=_admin_dep):
     return sheets.get_class_attendance_report(class_id)
 
 
 @router.get("/reports/student/{reg_no}")
-async def student_report(reg_no: str, _=_admin_dep):
+def student_report(reg_no: str, _=_admin_dep):
     return sheets.get_student_attendance_summary(reg_no)
 
 
