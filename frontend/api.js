@@ -182,3 +182,35 @@ function requireAuth(expectedRole) {
   return true;
 }
 
+// ── Progressive Web App (PWA) Service Worker Registration ─────────────────
+if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then((reg) => {
+        // console.log('AttendTrax PWA Service Worker Registered:', reg.scope);
+      })
+      .catch((err) => {
+        console.warn('AttendTrax PWA Registration failed:', err);
+      });
+  });
+}
+
+// ── Mobile PWA Install Helper ──────────────────────────────────────────────
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  window.dispatchEvent(new CustomEvent('at:pwa-ready'));
+});
+window.promptPwaInstall = async function() {
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    return outcome === 'accepted';
+  }
+  return false;
+};
+
+
+
