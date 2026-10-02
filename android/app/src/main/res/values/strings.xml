@@ -1,7 +1,6 @@
 <resources>
     <string name="app_name">AttendTrax</string>
-    <string name="offline_title">No Internet Connection</string>
-    <string name="offline_msg">Please check your network settings and try again.</string>
-    <string name="retry">Retry Connection</string>
-    <string name="press_again_to_exit">Press back again to exit</string>
+    <string name="no_internet_title">No Internet Connection</string>
+    <string name="no_internet_message">Please check your network settings and tap retry to connect.</string>
+    <string name="retry">Retry</string>
 </resources>

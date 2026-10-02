@@ -1,45 +1,49 @@
-# 📱 AttendTrax – Android Studio Project
+# AttendTrax Android Application
 
-This directory contains the complete native **Android Studio Project** for AttendTrax.
+Native Android wrapper for AttendTrax with hardware-accelerated WebView, pull-to-refresh, download management, and session persistence.
 
----
+## Project Structure
 
-## 🚀 How to Open and Run in Android Studio
+```
+android/
+├── build.gradle                 # Project-level Gradle build configuration
+├── settings.gradle              # Module includes and repository definitions
+├── gradle.properties            # JVM & AndroidX build properties
+└── app/
+    ├── build.gradle             # App-level build file (compileSdk 34, minSdk 24)
+    └── src/main/
+        ├── AndroidManifest.xml  # Permissions, themes, Activity definitions
+        ├── java/com/attendtrax/app/
+        │   └── MainActivity.java# WebView controller, DownloadListener, Back navigation
+        └── res/
+            ├── layout/activity_main.xml     # Fullscreen WebView + SwipeRefresh + Offline screen
+            ├── values/                      # Colors, strings, themes
+            ├── drawable/                    # Vector icons & progress bar drawables
+            └── mipmap-anydpi-v26/           # Adaptive launcher icons
+```
 
-### Step 1: Open in Android Studio
-1. Open **Android Studio**.
-2. Click **File** &rarr; **Open...** (or click *Open* on the Welcome Screen).
-3. Select the `android/` directory inside this repository:
+## How to Open and Run in Android Studio
+
+1. **Launch Android Studio**.
+2. Click **Open** (or `File > Open...`).
+3. Browse to and select the `android` folder located at:
    ```
    c:\Users\prade\OneDrive\Desktop\Cur Dev\android
    ```
-4. Click **OK**. Android Studio will automatically sync the Gradle files and build the project index.
+4. Allow Gradle to sync and download necessary dependencies.
+5. Connect your Android device via USB (with USB Debugging enabled) or start an Android Virtual Device (AVD).
+6. Click the green **Run** ▶️ button (or press `Shift + F10`).
 
----
+## Generating a Standalone APK (for installing directly on phones)
 
-### Step 2: Run on Emulator or Physical Phone
-1. Connect an Android phone via USB (with *USB Debugging* enabled in Developer Options) **OR** start an Android Virtual Device (AVD Emulator).
-2. Click the green **Run (▶)** button in the top toolbar of Android Studio (or press `Shift + F10`).
-3. The AttendTrax app will install and launch instantly with hardware acceleration.
+1. In Android Studio, go to the top menu: **Build > Build Bundle(s) / APK(s) > Build APK(s)**.
+2. Once the build finishes, click the **locate** popup link to find your `app-debug.apk`.
+3. Transfer `app-debug.apk` to any Android phone and install it.
 
----
+## Key Features
 
-### Step 3: Generate APK for Direct Installation
-To create a standalone APK that can be shared or installed directly on any phone:
-1. In Android Studio, go to the top menu: **Build** &rarr; **Build Bundle(s) / APK(s)** &rarr; **Build APK(s)**.
-2. When the build finishes, click the **"locate"** link in the popup notification at the bottom right.
-3. Your APK will be located at:
-   ```
-   android/app/build/outputs/apk/debug/app-debug.apk
-   ```
-
----
-
-## ✨ Features Built into the Android App
-- **Hardware-Accelerated WebView**: Smooth 60 FPS transitions and micro-animations.
-- **DomStorage & Persistent Sessions**: LocalStorage and cookies are preserved across app restarts so you stay logged in.
-- **Pull to Refresh (`SwipeRefreshLayout`)**: Swipe down anywhere to reload attendance rosters or analytics.
-- **Top Loading Progress Bar**: Sleek gradient progress indicator during page navigation.
-- **Native File Chooser**: Fully supports selecting Excel (.xlsx) and CSV files for the Admin Bulk Setup feature.
-- **Smart Back Navigation**: Back button navigates through portals and tabs; double-tap back to safely exit the app.
-- **Offline Fallback Screen**: Gracefully shows a "No Internet" screen with a one-tap *Retry Connection* button if network drops.
+- **DOM Storage & Session Retention**: User sessions remain active even when the app is closed.
+- **Pull to Refresh**: Drag down from the top to refresh attendance rosters and analytics.
+- **CSV Report Exports**: Downloads attendance CSV spreadsheets directly into Android's native `Download/` folder.
+- **Offline Screen**: Displays a network troubleshooting screen if there is no internet connection, with an instant retry button.
+- **Safe Back Navigation**: Navigates between screens instead of abruptly exiting the app.

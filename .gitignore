@@ -39,3 +39,12 @@ scratch/
 tmp/
 .DS_Store
 Thumbs.db
+
+# Android Studio & Gradle
+.gradle/
+android/.gradle/
+android/local.properties
+android/**/build/
+android/.idea/
+*.apk
+*.aab

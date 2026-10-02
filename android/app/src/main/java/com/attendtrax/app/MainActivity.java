@@ -1,7 +1,7 @@
 package com.attendtrax.app;
 
 import android.annotation.SuppressLint;
-import android.content.ActivityNotFoundException;
+import android.app.DownloadManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -10,9 +10,11 @@ import android.net.NetworkCapabilities;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.view.View;
 import android.webkit.CookieManager;
-import android.webkit.ValueCallback;
+import android.webkit.DownloadListener;
+import android.webkit.URLUtil;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
@@ -25,89 +27,40 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 public class MainActivity extends AppCompatActivity {
 
-    public static final String APP_URL = "https://attendtrax-frontend.vercel.app";
+    private static final String APP_URL = "https://attendtrax-frontend.vercel.app/";
 
     private WebView webView;
-    private SwipeRefreshLayout swipeRefresh;
     private ProgressBar progressBar;
+    private SwipeRefreshLayout swipeRefreshLayout;
     private LinearLayout offlineLayout;
-    private Button retryBtn;
+    private Button btnRetry;
 
-    private ValueCallback<Uri[]> fileUploadCallback;
-    private final static int FILE_CHOOSER_REQUEST_CODE = 1001;
-
-    private long backPressedTime = 0;
-    private Toast exitToast;
-
-    @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        webView = findViewById(R.id.webView);
-        swipeRefresh = findViewById(R.id.swipeRefresh);
-        progressBar = findViewById(R.id.progressBar);
-        offlineLayout = findViewById(R.id.offlineLayout);
-        retryBtn = findViewById(R.id.retryBtn);
-
-        // Configure Swipe Refresh
-        swipeRefresh.setColorSchemeResources(R.color.primary, R.color.accent);
-        swipeRefresh.setOnRefreshListener(() -> {
-            if (isNetworkAvailable()) {
-                offlineLayout.setVisibility(View.GONE);
-                webView.setVisibility(View.VISIBLE);
-                webView.reload();
-            } else {
-                swipeRefresh.setRefreshing(false);
-                showOfflineScreen();
-            }
-        });
-
-        retryBtn.setOnClickListener(v -> {
-            if (isNetworkAvailable()) {
-                offlineLayout.setVisibility(View.GONE);
-                webView.setVisibility(View.VISIBLE);
-                webView.loadUrl(APP_URL);
-            } else {
-                Toast.makeText(this, R.string.offline_msg, Toast.LENGTH_SHORT).show();
-            }
-        });
-
-        // Setup WebView settings
+        initViews();
         setupWebView();
+        setupSwipeRefresh();
+        setupBackNavigation();
 
-        // Load Application
-        if (isNetworkAvailable()) {
-            webView.loadUrl(APP_URL);
-        } else {
-            showOfflineScreen();
-        }
+        loadApplication();
+    }
 
-        // Back button navigation handler
-        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
-            @Override
-            public void handleOnBackPressed() {
-                if (webView.canGoBack()) {
-                    webView.goBack();
-                } else {
-                    if (backPressedTime + 2000 > System.currentTimeMillis()) {
-                        if (exitToast != null) exitToast.cancel();
-                        finish();
-                    } else {
-                        exitToast = Toast.makeText(MainActivity.this, R.string.press_again_to_exit, Toast.LENGTH_SHORT);
-                        exitToast.show();
-                        backPressedTime = System.currentTimeMillis();
-                    }
-                }
-            }
-        });
+    private void initViews() {
+        webView = findViewById(R.id.webView);
+        progressBar = findViewById(R.id.progressBar);
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
+        offlineLayout = findViewById(R.id.offlineLayout);
+        btnRetry = findViewById(R.id.btnRetry);
+
+        btnRetry.setOnClickListener(v -> loadApplication());
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -116,64 +69,22 @@ public class MainActivity extends AppCompatActivity {
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
         settings.setAllowFileAccess(true);
-        settings.setAllowContentAccess(true);
-        settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(true);
+        settings.setUseWideViewPort(true);
         settings.setSupportZoom(false);
         settings.setBuiltInZoomControls(false);
-        settings.setDisplayZoomControls(false);
-        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
-        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
 
-        // Hardware Acceleration
-        webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        // Customize User Agent
+        String customUA = settings.getUserAgentString() + " AttendTraxMobileApp/1.0";
+        settings.setUserAgentString(customUA);
 
-        // Cookie persistence for JWT tokens and sessions
-        CookieManager cookieManager = CookieManager.getInstance();
-        cookieManager.setAcceptCookie(true);
-        cookieManager.setAcceptThirdPartyCookies(webView, true);
+        // Enable cookies
+        CookieManager.getInstance().setAcceptCookie(true);
+        CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
 
-        // WebView Client
-        webView.setWebViewClient(new WebViewClient() {
-            @Override
-            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                String url = request.getUrl().toString();
-                if (url.startsWith("http://") || url.startsWith("https://")) {
-                    return false; // Load inside WebView
-                }
-                try {
-                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-                    startActivity(intent);
-                } catch (ActivityNotFoundException e) {
-                    Toast.makeText(MainActivity.this, "No application found to open link", Toast.LENGTH_SHORT).show();
-                }
-                return true;
-            }
-
-            @Override
-            public void onPageStarted(WebView view, String url, Bitmap favicon) {
-                super.onPageStarted(view, url, favicon);
-                progressBar.setVisibility(View.VISIBLE);
-            }
-
-            @Override
-            public void onPageFinished(WebView view, String url) {
-                super.onPageFinished(view, url);
-                progressBar.setVisibility(View.GONE);
-                swipeRefresh.setRefreshing(false);
-            }
-
-            @Override
-            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                super.onReceivedError(view, request, error);
-                if (request.isForMainFrame()) {
-                    showOfflineScreen();
-                }
-            }
-        });
-
-        // WebChrome Client (File Uploads & Progress)
+        // WebChromeClient for Progress
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public void onProgressChanged(WebView view, int newProgress) {
@@ -184,66 +95,163 @@ public class MainActivity extends AppCompatActivity {
                     progressBar.setVisibility(View.GONE);
                 }
             }
+        });
 
-            // File Chooser for CSV/Excel data import
+        // WebViewClient for In-App Navigation & Error Handling
+        webView.setWebViewClient(new WebViewClient() {
             @Override
-            public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
-                if (fileUploadCallback != null) {
-                    fileUploadCallback.onReceiveValue(null);
-                }
-                fileUploadCallback = filePathCallback;
+            public void onPageStarted(WebView view, String url, Bitmap favicon) {
+                super.onPageStarted(view, url, favicon);
+                showOfflineScreen(false);
+            }
 
-                Intent intent = fileChooserParams.createIntent();
-                try {
-                    startActivityForResult(intent, FILE_CHOOSER_REQUEST_CODE);
-                } catch (ActivityNotFoundException e) {
-                    fileUploadCallback = null;
-                    Toast.makeText(MainActivity.this, "Cannot open file chooser", Toast.LENGTH_LONG).show();
-                    return false;
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                swipeRefreshLayout.setRefreshing(false);
+            }
+
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                super.onReceivedError(view, request, error);
+                if (request.isForMainFrame() && !isNetworkAvailable()) {
+                    showOfflineScreen(true);
                 }
-                return true;
+            }
+
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                String url = request.getUrl().toString();
+                if (url.startsWith("mailto:") || url.startsWith("tel:") || url.startsWith("whatsapp:")) {
+                    try {
+                        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                        startActivity(intent);
+                        return true;
+                    } catch (Exception e) {
+                        return false;
+                    }
+                }
+                return false;
+            }
+        });
+
+        // Handle CSV and Report Downloads
+        webView.setDownloadListener(new DownloadListener() {
+            @Override
+            public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimeType, long contentLength) {
+                try {
+                    DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+                    request.setMimeType(mimeType);
+                    String cookies = CookieManager.getInstance().getCookie(url);
+                    request.addRequestHeader("cookie", cookies);
+                    request.addRequestHeader("User-Agent", userAgent);
+                    request.setDescription("Downloading AttendTrax report...");
+                    request.setTitle(URLUtil.guessFileName(url, contentDisposition, mimeType));
+                    request.allowScanningByMediaScanner();
+                    request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                    request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, URLUtil.guessFileName(url, contentDisposition, mimeType));
+
+                    DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+                    if (dm != null) {
+                        dm.enqueue(request);
+                        Toast.makeText(getApplicationContext(), "Downloading Report...", Toast.LENGTH_SHORT).show();
+                    }
+                } catch (Exception e) {
+                    Toast.makeText(getApplicationContext(), "Download error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == FILE_CHOOSER_REQUEST_CODE) {
-            if (fileUploadCallback == null) return;
-            Uri[] results = null;
-            if (resultCode == RESULT_OK && data != null) {
-                String dataString = data.getDataString();
-                if (dataString != null) {
-                    results = new Uri[]{Uri.parse(dataString)};
-                } else if (data.getClipData() != null) {
-                    int count = data.getClipData().getItemCount();
-                    results = new Uri[count];
-                    for (int i = 0; i < count; i++) {
-                        results[i] = data.getClipData().getItemAt(i).getUri();
-                    }
+    private void setupSwipeRefresh() {
+        swipeRefreshLayout.setColorSchemeColors(
+                getResources().getColor(R.color.primary, getTheme()),
+                getResources().getColor(R.color.accent, getTheme())
+        );
+
+        swipeRefreshLayout.setOnRefreshListener(() -> {
+            if (isNetworkAvailable()) {
+                webView.reload();
+            } else {
+                swipeRefreshLayout.setRefreshing(false);
+                showOfflineScreen(true);
+            }
+        });
+
+        // Avoid SwipeRefresh triggering when scrolling inside page
+        webView.getViewTreeObserver().addOnScrollChangedListener(() -> {
+            swipeRefreshLayout.setEnabled(webView.getScrollY() == 0);
+        });
+    }
+
+    private void setupBackNavigation() {
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (webView.canGoBack()) {
+                    webView.goBack();
+                } else {
+                    finish();
                 }
             }
-            fileUploadCallback.onReceiveValue(results);
-            fileUploadCallback = null;
+        });
+    }
+
+    private void loadApplication() {
+        if (isNetworkAvailable()) {
+            showOfflineScreen(false);
+            webView.loadUrl(APP_URL);
+        } else {
+            showOfflineScreen(true);
+        }
+    }
+
+    private void showOfflineScreen(boolean show) {
+        if (show) {
+            offlineLayout.setVisibility(View.VISIBLE);
+            swipeRefreshLayout.setVisibility(View.GONE);
+        } else {
+            offlineLayout.setVisibility(View.GONE);
+            swipeRefreshLayout.setVisibility(View.VISIBLE);
         }
     }
 
     private boolean isNetworkAvailable() {
         ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         if (cm == null) return false;
-        NetworkCapabilities capabilities = cm.getNetworkCapabilities(cm.getActiveNetwork());
-        return capabilities != null && (
-                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
-                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
-        );
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            android.net.Network network = cm.getActiveNetwork();
+            if (network == null) return false;
+            NetworkCapabilities capabilities = cm.getNetworkCapabilities(network);
+            return capabilities != null && (
+                    capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                    capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                    capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+            );
+        } else {
+            android.net.NetworkInfo networkInfo = cm.getActiveNetworkInfo();
+            return networkInfo != null && networkInfo.isConnected();
+        }
     }
 
-    private void showOfflineScreen() {
-        swipeRefresh.setRefreshing(false);
-        progressBar.setVisibility(View.GONE);
-        webView.setVisibility(View.GONE);
-        offlineLayout.setVisibility(View.VISIBLE);
+    @Override
+    protected void onResume() {
+        super.onResume();
+        webView.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        webView.onPause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (webView != null) {
+            webView.destroy();
+        }
+        super.onDestroy();
     }
 }

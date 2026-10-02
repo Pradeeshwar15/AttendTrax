@@ -1,28 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_dark">
+    android:background="@color/primary_dark"
+    tools:context=".MainActivity">
 
+    <!-- Thin Top Loading Progress Indicator -->
     <ProgressBar
         android:id="@+id/progressBar"
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="match_parent"
         android:layout_height="3dp"
-        android:indeterminate="false"
-        android:max="100"
         android:progressDrawable="@drawable/progress_bar_style"
         android:visibility="gone"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:progress="50"
+        tools:visibility="visible" />
 
+    <!-- Pull-to-Refresh Container -->
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-        android:id="@+id/swipeRefresh"
-        android:layout_width="match_parent"
+        android:id="@+id/swipeRefreshLayout"
+        android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/progressBar">
 
+        <!-- Fullscreen Web Content -->
         <WebView
             android:id="@+id/webView"
             android:layout_width="match_parent"
@@ -30,51 +39,55 @@
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-    <!-- Offline layout -->
+    <!-- Offline Fallback State -->
     <LinearLayout
         android:id="@+id/offlineLayout"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#0F172A"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:gravity="center"
         android:orientation="vertical"
         android:padding="24dp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="📶"
-            android:textSize="56sp" />
+            android:textSize="48sp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="@string/offline_title"
-            android:textColor="#FFFFFF"
+            android:text="@string/no_internet_title"
+            android:textColor="@color/surface"
             android:textSize="20sp"
             android:textStyle="bold" />
 
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="260dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:gravity="center"
-            android:text="@string/offline_msg"
-            android:textColor="#94A3B8"
+            android:text="@string/no_internet_message"
+            android:textColor="@color/text_muted"
             android:textSize="14sp" />
 
         <Button
-            android:id="@+id/retryBtn"
+            android:id="@+id/btnRetry"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:backgroundTint="#2563EB"
+            android:layout_marginTop="20dp"
+            android:backgroundTint="@color/primary"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"
             android:text="@string/retry"
-            android:textColor="#FFFFFF" />
+            android:textAllCaps="false"
+            android:textColor="@color/surface" />
 
     </LinearLayout>
 
