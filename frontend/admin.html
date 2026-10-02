@@ -131,19 +131,61 @@
 
       <!-- ═══════════ ANALYTICS DASHBOARD ═══════════ -->
       <section class="section active" id="section-dashboard">
-        <!-- Hero Header -->
-        <div class="analytics-hero">
-          <div>
-            <h2 class="analytics-hero-title">📈 Institutional Attendance Analytics</h2>
-            <p class="analytics-hero-sub">Real-time attendance intelligence, trends, slot distribution & defaulter monitoring</p>
+        <!-- Top: Section-Wise & Class Performance Report -->
+        <div class="card" style="margin-bottom:1.5rem;">
+          <div class="card-header flex items-center justify-between" style="flex-wrap:wrap;gap:1rem;">
+            <div>
+              <h3 style="display:flex;align-items:center;gap:0.5rem;color:var(--gray-900);">
+                <span>🏫</span> Section-Wise & Class Performance Report
+              </h3>
+              <p class="text-xs text-muted" style="margin-top:0.25rem;">Overall attendance intelligence, section comparisons, and subject drilldowns</p>
+            </div>
+            <div class="flex items-center gap-2" style="flex-wrap:wrap;">
+              <input type="text" id="section-table-search" class="form-control" placeholder="🔍 Search class / section..." style="width:180px;font-size:0.8rem;padding:0.35rem 0.65rem;" />
+              <select id="section-filter-year" class="form-control" style="width:130px;font-size:0.8rem;padding:0.35rem 0.65rem;">
+                <option value="ALL">All Years</option>
+              </select>
+              <select id="section-filter-sec" class="form-control" style="width:130px;font-size:0.8rem;padding:0.35rem 0.65rem;">
+                <option value="ALL">All Sections</option>
+              </select>
+              <button class="btn btn-secondary" id="refresh-analytics-btn" style="font-size:0.8rem;padding:0.35rem 0.75rem;">
+                🔄 Refresh
+              </button>
+              <button class="btn btn-primary" id="export-section-report-btn" style="font-size:0.8rem;padding:0.35rem 0.75rem;">
+                📥 Export Report CSV
+              </button>
+              <button class="btn btn-secondary" id="export-defaulters-top-btn" style="font-size:0.8rem;padding:0.35rem 0.75rem;">
+                ⚠️ Export Defaulters
+              </button>
+            </div>
           </div>
-          <div class="flex items-center gap-2">
-            <button class="btn btn-secondary" id="refresh-analytics-btn" style="background:rgba(255,255,255,0.2);color:#fff;border-color:rgba(255,255,255,0.3);">
-              🔄 Refresh
-            </button>
-            <button class="btn btn-primary" id="export-defaulters-top-btn" style="background:#fff;color:var(--brand-900);">
-              📥 Export Defaulters CSV
-            </button>
+          <div class="card-body">
+            <!-- Section & Year Summary Comparison Badges -->
+            <div class="sec-summary-grid" id="sec-summary-cards-container">
+              <!-- Dynamically populated cards -->
+            </div>
+
+            <!-- Performance Table -->
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Class / Section</th>
+                    <th>Year & Sem</th>
+                    <th>Enrolled</th>
+                    <th>Overall Attendance</th>
+                    <th>Attended / Total</th>
+                    <th>Today</th>
+                    <th>Defaulters (&lt;75%)</th>
+                    <th>Health</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="section-table-tbody">
+                  <tr><td colspan="9" class="text-center text-muted" style="padding:2rem;">Loading section analytics…</td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -245,58 +287,6 @@
             </div>
             <div class="chart-container">
               <canvas id="hourChart"></canvas>
-            </div>
-          </div>
-        </div>
-
-        <!-- Row 2.5: Section & Class Performance Deep Analytics -->
-        <div class="card" style="margin-bottom:1.5rem;">
-          <div class="card-header flex items-center justify-between" style="flex-wrap:wrap;gap:1rem;">
-            <div>
-              <h3 style="display:flex;align-items:center;gap:0.5rem;color:var(--gray-900);">
-                <span>🏫</span> Section-Wise & Class Performance Report
-              </h3>
-              <p class="text-xs text-muted" style="margin-top:0.25rem;">Overall attendance intelligence, section comparisons, and subject drilldowns</p>
-            </div>
-            <div class="flex items-center gap-2" style="flex-wrap:wrap;">
-              <input type="text" id="section-table-search" class="form-control" placeholder="🔍 Search class / section..." style="width:180px;font-size:0.8rem;padding:0.35rem 0.65rem;" />
-              <select id="section-filter-year" class="form-control" style="width:130px;font-size:0.8rem;padding:0.35rem 0.65rem;">
-                <option value="ALL">All Years</option>
-              </select>
-              <select id="section-filter-sec" class="form-control" style="width:130px;font-size:0.8rem;padding:0.35rem 0.65rem;">
-                <option value="ALL">All Sections</option>
-              </select>
-              <button class="btn btn-secondary" id="export-section-report-btn" style="font-size:0.8rem;padding:0.35rem 0.75rem;">
-                📥 Export Report CSV
-              </button>
-            </div>
-          </div>
-          <div class="card-body">
-            <!-- Section & Year Summary Comparison Badges -->
-            <div class="sec-summary-grid" id="sec-summary-cards-container">
-              <!-- Dynamically populated cards -->
-            </div>
-
-            <!-- Performance Table -->
-            <div class="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Class / Section</th>
-                    <th>Year & Sem</th>
-                    <th>Enrolled</th>
-                    <th>Overall Attendance</th>
-                    <th>Attended / Total</th>
-                    <th>Today</th>
-                    <th>Defaulters (&lt;75%)</th>
-                    <th>Health</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="section-table-tbody">
-                  <tr><td colspan="9" class="text-center text-muted" style="padding:2rem;">Loading section analytics…</td></tr>
-                </tbody>
-              </table>
             </div>
           </div>
         </div>
