@@ -167,7 +167,6 @@
 </div>
 
 <div class="app-layout">
-  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
   <!-- ══════════════════ SIDEBAR ══════════════════ -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
@@ -951,31 +950,13 @@ const secTitles = {
 };
 
 function toggleSidebar(open) {
-  const layout   = document.querySelector('.app-layout');
-  const sidebar  = document.getElementById('sidebar');
-  const backdrop = document.getElementById('sidebar-backdrop');
-  const isMobile = window.innerWidth <= 1024;
-
-  if (isMobile) {
-    if (open === undefined) {
-      const willOpen = !sidebar.classList.contains('open');
-      sidebar.classList.toggle('open', willOpen);
-      backdrop?.classList.toggle('active', willOpen);
-    } else if (open) {
-      sidebar.classList.add('open');
-      backdrop?.classList.add('active');
-    } else {
-      sidebar.classList.remove('open');
-      backdrop?.classList.remove('active');
-    }
+  const layout = document.querySelector('.app-layout');
+  if (open === undefined) {
+    layout?.classList.toggle('sidebar-collapsed');
+  } else if (open) {
+    layout?.classList.remove('sidebar-collapsed');
   } else {
-    if (open === undefined) {
-      layout?.classList.toggle('sidebar-collapsed');
-    } else if (open) {
-      layout?.classList.remove('sidebar-collapsed');
-    } else {
-      layout?.classList.add('sidebar-collapsed');
-    }
+    layout?.classList.add('sidebar-collapsed');
   }
 }
 
@@ -987,7 +968,6 @@ document.querySelectorAll('.nav-item').forEach(item => {
     item.classList.add('active');
     document.getElementById(`section-${sec}`).classList.add('active');
     document.getElementById('section-title').textContent = secTitles[sec] || sec;
-    if (window.innerWidth <= 1024) toggleSidebar(false);
     if (sectionLoaders[sec]) sectionLoaders[sec]();
   });
 });
@@ -997,7 +977,6 @@ document.getElementById('menu-toggle')?.addEventListener('click', (e) => {
   toggleSidebar();
 });
 document.getElementById('sidebar-close-btn')?.addEventListener('click', () => toggleSidebar(false));
-document.getElementById('sidebar-backdrop')?.addEventListener('click', () => toggleSidebar(false));
 document.getElementById('logout-btn').addEventListener('click', () => {
   clearAuth(); window.location.href = 'index.html';
 });
