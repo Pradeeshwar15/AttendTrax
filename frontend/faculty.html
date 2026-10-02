@@ -530,8 +530,7 @@ function resetMarkSection() {
 
 // ── Submit attendance ────────────────────────────────────────────────────────
 document.getElementById('submit-attendance-btn').addEventListener('click', async () => {
-  const classId   = document.getElementById('sel-class').value;
-  const subjectId = document.getElementById('sel-subject').value;
+  const classId = document.getElementById('sel-class').value;
   const attendanceRows = [];
   document.querySelectorAll('#students-tbody .attendance-chip-group').forEach(group => {
     const regNo  = group.dataset.reg;
