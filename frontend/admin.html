@@ -41,6 +41,40 @@
 
     /* Import zone */
     #drop-zone input[type=file] { display: none; }
+
+    /* Daily attendance edit status pill styles */
+    .status-pill-opt {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.35rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      border: 1.5px solid var(--gray-200);
+      background: #fff;
+      color: var(--gray-600);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      user-select: none;
+    }
+    .status-pill-opt input { display: none; }
+    .status-pill-opt:hover { border-color: var(--gray-300); }
+    .status-pill-opt.active-p {
+      background: #d1fae5;
+      color: #065f46;
+      border-color: #34d399;
+    }
+    .status-pill-opt.active-a {
+      background: #fee2e2;
+      color: #991b1b;
+      border-color: #f87171;
+    }
+    .status-pill-opt.active-od {
+      background: #fef3c7;
+      color: #92400e;
+      border-color: #fbbf24;
+    }
   </style>
 </head>
 <body>
@@ -89,6 +123,9 @@
     <nav class="sidebar-nav">
       <div class="nav-item active" data-section="dashboard">
         <span class="nav-icon">📈</span> Dashboard & Analytics
+      </div>
+      <div class="nav-item" data-section="daily-attendance">
+        <span class="nav-icon">✏️</span> Edit Daily Attendance
       </div>
       <div class="nav-item" data-section="classes">
         <span class="nav-icon">🏫</span> Classes
@@ -351,6 +388,105 @@
           </div>
         </div>
 
+      </section>
+
+      <!-- ═══════════ EDIT DAILY ATTENDANCE ═══════════ -->
+      <section class="section" id="section-daily-attendance">
+        <div class="card" style="margin-bottom:1.5rem;">
+          <div class="card-header">
+            <h3 style="display:flex;align-items:center;gap:0.5rem;color:var(--gray-900);">
+              <span>✏️</span> Daily Attendance Modification & Review
+            </h3>
+            <p class="text-xs text-muted" style="margin-top:0.25rem;">View any day's submitted attendance, modify records, correct faculty marking mistakes, and resubmit.</p>
+          </div>
+          <div class="card-body">
+            <!-- Filter Bar -->
+            <div class="flex gap-4 items-end" style="flex-wrap:wrap;">
+              <div class="form-group" style="min-width:180px;flex:1;">
+                <label class="form-label" for="edit-att-class">Select Class</label>
+                <select id="edit-att-class" class="form-control">
+                  <option value="">— Select Class —</option>
+                </select>
+              </div>
+
+              <div class="form-group" style="min-width:150px;flex:1;">
+                <label class="form-label" for="edit-att-date">Select Date</label>
+                <input type="date" id="edit-att-date" class="form-control" />
+              </div>
+
+              <div class="form-group" style="min-width:140px;flex:1;">
+                <label class="form-label" for="edit-att-hour">Hour / Slot</label>
+                <select id="edit-att-hour" class="form-control">
+                  <option value="DAY">DAY (Daily Attendance)</option>
+                  <option value="H1">H1 (9:00–9:45)</option>
+                  <option value="H2">H2 (9:45–10:30)</option>
+                  <option value="H3">H3 (10:40–11:25)</option>
+                  <option value="H4">H4 (11:25–12:10)</option>
+                  <option value="H5">H5 (12:50–1:35)</option>
+                  <option value="H6">H6 (1:35–2:20)</option>
+                  <option value="H7">H7 (2:30–3:15)</option>
+                  <option value="H8">H8 (3:15–4:00)</option>
+                </select>
+              </div>
+
+              <div class="form-group" style="min-width:180px;flex:1;">
+                <label class="form-label" for="edit-att-subject">Subject (Optional)</label>
+                <select id="edit-att-subject" class="form-control">
+                  <option value="">All Subjects / Auto</option>
+                </select>
+              </div>
+
+              <div style="margin-bottom:1rem;">
+                <button class="btn btn-primary" id="load-daily-att-btn" style="padding:0.6rem 1.25rem;">
+                  🔍 Load Attendance
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Attendance Edit Table Area -->
+        <div class="card hidden" id="daily-att-editor-card">
+          <div class="card-header flex items-center justify-between" style="flex-wrap:wrap;gap:1rem;">
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 id="daily-att-title" style="margin:0;color:var(--gray-900);">Class Attendance</h3>
+                <span id="daily-att-status-badge" class="badge badge-info">Submitted</span>
+              </div>
+              <p class="text-xs text-muted" id="daily-att-meta" style="margin-top:0.25rem;">Marked by — · —</p>
+            </div>
+            <!-- Quick actions -->
+            <div class="flex items-center gap-2" style="flex-wrap:wrap;">
+              <button type="button" class="btn btn-secondary btn-sm" id="edit-all-present-btn">✅ Mark All Present</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="edit-all-absent-btn">❌ Mark All Absent</button>
+              <button type="button" class="btn btn-primary" id="save-modified-att-btn" style="font-weight:700;">
+                💾 Resubmit & Save Changes
+              </button>
+            </div>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width:160px;">Register No</th>
+                    <th>Student Name</th>
+                    <th style="width:280px;text-align:center;">Attendance Status</th>
+                  </tr>
+                </thead>
+                <tbody id="daily-att-tbody">
+                  <!-- Dynamically populated student rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card-footer flex justify-between items-center" style="padding:1rem 1.5rem;background:var(--gray-50);border-top:1px solid var(--gray-200);flex-wrap:wrap;gap:1rem;">
+            <span class="text-xs text-muted" id="daily-att-summary-counts">Present: 0 · Absent: 0 · On-Duty: 0</span>
+            <button type="button" class="btn btn-primary" id="save-modified-att-bottom-btn" style="font-weight:700;">
+              💾 Resubmit & Save Changes
+            </button>
+          </div>
+        </div>
       </section>
 
       <!-- ═══════════ CLASSES ═══════════ -->
@@ -667,24 +803,26 @@ let analyticsData = null;
 
 // ── Section nav ─────────────────────────────────────────────────────────────
 const sectionLoaders = {
-  dashboard: loadDashboardAnalytics,
-  classes:   loadClasses,
-  students:  () => populateStudentClassFilter(),
-  faculty:   loadFaculty,
-  subjects:  () => populateSubjectClassFilter(),
-  reports:   () => populateReportClassFilter(),
-  import:    () => {},
-  bulk:      () => {},
+  dashboard:          loadDashboardAnalytics,
+  'daily-attendance': initDailyAttendanceSection,
+  classes:            loadClasses,
+  students:           () => populateStudentClassFilter(),
+  faculty:            loadFaculty,
+  subjects:           () => populateSubjectClassFilter(),
+  reports:            () => populateReportClassFilter(),
+  import:             () => {},
+  bulk:               () => {},
 };
 const secTitles = {
-  dashboard: 'Dashboard & Analytics',
-  classes:   'Classes',
-  students:  'Students',
-  faculty:   'Faculty',
-  subjects:  'Subjects',
-  reports:   'Reports',
-  import:    'Import Past Attendance',
-  bulk:      'Bulk Setup – Import from Excel',
+  dashboard:          'Dashboard & Analytics',
+  'daily-attendance': 'Edit & Modify Daily Attendance',
+  classes:            'Classes',
+  students:           'Students',
+  faculty:            'Faculty',
+  subjects:           'Subjects',
+  reports:            'Reports',
+  import:             'Import Past Attendance',
+  bulk:               'Bulk Setup – Import from Excel',
 };
 
 function toggleSidebar(open) {
@@ -1341,6 +1479,233 @@ function renderRecentActivity(activity) {
       </li>`;
   });
 }
+
+// ════════════════════════════════════════════════════════════════
+//  EDIT & MODIFY DAILY ATTENDANCE (Admin Override)
+// ════════════════════════════════════════════════════════════════
+let currentDailyAttendanceData = null;
+
+async function initDailyAttendanceSection() {
+  const dateInput = document.getElementById('edit-att-date');
+  if (dateInput && !dateInput.value) {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    dateInput.value = `${yyyy}-${mm}-${dd}`;
+  }
+
+  try {
+    const classes = await api.get('/admin/classes');
+    const classSel = document.getElementById('edit-att-class');
+    const currentVal = classSel.value;
+    classSel.innerHTML = '<option value="">— Select Class —</option>';
+    classes.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.ClassID;
+      opt.textContent = `${c.ClassName} (${c.ClassID})`;
+      classSel.appendChild(opt);
+    });
+    if (currentVal) classSel.value = currentVal;
+  } catch (err) {
+    console.warn('Failed to load classes for edit attendance:', err);
+  }
+}
+
+document.getElementById('edit-att-class')?.addEventListener('change', async (e) => {
+  const classId = e.target.value;
+  const subSel = document.getElementById('edit-att-subject');
+  subSel.innerHTML = '<option value="">All Subjects / Auto</option>';
+  if (!classId) return;
+
+  try {
+    const subjects = await api.get(`/admin/classes/${classId}/subjects`);
+    subjects.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.SubjectID;
+      opt.textContent = `${s.SubjectName} (${s.SubjectID})`;
+      subSel.appendChild(opt);
+    });
+  } catch (err) {
+    console.warn('Failed to load subjects:', err);
+  }
+});
+
+async function loadDailyAttendance() {
+  const classId = document.getElementById('edit-att-class').value;
+  const dateRaw = document.getElementById('edit-att-date').value;
+  const hour = document.getElementById('edit-att-hour').value;
+  const subjectId = document.getElementById('edit-att-subject').value;
+
+  if (!classId) {
+    showToast('Please select a class.', 'warning');
+    return;
+  }
+  if (!dateRaw) {
+    showToast('Please select a date.', 'warning');
+    return;
+  }
+
+  const parts = dateRaw.split('-');
+  const dateStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
+
+  showLoader(true);
+  try {
+    const res = await api.get(`/admin/attendance/daily?class_id=${encodeURIComponent(classId)}&date=${encodeURIComponent(dateStr)}&hour=${encodeURIComponent(hour)}&subject_id=${encodeURIComponent(subjectId)}`);
+    currentDailyAttendanceData = res;
+    renderDailyAttendanceEditor(res);
+  } catch (err) {
+    showToast(err.message || 'Failed to load attendance records.', 'error');
+  } finally {
+    showLoader(false);
+  }
+}
+
+function renderDailyAttendanceEditor(data) {
+  const card = document.getElementById('daily-att-editor-card');
+  const tbody = document.getElementById('daily-att-tbody');
+  const title = document.getElementById('daily-att-title');
+  const badge = document.getElementById('daily-att-status-badge');
+  const meta = document.getElementById('daily-att-meta');
+
+  card.classList.remove('hidden');
+  title.textContent = `${data.class_id} Attendance — ${data.date} (${data.hour})`;
+
+  if (data.is_submitted) {
+    badge.textContent = 'Submitted by Faculty';
+    badge.className = 'badge badge-present';
+    meta.textContent = `Marked by Faculty: ${data.faculty_id || 'Staff'} · Last Recorded: ${data.last_timestamp || 'Earlier'}`;
+  } else {
+    badge.textContent = 'Not Yet Submitted';
+    badge.className = 'badge badge-warning';
+    meta.textContent = 'No previous attendance found for this date/slot. You can initialize or submit records now.';
+  }
+
+  tbody.innerHTML = '';
+  if (!data.students || !data.students.length) {
+    tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted" style="padding:2rem;">No students found in this class.</td></tr>';
+    updateDailySummaryCounts();
+    return;
+  }
+
+  data.students.forEach(s => {
+    const reg = escapeHtml(s.reg_no);
+    const name = escapeHtml(s.name);
+    const st = (s.status || 'P').toUpperCase();
+
+    tbody.innerHTML += `
+      <tr data-reg="${reg}">
+        <td><span class="tag font-bold" style="font-family:monospace;font-size:0.85rem;">${reg}</span></td>
+        <td class="font-semibold" style="color:var(--gray-900);">${name}</td>
+        <td style="text-align:center;">
+          <div style="display:inline-flex;gap:0.4rem;">
+            <label class="status-pill-opt ${st === 'P' ? 'active-p' : ''}">
+              <input type="radio" name="st_${reg}" value="P" ${st === 'P' ? 'checked' : ''} onchange="onDailyStatusChange('${reg}', 'P')" /> 🟢 Present (P)
+            </label>
+            <label class="status-pill-opt ${st === 'A' ? 'active-a' : ''}">
+              <input type="radio" name="st_${reg}" value="A" ${st === 'A' ? 'checked' : ''} onchange="onDailyStatusChange('${reg}', 'A')" /> 🔴 Absent (A)
+            </label>
+            <label class="status-pill-opt ${st === 'OD' ? 'active-od' : ''}">
+              <input type="radio" name="st_${reg}" value="OD" ${st === 'OD' ? 'checked' : ''} onchange="onDailyStatusChange('${reg}', 'OD')" /> 🟡 On-Duty (OD)
+            </label>
+          </div>
+        </td>
+      </tr>`;
+  });
+
+  updateDailySummaryCounts();
+}
+
+function onDailyStatusChange(regNo, newStatus) {
+  const row = document.querySelector(`tr[data-reg="${regNo}"]`);
+  if (!row) return;
+  row.querySelectorAll('.status-pill-opt').forEach(lbl => {
+    lbl.classList.remove('active-p', 'active-a', 'active-od');
+  });
+  const input = row.querySelector(`input[value="${newStatus}"]`);
+  if (input) {
+    input.checked = true;
+    const parent = input.closest('.status-pill-opt');
+    if (newStatus === 'P') parent?.classList.add('active-p');
+    else if (newStatus === 'A') parent?.classList.add('active-a');
+    else if (newStatus === 'OD') parent?.classList.add('active-od');
+  }
+  updateDailySummaryCounts();
+}
+window.onDailyStatusChange = onDailyStatusChange;
+
+function updateDailySummaryCounts() {
+  const rows = document.querySelectorAll('#daily-att-tbody tr[data-reg]');
+  let p = 0, a = 0, od = 0;
+  rows.forEach(r => {
+    const checked = r.querySelector('input[type="radio"]:checked');
+    if (!checked) return;
+    if (checked.value === 'P') p++;
+    else if (checked.value === 'A') a++;
+    else if (checked.value === 'OD') od++;
+  });
+  const summaryEl = document.getElementById('daily-att-summary-counts');
+  if (summaryEl) {
+    summaryEl.innerHTML = `<strong>Summary:</strong> &nbsp;<span style="color:var(--success);font-weight:700;">🟢 Present: ${p}</span> &nbsp;·&nbsp; <span style="color:var(--danger);font-weight:700;">🔴 Absent: ${a}</span> &nbsp;·&nbsp; <span style="color:var(--warning);font-weight:700;">🟡 On-Duty: ${od}</span> &nbsp;(Total: ${rows.length})`;
+  }
+}
+
+function setAllDailyStatus(statusVal) {
+  const rows = document.querySelectorAll('#daily-att-tbody tr[data-reg]');
+  rows.forEach(r => {
+    const reg = r.getAttribute('data-reg');
+    onDailyStatusChange(reg, statusVal);
+  });
+}
+
+async function saveModifiedAttendance() {
+  if (!currentDailyAttendanceData) return;
+  const rows = document.querySelectorAll('#daily-att-tbody tr[data-reg]');
+  if (!rows.length) {
+    showToast('No students to save.', 'warning');
+    return;
+  }
+
+  const confirmed = await openConfirm(
+    'Confirm Attendance Modification',
+    `Are you sure you want to resubmit and update the attendance for ${currentDailyAttendanceData.class_id} on ${currentDailyAttendanceData.date} (${currentDailyAttendanceData.hour})? This will overwrite the previous submission and update all records.`
+  );
+  if (!confirmed) return;
+
+  const attendanceList = [];
+  rows.forEach(r => {
+    const reg = r.getAttribute('data-reg');
+    const checked = r.querySelector('input[type="radio"]:checked');
+    const st = checked ? checked.value : 'P';
+    attendanceList.push({ reg_no: reg, status: st });
+  });
+
+  const payload = {
+    class_id: currentDailyAttendanceData.class_id,
+    date: currentDailyAttendanceData.date,
+    hour: currentDailyAttendanceData.hour || 'DAY',
+    subject_id: currentDailyAttendanceData.subject_id || '',
+    attendance: attendanceList,
+  };
+
+  showLoader(true);
+  try {
+    const res = await api.post('/admin/attendance/modify', payload);
+    showToast(res.message || 'Attendance updated and resubmitted successfully! 🎉', 'success', 4000);
+    // Reload data to reflect new timestamps
+    loadDailyAttendance();
+  } catch (err) {
+    showToast(err.message || 'Failed to update attendance.', 'error');
+  } finally {
+    showLoader(false);
+  }
+}
+
+document.getElementById('load-daily-att-btn')?.addEventListener('click', loadDailyAttendance);
+document.getElementById('edit-all-present-btn')?.addEventListener('click', () => setAllDailyStatus('P'));
+document.getElementById('edit-all-absent-btn')?.addEventListener('click', () => setAllDailyStatus('A'));
+document.getElementById('save-modified-att-btn')?.addEventListener('click', saveModifiedAttendance);
+document.getElementById('save-modified-att-bottom-btn')?.addEventListener('click', saveModifiedAttendance);
 
 // ════════════════════════════════════════════════════════════════
 //  CLASSES

@@ -666,6 +666,177 @@ def save_attendance(
     invalidate_cache("attendance_log_raw")
 
 
+def get_daily_attendance_for_edit(
+    class_id: str,
+    date_str: str,
+    hour: str = "DAY",
+    subject_id: str = "",
+) -> Dict[str, Any]:
+    """Retrieve students and their existing attendance status for the given class, date, hour, and subject."""
+    cid = class_id.strip()
+    dstr = date_str.strip()
+    hr = (hour or "DAY").strip().upper()
+    sid = subject_id.strip()
+
+    students = get_students_by_class(cid)
+    records = _get_raw_attendance_log()
+
+    # Find existing matching log records
+    matching_records: Dict[str, Dict] = {}
+    faculty_id = ""
+    last_timestamp = ""
+
+    for r in records:
+        r_cid = str(r.get("ClassID", "")).strip()
+        r_date = str(r.get("Date", "")).strip()
+        r_hr = str(r.get("Hour", "")).strip().upper()
+        r_sid = str(r.get("SubjectID", "")).strip()
+        r_reg = str(r.get("RegNo", "")).strip()
+
+        if r_cid == cid and r_date == dstr and (not hr or r_hr == hr or hr == "DAY"):
+            if not sid or not r_sid or r_sid == sid:
+                matching_records[r_reg] = r
+                if not faculty_id:
+                    faculty_id = str(r.get("FacultyID", "")).strip()
+                last_timestamp = str(r.get("Timestamp", "")).strip()
+
+    is_submitted = len(matching_records) > 0
+
+    student_entries = []
+    for s in students:
+        reg_no = str(s.get("RegNo", "")).strip()
+        name = str(s.get("Name", "")).strip()
+        status_val = matching_records.get(reg_no, {}).get("Status", "P") if is_submitted else "P"
+        student_entries.append({
+            "reg_no": reg_no,
+            "name": name,
+            "status": status_val if status_val in ("P", "A", "OD", "-") else "P"
+        })
+
+    return {
+        "class_id": cid,
+        "date": dstr,
+        "hour": hr,
+        "subject_id": sid,
+        "faculty_id": faculty_id,
+        "last_timestamp": last_timestamp,
+        "is_submitted": is_submitted,
+        "students": student_entries,
+    }
+
+
+def admin_update_attendance(
+    class_id: str,
+    date_str: str,
+    hour: str,
+    subject_id: str,
+    admin_id: str,
+    attendance: Dict[str, str],   # {reg_no: "P"/"A"/"OD"}
+) -> Dict[str, Any]:
+    """Admin overwrite and update of daily attendance in both visual spreadsheet and master Attendance_Log."""
+    cid = class_id.strip()
+    dstr = date_str.strip()
+    hr = (hour or "DAY").strip().upper()
+    sid = subject_id.strip()
+
+    # ── 1. Update visual class monthly worksheet ─────────────────────────────
+    try:
+        ss = _get_class_spreadsheet(cid)
+        month_label = datetime.strptime(dstr, "%d-%m-%Y").strftime("%b-%Y")
+        ws = _get_or_create_month_worksheet(ss, month_label)
+
+        col_idx = _find_or_create_date_hour_col(ws, dstr, hr)
+
+        col_a_full = ws.col_values(1)
+        reg_to_row: Dict[str, int] = {}
+        for i, val in enumerate(col_a_full):
+            if i >= STUDENT_DATA_START_ROW - 1 and val.strip():
+                reg_to_row[val.strip()] = i + 1
+
+        updates = []
+        for reg_no, status in attendance.items():
+            row_idx = reg_to_row.get(reg_no.strip())
+            if row_idx is None:
+                continue
+            updates.append({
+                "range": f"{_col_letter(col_idx)}{row_idx}",
+                "values": [[status]],
+            })
+        if updates:
+            ws.batch_update(updates)
+    except Exception as ex:
+        print(f"[Warning] Failed to update visual sheet for {cid}: {ex}")
+
+    # ── 2. Update Master Attendance_Log ─────────────────────────────────────
+    log_ws = _get_worksheet(get_settings().ATTENDANCE_LOG_SHEET_ID, "Attendance_Log")
+    all_rows = log_ws.get_all_values()
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Header is at index 0
+    # Columns: LogID (0), Date (1), ClassID (2), Hour (3), SubjectID (4), RegNo (5), Status (6), FacultyID (7), Timestamp (8)
+    cell_updates = []
+    matched_reg_nos = set()
+
+    for row_idx, row in enumerate(all_rows[1:], start=2):
+        if len(row) < 7:
+            continue
+        r_date = row[1].strip()
+        r_cid = row[2].strip()
+        r_hr = row[3].strip().upper()
+        r_sid = row[4].strip() if len(row) > 4 else ""
+        r_reg = row[5].strip() if len(row) > 5 else ""
+
+        if r_cid == cid and r_date == dstr and (not hr or r_hr == hr or hr == "DAY"):
+            if not sid or not r_sid or r_sid == sid:
+                if r_reg in attendance:
+                    new_st = attendance[r_reg]
+                    matched_reg_nos.add(r_reg)
+                    # Update status in Col G (col 7)
+                    cell_updates.append({
+                        "range": f"G{row_idx}",
+                        "values": [[new_st]]
+                    })
+                    # Update timestamp in Col I (col 9)
+                    cell_updates.append({
+                        "range": f"I{row_idx}",
+                        "values": [[f"{now_str} (Modified by Admin: {admin_id})"]]
+                    })
+                    if sid and (len(row) <= 4 or not row[4].strip()):
+                        cell_updates.append({
+                            "range": f"E{row_idx}",
+                            "values": [[sid]]
+                        })
+
+    if cell_updates:
+        log_ws.batch_update(cell_updates)
+
+    # Any students not yet in log rows get appended
+    missing_reg_nos = [r for r in attendance if r not in matched_reg_nos]
+    if missing_reg_nos:
+        new_rows = []
+        for reg_no in missing_reg_nos:
+            new_rows.append(sanitize_sheet_row([
+                "",
+                dstr,
+                cid,
+                hr,
+                sid,
+                reg_no,
+                attendance[reg_no],
+                f"Admin: {admin_id}",
+                now_str,
+            ]))
+        log_ws.append_rows(new_rows, value_input_option="USER_ENTERED")
+
+    invalidate_cache("attendance_log_raw")
+    return {
+        "message": f"Daily attendance for {cid} on {dstr} ({hr}) successfully updated by Admin.",
+        "updated_count": len(attendance),
+        "date": dstr,
+        "class_id": cid,
+    }
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # STUDENT ATTENDANCE SUMMARY
 # ─────────────────────────────────────────────────────────────────────────────

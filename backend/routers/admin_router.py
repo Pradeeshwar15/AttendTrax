@@ -227,6 +227,52 @@ def student_report(reg_no: str, _=_admin_dep):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# DAILY ATTENDANCE MANAGEMENT & MODIFICATION
+# ─────────────────────────────────────────────────────────────────────────────
+class AdminAttendanceEntry(BaseModel):
+    reg_no: str
+    status: str
+
+
+class AdminModifyAttendanceRequest(BaseModel):
+    class_id: str
+    date: str
+    hour: str = "DAY"
+    subject_id: str = ""
+    attendance: List[AdminAttendanceEntry]
+
+
+@router.get("/attendance/daily")
+def get_daily_attendance(
+    class_id: str,
+    date: str,
+    hour: str = "DAY",
+    subject_id: str = "",
+    _=_admin_dep,
+):
+    """Retrieve students and their existing attendance status for viewing/modifying."""
+    return sheets.get_daily_attendance_for_edit(class_id, date, hour, subject_id)
+
+
+@router.post("/attendance/modify")
+def modify_daily_attendance(
+    body: AdminModifyAttendanceRequest,
+    current_user: dict = _admin_dep,
+):
+    """Admin endpoint to modify and resubmit attendance for any date/class/subject."""
+    admin_id = str(current_user.get("UserID", "admin"))
+    att_map = {e.reg_no.strip(): e.status.upper() for e in body.attendance}
+    return sheets.admin_update_attendance(
+        class_id=body.class_id,
+        date_str=body.date,
+        hour=body.hour,
+        subject_id=body.subject_id,
+        admin_id=admin_id,
+        attendance=att_map,
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # BULK IMPORT – ATTENDANCE (Excel upload)
 # ─────────────────────────────────────────────────────────────────────────────
 @router.post("/import/attendance")
