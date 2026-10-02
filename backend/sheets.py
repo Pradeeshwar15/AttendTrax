@@ -666,6 +666,37 @@ def save_attendance(
     invalidate_cache("attendance_log_raw")
 
 
+def _match_dates(d1: str, d2: str) -> bool:
+    """Helper to match dates across formats (DD-MM-YYYY, YYYY-MM-DD, D/M/YYYY, etc.)."""
+    s1 = str(d1).strip().replace("/", "-")
+    s2 = str(d2).strip().replace("/", "-")
+    if not s1 or not s2:
+        return False
+    if s1 == s2:
+        return True
+    p1 = s1.split("-")
+    p2 = s2.split("-")
+    if len(p1) == 3 and len(p2) == 3:
+        try:
+            if len(p1[0]) == 4:
+                y1, m1, day1 = int(p1[0]), int(p1[1]), int(p1[2])
+            else:
+                y1, m1, day1 = int(p1[2]), int(p1[1]), int(p1[0])
+
+            if len(p2[0]) == 4:
+                y2, m2, day2 = int(p2[0]), int(p2[1]), int(p2[2])
+            else:
+                y2, m2, day2 = int(p2[2]), int(p2[1]), int(p2[0])
+
+            if y1 == y2 and m1 == m2 and day1 == day2:
+                return True
+            if y1 == y2 and m1 == day2 and day1 == m2:
+                return True
+        except Exception:
+            pass
+    return False
+
+
 def get_daily_attendance_for_edit(
     class_id: str,
     date_str: str,
@@ -680,6 +711,7 @@ def get_daily_attendance_for_edit(
 
     students = get_students_by_class(cid)
     records = _get_raw_attendance_log()
+    all_users = get_all_users()
 
     # Find existing matching log records
     matching_records: Dict[str, Dict] = {}
@@ -693,7 +725,7 @@ def get_daily_attendance_for_edit(
         r_sid = str(r.get("SubjectID", "")).strip()
         r_reg = str(r.get("RegNo", "")).strip()
 
-        if r_cid == cid and r_date == dstr and (not hr or r_hr == hr or hr == "DAY"):
+        if r_cid == cid and _match_dates(r_date, dstr) and (not hr or r_hr == hr or hr == "DAY"):
             if not sid or not r_sid or r_sid == sid:
                 matching_records[r_reg] = r
                 if not faculty_id:
@@ -701,6 +733,14 @@ def get_daily_attendance_for_edit(
                 last_timestamp = str(r.get("Timestamp", "")).strip()
 
     is_submitted = len(matching_records) > 0
+
+    faculty_name = faculty_id or "Faculty Staff"
+    for u in all_users:
+        uid = str(u.get("UserID", "")).strip()
+        uname = str(u.get("Username", "")).strip()
+        if (uid and uid == faculty_id) or (uname and uname == faculty_id):
+            faculty_name = str(u.get("Name", "")).strip() or faculty_id
+            break
 
     student_entries = []
     for s in students:
@@ -719,6 +759,7 @@ def get_daily_attendance_for_edit(
         "hour": hr,
         "subject_id": sid,
         "faculty_id": faculty_id,
+        "faculty_name": faculty_name,
         "last_timestamp": last_timestamp,
         "is_submitted": is_submitted,
         "students": student_entries,
@@ -786,7 +827,7 @@ def admin_update_attendance(
         r_sid = row[4].strip() if len(row) > 4 else ""
         r_reg = row[5].strip() if len(row) > 5 else ""
 
-        if r_cid == cid and r_date == dstr and (not hr or r_hr == hr or hr == "DAY"):
+        if r_cid == cid and _match_dates(r_date, dstr) and (not hr or r_hr == hr or hr == "DAY"):
             if not sid or not r_sid or r_sid == sid:
                 if r_reg in attendance:
                     new_st = attendance[r_reg]
@@ -834,6 +875,118 @@ def admin_update_attendance(
         "updated_count": len(attendance),
         "date": dstr,
         "class_id": cid,
+    }
+
+
+def get_date_attendance_overview(date_str: str) -> Dict[str, Any]:
+    """
+    Get full institutional attendance overview for a specific date:
+    - Lists all submitted sessions with faculty name, subject, and student stats.
+    - Lists all classes that have not yet submitted attendance for that date.
+    """
+    dstr = date_str.strip()
+    classes = get_all_classes()
+    all_users = get_all_users()
+    subjects = _get_raw_subjects()
+    records = _get_raw_attendance_log()
+
+    # Map faculty ID / Username to Faculty Full Name
+    faculty_map: Dict[str, str] = {}
+    for u in all_users:
+        uid = str(u.get("UserID", "")).strip()
+        uname = str(u.get("Username", "")).strip()
+        name = str(u.get("Name", "")).strip()
+        if uid and name:
+            faculty_map[uid] = name
+        if uname and name:
+            faculty_map[uname] = name
+
+    # Map SubjectID to Subject Name
+    sub_name_map = {str(s.get("SubjectID", "")).strip(): str(s.get("SubjectName", "")).strip() for s in subjects}
+    class_map = {str(c.get("ClassID", "")).strip(): c for c in classes}
+
+    # Filter log records for the given date using tolerant matching
+    date_records = [r for r in records if _match_dates(str(r.get("Date", "")), dstr)]
+
+    # Group by (class_id, hour, subject_id)
+    grouped: Dict[Tuple[str, str, str], List[Dict]] = {}
+    for r in date_records:
+        cid = str(r.get("ClassID", "")).strip()
+        hr = str(r.get("Hour", "")).strip().upper() or "DAY"
+        sid = str(r.get("SubjectID", "")).strip()
+        key = (cid, hr, sid)
+        grouped.setdefault(key, []).append(r)
+
+    submitted_sessions = []
+    submitted_class_ids = set()
+
+    for (cid, hr, sid), rows in grouped.items():
+        submitted_class_ids.add(cid)
+        cls = class_map.get(cid, {})
+        cname = cls.get("ClassName", cid)
+        year = cls.get("Year", "")
+        section = cls.get("Section", "")
+        sem = cls.get("Semester", "")
+
+        first_row = rows[0]
+        raw_fac_id = str(first_row.get("FacultyID", "")).strip()
+        fac_name = faculty_map.get(raw_fac_id, raw_fac_id or "Faculty Staff")
+        timestamp = str(first_row.get("Timestamp", "")).strip()
+
+        p_count = sum(1 for r in rows if str(r.get("Status", "")).upper() == "P")
+        a_count = sum(1 for r in rows if str(r.get("Status", "")).upper() == "A")
+        od_count = sum(1 for r in rows if str(r.get("Status", "")).upper() == "OD")
+        total_marked = p_count + a_count + od_count
+        pct = round(p_count / total_marked * 100, 1) if total_marked else 0.0
+
+        sub_display = sub_name_map.get(sid, sid) if sid else "Daily Attendance"
+
+        submitted_sessions.append({
+            "class_id": cid,
+            "class_name": cname,
+            "year": year,
+            "section": section,
+            "semester": sem,
+            "hour": hr,
+            "subject_id": sid,
+            "subject_name": sub_display,
+            "faculty_id": raw_fac_id,
+            "faculty_name": fac_name,
+            "timestamp": timestamp,
+            "present": p_count,
+            "absent": a_count,
+            "on_duty": od_count,
+            "total_students": total_marked,
+            "percentage": pct,
+        })
+
+    # Sort submitted sessions by class_name / hour
+    submitted_sessions.sort(key=lambda x: (x["class_name"], x["hour"]))
+
+    # Find pending classes (classes that haven't submitted any attendance on this date)
+    pending_classes = []
+    for cls in classes:
+        cid = str(cls.get("ClassID", "")).strip()
+        if cid not in submitted_class_ids:
+            st_count = len(get_students_by_class(cid))
+            pending_classes.append({
+                "class_id": cid,
+                "class_name": cls.get("ClassName", cid),
+                "year": cls.get("Year", ""),
+                "section": cls.get("Section", ""),
+                "semester": cls.get("Semester", ""),
+                "student_count": st_count,
+            })
+
+    pending_classes.sort(key=lambda x: x["class_name"])
+
+    return {
+        "date": dstr,
+        "total_classes": len(classes),
+        "submitted_count": len(submitted_sessions),
+        "pending_count": len(pending_classes),
+        "submitted": submitted_sessions,
+        "pending": pending_classes,
     }
 
 

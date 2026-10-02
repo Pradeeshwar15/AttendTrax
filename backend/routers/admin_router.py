@@ -242,6 +242,12 @@ class AdminModifyAttendanceRequest(BaseModel):
     attendance: List[AdminAttendanceEntry]
 
 
+@router.get("/attendance/overview")
+def get_attendance_overview(date: str, _=_admin_dep):
+    """Retrieve full institutional overview of submitted and pending attendances for a date."""
+    return sheets.get_date_attendance_overview(date)
+
+
 @router.get("/attendance/daily")
 def get_daily_attendance(
     class_id: str,

@@ -108,6 +108,64 @@
   </div>
 </div>
 
+<!-- Daily Attendance Edit Modal (Admin Override) -->
+<div id="daily-attendance-modal" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:850px;width:95%;padding:1.75rem;">
+    <div class="flex items-center justify-between" style="margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid var(--gray-200);">
+      <div>
+        <h3 id="modal-daily-title" style="margin:0;color:var(--gray-900);display:flex;align-items:center;gap:0.5rem;">
+          <span>✏️</span> Edit Daily Attendance
+        </h3>
+        <p class="text-xs" id="modal-daily-faculty" style="margin-top:0.35rem;color:var(--indigo-700);font-weight:600;">
+          Submitted by Faculty: Staff
+        </p>
+      </div>
+      <button type="button" class="btn btn-secondary btn-sm" id="modal-daily-close" style="font-size:1rem;padding:0.25rem 0.6rem;">✕</button>
+    </div>
+
+    <!-- Quick action bar -->
+    <div class="flex items-center justify-between" style="flex-wrap:wrap;gap:0.75rem;margin-bottom:1rem;background:var(--gray-50);padding:0.75rem 1rem;border-radius:var(--radius-md);border:1px solid var(--gray-200);">
+      <div class="flex items-center gap-2">
+        <input type="text" id="modal-daily-search" class="form-control" placeholder="🔍 Search student name/reg..." style="width:200px;font-size:0.82rem;padding:0.35rem 0.65rem;" />
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="button" class="btn btn-secondary btn-sm" id="modal-mark-all-p">✅ Mark All Present</button>
+        <button type="button" class="btn btn-secondary btn-sm" id="modal-mark-all-a">❌ Mark All Absent</button>
+        <button type="button" class="btn btn-secondary btn-sm" id="modal-mark-all-od">🟡 Mark All On-Duty</button>
+      </div>
+    </div>
+
+    <!-- Student Attendance Table -->
+    <div class="table-wrapper" style="max-height:420px;overflow-y:auto;border:1px solid var(--gray-200);border-radius:var(--radius-md);">
+      <table>
+        <thead style="position:sticky;top:0;background:#fff;z-index:2;box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+          <tr>
+            <th style="width:140px;">Register No</th>
+            <th>Student Name</th>
+            <th style="width:300px;text-align:center;">Attendance Status</th>
+          </tr>
+        </thead>
+        <tbody id="modal-daily-tbody">
+          <!-- Student status rows -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Modal Footer with counts & save button -->
+    <div class="flex justify-between items-center" style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--gray-200);flex-wrap:wrap;gap:1rem;">
+      <div id="modal-daily-summary-counts" class="text-xs text-muted">
+        Present: 0 · Absent: 0 · On-Duty: 0 (Total: 0)
+      </div>
+      <div class="flex gap-3">
+        <button type="button" class="btn btn-secondary" id="modal-daily-cancel">Cancel</button>
+        <button type="button" class="btn btn-primary" id="modal-daily-save" style="font-weight:700;">
+          💾 Resubmit & Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="app-layout">
   <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
   <!-- ══════════════════ SIDEBAR ══════════════════ -->
@@ -125,7 +183,7 @@
         <span class="nav-icon">📈</span> Dashboard & Analytics
       </div>
       <div class="nav-item" data-section="daily-attendance">
-        <span class="nav-icon">✏️</span> Edit Daily Attendance
+        <span class="nav-icon">📅</span> Daily Attendance
       </div>
       <div class="nav-item" data-section="classes">
         <span class="nav-icon">🏫</span> Classes
@@ -390,101 +448,119 @@
 
       </section>
 
-      <!-- ═══════════ EDIT DAILY ATTENDANCE ═══════════ -->
+      <!-- ═══════════ DAILY ATTENDANCE REVIEW & CONTROL ═══════════ -->
       <section class="section" id="section-daily-attendance">
         <div class="card" style="margin-bottom:1.5rem;">
           <div class="card-header">
             <h3 style="display:flex;align-items:center;gap:0.5rem;color:var(--gray-900);">
-              <span>✏️</span> Daily Attendance Modification & Review
+              <span>📅</span> Daily Attendance Overview & Control
             </h3>
-            <p class="text-xs text-muted" style="margin-top:0.25rem;">View any day's submitted attendance, modify records, correct faculty marking mistakes, and resubmit.</p>
+            <p class="text-xs text-muted" style="margin-top:0.25rem;">Select any date to view all submitted attendance sessions by faculty, monitor pending classes, and edit or correct daily student records.</p>
           </div>
           <div class="card-body">
-            <!-- Filter Bar -->
+            <!-- Filter Bar: Just Select Date and Load Attendance -->
             <div class="flex gap-4 items-end" style="flex-wrap:wrap;">
-              <div class="form-group" style="min-width:180px;flex:1;">
-                <label class="form-label" for="edit-att-class">Select Class</label>
-                <select id="edit-att-class" class="form-control">
-                  <option value="">— Select Class —</option>
-                </select>
+              <div class="form-group" style="min-width:200px;max-width:280px;flex:1;">
+                <label class="form-label" for="daily-overview-date">Select Date</label>
+                <input type="date" id="daily-overview-date" class="form-control" style="font-size:0.95rem;padding:0.45rem 0.75rem;" />
               </div>
 
-              <div class="form-group" style="min-width:150px;flex:1;">
-                <label class="form-label" for="edit-att-date">Select Date</label>
-                <input type="date" id="edit-att-date" class="form-control" />
-              </div>
-
-              <div class="form-group" style="min-width:140px;flex:1;">
-                <label class="form-label" for="edit-att-hour">Hour / Slot</label>
-                <select id="edit-att-hour" class="form-control">
-                  <option value="DAY">DAY (Daily Attendance)</option>
-                  <option value="H1">H1 (9:00–9:45)</option>
-                  <option value="H2">H2 (9:45–10:30)</option>
-                  <option value="H3">H3 (10:40–11:25)</option>
-                  <option value="H4">H4 (11:25–12:10)</option>
-                  <option value="H5">H5 (12:50–1:35)</option>
-                  <option value="H6">H6 (1:35–2:20)</option>
-                  <option value="H7">H7 (2:30–3:15)</option>
-                  <option value="H8">H8 (3:15–4:00)</option>
-                </select>
-              </div>
-
-              <div class="form-group" style="min-width:180px;flex:1;">
-                <label class="form-label" for="edit-att-subject">Subject (Optional)</label>
-                <select id="edit-att-subject" class="form-control">
-                  <option value="">All Subjects / Auto</option>
-                </select>
-              </div>
-
-              <div style="margin-bottom:1rem;">
-                <button class="btn btn-primary" id="load-daily-att-btn" style="padding:0.6rem 1.25rem;">
+              <div style="margin-bottom:1rem;display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+                <button class="btn btn-primary" id="load-daily-overview-btn" style="padding:0.55rem 1.35rem;font-weight:600;">
                   🔍 Load Attendance
                 </button>
+                <button type="button" class="btn btn-secondary" id="daily-quick-today-btn" style="padding:0.55rem 0.85rem;font-size:0.82rem;">
+                  Today
+                </button>
+                <button type="button" class="btn btn-secondary" id="daily-quick-yesterday-btn" style="padding:0.55rem 0.85rem;font-size:0.82rem;">
+                  Yesterday
+                </button>
+              </div>
+            </div>
+
+            <!-- Overview Stat Cards -->
+            <div id="daily-overview-stats" class="grid grid-cols-3 gap-4 hidden" style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--gray-100);">
+              <div class="card" style="margin:0;background:var(--gray-50);border:1px solid var(--gray-200);padding:0.9rem 1.1rem;">
+                <span class="text-xs text-muted font-bold" style="text-transform:uppercase;letter-spacing:0.05em;">Total Classes</span>
+                <div id="daily-stat-total" class="font-bold text-2xl" style="color:var(--gray-900);margin-top:0.25rem;">0</div>
+                <span class="text-xs text-muted">Configured classes</span>
+              </div>
+              <div class="card" style="margin:0;background:#f0fdf4;border:1px solid #bbf7d0;padding:0.9rem 1.1rem;">
+                <span class="text-xs font-bold" style="color:#166534;text-transform:uppercase;letter-spacing:0.05em;">✅ Submitted Sessions</span>
+                <div id="daily-stat-submitted" class="font-bold text-2xl" style="color:#15803d;margin-top:0.25rem;">0</div>
+                <span class="text-xs" style="color:#166534;">Marked by faculty</span>
+              </div>
+              <div class="card" style="margin:0;background:#fffbeb;border:1px solid #fde68a;padding:0.9rem 1.1rem;">
+                <span class="text-xs font-bold" style="color:#92400e;text-transform:uppercase;letter-spacing:0.05em;">⏳ Not-Submitted Classes</span>
+                <div id="daily-stat-pending" class="font-bold text-2xl" style="color:#b45309;margin-top:0.25rem;">0</div>
+                <span class="text-xs" style="color:#92400e;">Awaiting submission</span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Attendance Edit Table Area -->
-        <div class="card hidden" id="daily-att-editor-card">
-          <div class="card-header flex items-center justify-between" style="flex-wrap:wrap;gap:1rem;">
+        <!-- 1. Submitted Attendances Table Card -->
+        <div class="card hidden" id="daily-submitted-card" style="margin-bottom:1.5rem;">
+          <div class="card-header flex items-center justify-between" style="flex-wrap:wrap;gap:0.75rem;">
             <div>
-              <div class="flex items-center gap-2">
-                <h3 id="daily-att-title" style="margin:0;color:var(--gray-900);">Class Attendance</h3>
-                <span id="daily-att-status-badge" class="badge badge-info">Submitted</span>
-              </div>
-              <p class="text-xs text-muted" id="daily-att-meta" style="margin-top:0.25rem;">Marked by — · —</p>
+              <h3 style="display:flex;align-items:center;gap:0.5rem;color:var(--gray-900);">
+                <span>✅</span> Submitted Attendances (by Faculty)
+              </h3>
+              <p class="text-xs text-muted" id="daily-submitted-sub">Sessions recorded for the selected date. Click "Edit Attendance" to modify student records.</p>
             </div>
-            <!-- Quick actions -->
-            <div class="flex items-center gap-2" style="flex-wrap:wrap;">
-              <button type="button" class="btn btn-secondary btn-sm" id="edit-all-present-btn">✅ Mark All Present</button>
-              <button type="button" class="btn btn-secondary btn-sm" id="edit-all-absent-btn">❌ Mark All Absent</button>
-              <button type="button" class="btn btn-primary" id="save-modified-att-btn" style="font-weight:700;">
-                💾 Resubmit & Save Changes
-              </button>
-            </div>
+            <span id="daily-submitted-badge" class="badge badge-present">0 Submitted</span>
           </div>
           <div class="card-body" style="padding:0;">
             <div class="table-wrapper">
               <table>
                 <thead>
                   <tr>
-                    <th style="width:160px;">Register No</th>
-                    <th>Student Name</th>
-                    <th style="width:280px;text-align:center;">Attendance Status</th>
+                    <th>Class & Section</th>
+                    <th>Slot / Hour</th>
+                    <th>Subject</th>
+                    <th>Submitted by Faculty</th>
+                    <th>Attendance Metrics</th>
+                    <th>Recorded At</th>
+                    <th style="text-align:center;">Action</th>
                   </tr>
                 </thead>
-                <tbody id="daily-att-tbody">
-                  <!-- Dynamically populated student rows -->
+                <tbody id="daily-submitted-tbody">
+                  <!-- Dynamically populated rows -->
                 </tbody>
               </table>
             </div>
           </div>
-          <div class="card-footer flex justify-between items-center" style="padding:1rem 1.5rem;background:var(--gray-50);border-top:1px solid var(--gray-200);flex-wrap:wrap;gap:1rem;">
-            <span class="text-xs text-muted" id="daily-att-summary-counts">Present: 0 · Absent: 0 · On-Duty: 0</span>
-            <button type="button" class="btn btn-primary" id="save-modified-att-bottom-btn" style="font-weight:700;">
-              💾 Resubmit & Save Changes
-            </button>
+        </div>
+
+        <!-- 2. Not-Submitted Classes Table Card -->
+        <div class="card hidden" id="daily-pending-card" style="margin-bottom:1.5rem;">
+          <div class="card-header flex items-center justify-between" style="flex-wrap:wrap;gap:0.75rem;">
+            <div>
+              <h3 style="display:flex;align-items:center;gap:0.5rem;color:var(--gray-900);">
+                <span>⏳</span> Not-Submitted Classes
+              </h3>
+              <p class="text-xs text-muted">Classes that have not yet submitted attendance for this date.</p>
+            </div>
+            <span id="daily-pending-badge" class="badge badge-warning">0 Pending</span>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Class ID</th>
+                    <th>Class Name</th>
+                    <th>Year / Section</th>
+                    <th>Students</th>
+                    <th>Status</th>
+                    <th style="text-align:center;">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="daily-pending-tbody">
+                  <!-- Dynamically populated rows -->
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </section>
@@ -815,7 +891,7 @@ const sectionLoaders = {
 };
 const secTitles = {
   dashboard:          'Dashboard & Analytics',
-  'daily-attendance': 'Edit & Modify Daily Attendance',
+  'daily-attendance': 'Daily Attendance Overview & Modification',
   classes:            'Classes',
   students:           'Students',
   faculty:            'Faculty',
@@ -1481,12 +1557,13 @@ function renderRecentActivity(activity) {
 }
 
 // ════════════════════════════════════════════════════════════════
-//  EDIT & MODIFY DAILY ATTENDANCE (Admin Override)
+//  DAILY ATTENDANCE OVERVIEW & ADMIN MODIFICATION
 // ════════════════════════════════════════════════════════════════
-let currentDailyAttendanceData = null;
+let currentDailyOverviewData = null;
+let currentEditingDailyData = null;
 
 async function initDailyAttendanceSection() {
-  const dateInput = document.getElementById('edit-att-date');
+  const dateInput = document.getElementById('daily-overview-date');
   if (dateInput && !dateInput.value) {
     const d = new Date();
     const yyyy = d.getFullYear();
@@ -1494,130 +1571,233 @@ async function initDailyAttendanceSection() {
     const dd = String(d.getDate()).padStart(2, '0');
     dateInput.value = `${yyyy}-${mm}-${dd}`;
   }
-
-  try {
-    const classes = await api.get('/admin/classes');
-    const classSel = document.getElementById('edit-att-class');
-    const currentVal = classSel.value;
-    classSel.innerHTML = '<option value="">— Select Class —</option>';
-    classes.forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c.ClassID;
-      opt.textContent = `${c.ClassName} (${c.ClassID})`;
-      classSel.appendChild(opt);
-    });
-    if (currentVal) classSel.value = currentVal;
-  } catch (err) {
-    console.warn('Failed to load classes for edit attendance:', err);
-  }
+  await loadDailyAttendanceOverview();
 }
 
-document.getElementById('edit-att-class')?.addEventListener('change', async (e) => {
-  const classId = e.target.value;
-  const subSel = document.getElementById('edit-att-subject');
-  subSel.innerHTML = '<option value="">All Subjects / Auto</option>';
-  if (!classId) return;
-
-  try {
-    const subjects = await api.get(`/admin/classes/${classId}/subjects`);
-    subjects.forEach(s => {
-      const opt = document.createElement('option');
-      opt.value = s.SubjectID;
-      opt.textContent = `${s.SubjectName} (${s.SubjectID})`;
-      subSel.appendChild(opt);
-    });
-  } catch (err) {
-    console.warn('Failed to load subjects:', err);
-  }
-});
-
-async function loadDailyAttendance() {
-  const classId = document.getElementById('edit-att-class').value;
-  const dateRaw = document.getElementById('edit-att-date').value;
-  const hour = document.getElementById('edit-att-hour').value;
-  const subjectId = document.getElementById('edit-att-subject').value;
-
-  if (!classId) {
-    showToast('Please select a class.', 'warning');
-    return;
-  }
+async function loadDailyAttendanceOverview() {
+  const dateInput = document.getElementById('daily-overview-date');
+  const dateRaw = dateInput ? dateInput.value : '';
   if (!dateRaw) {
-    showToast('Please select a date.', 'warning');
+    showToast('Please select a date to load attendance overview.', 'warning');
     return;
   }
 
   const parts = dateRaw.split('-');
-  const dateStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
+  const dateStr = `${parts[2]}-${parts[1]}-${parts[0]}`; // DD-MM-YYYY
 
   showLoader(true);
   try {
-    const res = await api.get(`/admin/attendance/daily?class_id=${encodeURIComponent(classId)}&date=${encodeURIComponent(dateStr)}&hour=${encodeURIComponent(hour)}&subject_id=${encodeURIComponent(subjectId)}`);
-    currentDailyAttendanceData = res;
-    renderDailyAttendanceEditor(res);
+    const res = await api.get(`/admin/attendance/overview?date=${encodeURIComponent(dateStr)}`);
+    currentDailyOverviewData = res;
+    renderDailyAttendanceOverview(res);
   } catch (err) {
-    showToast(err.message || 'Failed to load attendance records.', 'error');
+    showToast(err.message || 'Failed to load daily attendance overview.', 'error');
   } finally {
     showLoader(false);
   }
 }
 
-function renderDailyAttendanceEditor(data) {
-  const card = document.getElementById('daily-att-editor-card');
-  const tbody = document.getElementById('daily-att-tbody');
-  const title = document.getElementById('daily-att-title');
-  const badge = document.getElementById('daily-att-status-badge');
-  const meta = document.getElementById('daily-att-meta');
+function renderDailyAttendanceOverview(data) {
+  // Stats
+  const statsRow = document.getElementById('daily-overview-stats');
+  const statTotal = document.getElementById('daily-stat-total');
+  const statSubmitted = document.getElementById('daily-stat-submitted');
+  const statPending = document.getElementById('daily-stat-pending');
 
-  card.classList.remove('hidden');
-  title.textContent = `${data.class_id} Attendance — ${data.date} (${data.hour})`;
+  if (statsRow) statsRow.classList.remove('hidden');
+  if (statTotal) statTotal.textContent = data.total_classes || 0;
+  if (statSubmitted) statSubmitted.textContent = data.submitted_count || 0;
+  if (statPending) statPending.textContent = data.pending_count || 0;
 
+  // 1. Submitted Attendances Card & Table
+  const subCard = document.getElementById('daily-submitted-card');
+  const subTbody = document.getElementById('daily-submitted-tbody');
+  const subBadge = document.getElementById('daily-submitted-badge');
+  const subSubtitle = document.getElementById('daily-submitted-sub');
+
+  if (subCard) subCard.classList.remove('hidden');
+  if (subBadge) subBadge.textContent = `${data.submitted_count || 0} Sessions Submitted`;
+  if (subSubtitle) subSubtitle.textContent = `Attendance sessions submitted by faculties for ${data.date}. Click "Edit Attendance" to modify.`;
+
+  if (subTbody) {
+    subTbody.innerHTML = '';
+    if (!data.submitted || !data.submitted.length) {
+      subTbody.innerHTML = `
+        <tr>
+          <td colspan="7" class="text-center text-muted" style="padding:2.5rem 1rem;">
+            <div style="font-size:1.75rem;margin-bottom:0.5rem;">📭</div>
+            <div class="font-semibold" style="color:var(--gray-700);">No attendance sessions submitted for this date yet.</div>
+            <div class="text-xs text-muted" style="margin-top:0.25rem;">Faculties have not submitted records, or it might be a holiday/weekend.</div>
+          </td>
+        </tr>`;
+    } else {
+      data.submitted.forEach(s => {
+        const cid = escapeHtml(s.class_id || '');
+        const cname = escapeHtml(s.class_name || s.class_id);
+        const hr = escapeHtml(s.hour || 'DAY');
+        const sid = escapeHtml(s.subject_id || '');
+        const sname = escapeHtml(s.subject_name || 'Daily Attendance');
+        const facName = escapeHtml(s.faculty_name || s.faculty_id || 'Faculty Staff');
+        const facId = escapeHtml(s.faculty_id || '');
+        const timeStr = escapeHtml(s.timestamp || '—');
+        const p = s.present || 0;
+        const a = s.absent || 0;
+        const od = s.on_duty || 0;
+        const pct = s.percentage !== undefined ? s.percentage : 0;
+
+        let pctBadgeClass = 'badge-present';
+        if (pct < 75) pctBadgeClass = 'badge-absent';
+        else if (pct < 85) pctBadgeClass = 'badge-warning';
+
+        subTbody.innerHTML += `
+          <tr>
+            <td>
+              <div class="font-semibold" style="color:var(--gray-900);">${cname}</div>
+              <span class="tag" style="font-size:0.75rem;font-family:monospace;">${cid}</span>
+            </td>
+            <td>
+              <span class="badge badge-info" style="font-size:0.8rem;font-weight:700;">${hr}</span>
+            </td>
+            <td>
+              <div class="font-medium" style="color:var(--gray-800);">${sname}</div>
+              ${sid ? `<span class="text-xs text-muted font-mono">${sid}</span>` : ''}
+            </td>
+            <td>
+              <div class="flex items-center gap-1" style="flex-wrap:wrap;">
+                <span class="font-bold" style="color:var(--indigo-700);font-size:0.85rem;">👨‍🏫 ${facName}</span>
+                ${facId ? `<span class="text-xs text-muted font-mono">(${facId})</span>` : ''}
+              </div>
+              <span class="text-xs text-muted" style="display:block;margin-top:0.15rem;">Submitted by Faculty</span>
+            </td>
+            <td>
+              <div style="font-size:0.82rem;margin-bottom:0.25rem;">
+                <span style="color:var(--success);font-weight:700;">🟢 ${p} P</span> &nbsp;·&nbsp;
+                <span style="color:var(--danger);font-weight:700;">🔴 ${a} A</span>
+                ${od > 0 ? `&nbsp;·&nbsp; <span style="color:var(--warning);font-weight:700;">🟡 ${od} OD</span>` : ''}
+              </div>
+              <span class="badge ${pctBadgeClass}" style="font-size:0.75rem;">${pct}% Present</span>
+            </td>
+            <td class="text-xs text-muted font-mono">${timeStr}</td>
+            <td style="text-align:center;">
+              <button type="button" class="btn btn-primary btn-sm" onclick="openDailyEditModal('${cid}', '${escapeHtml(data.date)}', '${hr}', '${sid}')" style="font-weight:600;padding:0.35rem 0.75rem;font-size:0.8rem;">
+                ✏️ Edit Attendance
+              </button>
+            </td>
+          </tr>`;
+      });
+    }
+  }
+
+  // 2. Pending Classes Card & Table
+  const pendCard = document.getElementById('daily-pending-card');
+  const pendTbody = document.getElementById('daily-pending-tbody');
+  const pendBadge = document.getElementById('daily-pending-badge');
+
+  if (pendCard) pendCard.classList.remove('hidden');
+  if (pendBadge) pendBadge.textContent = `${data.pending_count || 0} Pending`;
+
+  if (pendTbody) {
+    pendTbody.innerHTML = '';
+    if (!data.pending || !data.pending.length) {
+      pendTbody.innerHTML = `
+        <tr>
+          <td colspan="6" class="text-center text-muted" style="padding:2rem 1rem;">
+            <div style="font-size:1.5rem;margin-bottom:0.35rem;">🎉</div>
+            <div class="font-semibold" style="color:var(--success);">All configured classes have submitted attendance for this date!</div>
+          </td>
+        </tr>`;
+    } else {
+      data.pending.forEach(p => {
+        const cid = escapeHtml(p.class_id || '');
+        const cname = escapeHtml(p.class_name || p.class_id);
+        const yrSec = `Year ${p.year || '—'} · Sec ${p.section || '—'}`;
+        const stCount = p.student_count || 0;
+
+        pendTbody.innerHTML += `
+          <tr>
+            <td><span class="tag font-bold font-mono" style="font-size:0.85rem;">${cid}</span></td>
+            <td class="font-semibold" style="color:var(--gray-900);">${cname}</td>
+            <td class="text-muted text-sm">${yrSec}</td>
+            <td><span class="font-semibold">${stCount}</span> <span class="text-xs text-muted">students</span></td>
+            <td><span class="badge badge-warning" style="font-size:0.75rem;">⏳ Not Submitted</span></td>
+            <td style="text-align:center;">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="openDailyEditModal('${cid}', '${escapeHtml(data.date)}', 'DAY', '')" style="font-weight:600;padding:0.35rem 0.75rem;font-size:0.8rem;">
+                ➕ Enter Attendance
+              </button>
+            </td>
+          </tr>`;
+      });
+    }
+  }
+}
+
+// ── Daily Attendance Edit Modal Logic ───────────────────────────────────────
+async function openDailyEditModal(classId, dateStr, hour, subjectId) {
+  showLoader(true);
+  try {
+    const res = await api.get(`/admin/attendance/daily?class_id=${encodeURIComponent(classId)}&date=${encodeURIComponent(dateStr)}&hour=${encodeURIComponent(hour || 'DAY')}&subject_id=${encodeURIComponent(subjectId || '')}`);
+    currentEditingDailyData = res;
+    renderDailyAttendanceModal(res);
+  } catch (err) {
+    showToast(err.message || 'Failed to load class attendance records.', 'error');
+  } finally {
+    showLoader(false);
+  }
+}
+window.openDailyEditModal = openDailyEditModal;
+
+function renderDailyAttendanceModal(data) {
+  const modal = document.getElementById('daily-attendance-modal');
+  const title = document.getElementById('modal-daily-title');
+  const facEl = document.getElementById('modal-daily-faculty');
+  const tbody = document.getElementById('modal-daily-tbody');
+  const searchInput = document.getElementById('modal-daily-search');
+
+  if (searchInput) searchInput.value = '';
+
+  title.innerHTML = `<span>✏️</span> Edit Attendance — ${data.class_id} (${data.date} · ${data.hour || 'DAY'})`;
   if (data.is_submitted) {
-    badge.textContent = 'Submitted by Faculty';
-    badge.className = 'badge badge-present';
-    meta.textContent = `Marked by Faculty: ${data.faculty_id || 'Staff'} · Last Recorded: ${data.last_timestamp || 'Earlier'}`;
+    facEl.innerHTML = `<strong>Submitted by Faculty:</strong> 👨‍🏫 ${escapeHtml(data.faculty_name || data.faculty_id || 'Faculty Staff')} &nbsp;·&nbsp; <span class="text-muted">Recorded: ${escapeHtml(data.last_timestamp || 'Earlier')}</span>`;
   } else {
-    badge.textContent = 'Not Yet Submitted';
-    badge.className = 'badge badge-warning';
-    meta.textContent = 'No previous attendance found for this date/slot. You can initialize or submit records now.';
+    facEl.innerHTML = `<span style="color:var(--warning);">⏳ Not yet submitted by faculty — entering as Admin.</span>`;
   }
 
   tbody.innerHTML = '';
   if (!data.students || !data.students.length) {
     tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted" style="padding:2rem;">No students found in this class.</td></tr>';
-    updateDailySummaryCounts();
-    return;
+  } else {
+    data.students.forEach(s => {
+      const reg = escapeHtml(s.reg_no);
+      const name = escapeHtml(s.name);
+      const st = (s.status || 'P').toUpperCase();
+
+      tbody.innerHTML += `
+        <tr data-reg="${reg}" data-search="${reg.toLowerCase()} ${name.toLowerCase()}">
+          <td><span class="tag font-bold font-mono" style="font-size:0.85rem;">${reg}</span></td>
+          <td class="font-semibold" style="color:var(--gray-900);">${name}</td>
+          <td style="text-align:center;">
+            <div style="display:inline-flex;gap:0.4rem;">
+              <label class="status-pill-opt ${st === 'P' ? 'active-p' : ''}">
+                <input type="radio" name="modal_st_${reg}" value="P" ${st === 'P' ? 'checked' : ''} onchange="onModalStatusChange('${reg}', 'P')" /> 🟢 Present (P)
+              </label>
+              <label class="status-pill-opt ${st === 'A' ? 'active-a' : ''}">
+                <input type="radio" name="modal_st_${reg}" value="A" ${st === 'A' ? 'checked' : ''} onchange="onModalStatusChange('${reg}', 'A')" /> 🔴 Absent (A)
+              </label>
+              <label class="status-pill-opt ${st === 'OD' ? 'active-od' : ''}">
+                <input type="radio" name="modal_st_${reg}" value="OD" ${st === 'OD' ? 'checked' : ''} onchange="onModalStatusChange('${reg}', 'OD')" /> 🟡 On-Duty (OD)
+              </label>
+            </div>
+          </td>
+        </tr>`;
+    });
   }
 
-  data.students.forEach(s => {
-    const reg = escapeHtml(s.reg_no);
-    const name = escapeHtml(s.name);
-    const st = (s.status || 'P').toUpperCase();
-
-    tbody.innerHTML += `
-      <tr data-reg="${reg}">
-        <td><span class="tag font-bold" style="font-family:monospace;font-size:0.85rem;">${reg}</span></td>
-        <td class="font-semibold" style="color:var(--gray-900);">${name}</td>
-        <td style="text-align:center;">
-          <div style="display:inline-flex;gap:0.4rem;">
-            <label class="status-pill-opt ${st === 'P' ? 'active-p' : ''}">
-              <input type="radio" name="st_${reg}" value="P" ${st === 'P' ? 'checked' : ''} onchange="onDailyStatusChange('${reg}', 'P')" /> 🟢 Present (P)
-            </label>
-            <label class="status-pill-opt ${st === 'A' ? 'active-a' : ''}">
-              <input type="radio" name="st_${reg}" value="A" ${st === 'A' ? 'checked' : ''} onchange="onDailyStatusChange('${reg}', 'A')" /> 🔴 Absent (A)
-            </label>
-            <label class="status-pill-opt ${st === 'OD' ? 'active-od' : ''}">
-              <input type="radio" name="st_${reg}" value="OD" ${st === 'OD' ? 'checked' : ''} onchange="onDailyStatusChange('${reg}', 'OD')" /> 🟡 On-Duty (OD)
-            </label>
-          </div>
-        </td>
-      </tr>`;
-  });
-
-  updateDailySummaryCounts();
+  updateModalDailySummaryCounts();
+  modal.classList.remove('hidden');
 }
 
-function onDailyStatusChange(regNo, newStatus) {
-  const row = document.querySelector(`tr[data-reg="${regNo}"]`);
+function onModalStatusChange(regNo, newStatus) {
+  const row = document.querySelector(`#modal-daily-tbody tr[data-reg="${regNo}"]`);
   if (!row) return;
   row.querySelectorAll('.status-pill-opt').forEach(lbl => {
     lbl.classList.remove('active-p', 'active-a', 'active-od');
@@ -1630,12 +1810,12 @@ function onDailyStatusChange(regNo, newStatus) {
     else if (newStatus === 'A') parent?.classList.add('active-a');
     else if (newStatus === 'OD') parent?.classList.add('active-od');
   }
-  updateDailySummaryCounts();
+  updateModalDailySummaryCounts();
 }
-window.onDailyStatusChange = onDailyStatusChange;
+window.onModalStatusChange = onModalStatusChange;
 
-function updateDailySummaryCounts() {
-  const rows = document.querySelectorAll('#daily-att-tbody tr[data-reg]');
+function updateModalDailySummaryCounts() {
+  const rows = document.querySelectorAll('#modal-daily-tbody tr[data-reg]');
   let p = 0, a = 0, od = 0;
   rows.forEach(r => {
     const checked = r.querySelector('input[type="radio"]:checked');
@@ -1644,23 +1824,29 @@ function updateDailySummaryCounts() {
     else if (checked.value === 'A') a++;
     else if (checked.value === 'OD') od++;
   });
-  const summaryEl = document.getElementById('daily-att-summary-counts');
+  const summaryEl = document.getElementById('modal-daily-summary-counts');
   if (summaryEl) {
     summaryEl.innerHTML = `<strong>Summary:</strong> &nbsp;<span style="color:var(--success);font-weight:700;">🟢 Present: ${p}</span> &nbsp;·&nbsp; <span style="color:var(--danger);font-weight:700;">🔴 Absent: ${a}</span> &nbsp;·&nbsp; <span style="color:var(--warning);font-weight:700;">🟡 On-Duty: ${od}</span> &nbsp;(Total: ${rows.length})`;
   }
 }
 
-function setAllDailyStatus(statusVal) {
-  const rows = document.querySelectorAll('#daily-att-tbody tr[data-reg]');
+function modalSetAllDailyStatus(statusVal) {
+  const rows = document.querySelectorAll('#modal-daily-tbody tr[data-reg]');
   rows.forEach(r => {
     const reg = r.getAttribute('data-reg');
-    onDailyStatusChange(reg, statusVal);
+    onModalStatusChange(reg, statusVal);
   });
 }
 
-async function saveModifiedAttendance() {
-  if (!currentDailyAttendanceData) return;
-  const rows = document.querySelectorAll('#daily-att-tbody tr[data-reg]');
+function closeDailyAttendanceModal() {
+  const modal = document.getElementById('daily-attendance-modal');
+  if (modal) modal.classList.add('hidden');
+  currentEditingDailyData = null;
+}
+
+async function saveModalModifiedAttendance() {
+  if (!currentEditingDailyData) return;
+  const rows = document.querySelectorAll('#modal-daily-tbody tr[data-reg]');
   if (!rows.length) {
     showToast('No students to save.', 'warning');
     return;
@@ -1668,7 +1854,7 @@ async function saveModifiedAttendance() {
 
   const confirmed = await openConfirm(
     'Confirm Attendance Modification',
-    `Are you sure you want to resubmit and update the attendance for ${currentDailyAttendanceData.class_id} on ${currentDailyAttendanceData.date} (${currentDailyAttendanceData.hour})? This will overwrite the previous submission and update all records.`
+    `Are you sure you want to resubmit and update the attendance for ${currentEditingDailyData.class_id} on ${currentEditingDailyData.date} (${currentEditingDailyData.hour})? This will overwrite previous submissions and update all records.`
   );
   if (!confirmed) return;
 
@@ -1681,19 +1867,20 @@ async function saveModifiedAttendance() {
   });
 
   const payload = {
-    class_id: currentDailyAttendanceData.class_id,
-    date: currentDailyAttendanceData.date,
-    hour: currentDailyAttendanceData.hour || 'DAY',
-    subject_id: currentDailyAttendanceData.subject_id || '',
+    class_id: currentEditingDailyData.class_id,
+    date: currentEditingDailyData.date,
+    hour: currentEditingDailyData.hour || 'DAY',
+    subject_id: currentEditingDailyData.subject_id || '',
     attendance: attendanceList,
   };
 
   showLoader(true);
   try {
     const res = await api.post('/admin/attendance/modify', payload);
-    showToast(res.message || 'Attendance updated and resubmitted successfully! 🎉', 'success', 4000);
-    // Reload data to reflect new timestamps
-    loadDailyAttendance();
+    showToast(res.message || 'Daily attendance updated and resubmitted successfully! 🎉', 'success', 4000);
+    closeDailyAttendanceModal();
+    // Refresh overview
+    await loadDailyAttendanceOverview();
   } catch (err) {
     showToast(err.message || 'Failed to update attendance.', 'error');
   } finally {
@@ -1701,11 +1888,50 @@ async function saveModifiedAttendance() {
   }
 }
 
-document.getElementById('load-daily-att-btn')?.addEventListener('click', loadDailyAttendance);
-document.getElementById('edit-all-present-btn')?.addEventListener('click', () => setAllDailyStatus('P'));
-document.getElementById('edit-all-absent-btn')?.addEventListener('click', () => setAllDailyStatus('A'));
-document.getElementById('save-modified-att-btn')?.addEventListener('click', saveModifiedAttendance);
-document.getElementById('save-modified-att-bottom-btn')?.addEventListener('click', saveModifiedAttendance);
+// ── Daily Attendance Event Listeners ─────────────────────────────────────────
+document.getElementById('load-daily-overview-btn')?.addEventListener('click', loadDailyAttendanceOverview);
+
+document.getElementById('daily-quick-today-btn')?.addEventListener('click', () => {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const dateInput = document.getElementById('daily-overview-date');
+  if (dateInput) {
+    dateInput.value = `${yyyy}-${mm}-${dd}`;
+    loadDailyAttendanceOverview();
+  }
+});
+
+document.getElementById('daily-quick-yesterday-btn')?.addEventListener('click', () => {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const dateInput = document.getElementById('daily-overview-date');
+  if (dateInput) {
+    dateInput.value = `${yyyy}-${mm}-${dd}`;
+    loadDailyAttendanceOverview();
+  }
+});
+
+document.getElementById('modal-daily-close')?.addEventListener('click', closeDailyAttendanceModal);
+document.getElementById('modal-daily-cancel')?.addEventListener('click', closeDailyAttendanceModal);
+document.getElementById('modal-daily-save')?.addEventListener('click', saveModalModifiedAttendance);
+document.getElementById('modal-mark-all-p')?.addEventListener('click', () => modalSetAllDailyStatus('P'));
+document.getElementById('modal-mark-all-a')?.addEventListener('click', () => modalSetAllDailyStatus('A'));
+document.getElementById('modal-mark-all-od')?.addEventListener('click', () => modalSetAllDailyStatus('OD'));
+
+// Modal Student Search Filter
+document.getElementById('modal-daily-search')?.addEventListener('input', (e) => {
+  const q = e.target.value.toLowerCase().trim();
+  const rows = document.querySelectorAll('#modal-daily-tbody tr[data-search]');
+  rows.forEach(r => {
+    const text = r.getAttribute('data-search') || '';
+    r.style.display = (!q || text.includes(q)) ? '' : 'none';
+  });
+});
 
 // ════════════════════════════════════════════════════════════════
 //  CLASSES
