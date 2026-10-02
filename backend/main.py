@@ -45,19 +45,37 @@ app.add_middleware(SecurityHeadersMiddleware)
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
 origins = [o.strip() for o in cfg.ALLOWED_ORIGINS.split(",") if o.strip()]
-# Add common development & production defaults if not already present
-for default_origin in ["http://localhost:5500", "http://127.0.0.1:5500", "http://localhost:3000"]:
+for default_origin in [
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+    "http://localhost:3000",
+    "https://attendtrax-frontend.vercel.app",
+    "https://attendtrax.vercel.app"
+]:
     if default_origin not in origins:
         origins.append(default_origin)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["Retry-After"],
-)
+# If wildcard is requested, configure origins cleanly
+has_wildcard = "*" in origins
+if has_wildcard:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origin_regex=r"^https?://.*",
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["Retry-After"],
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_origin_regex=r"https://.*\.vercel\.app",
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["Retry-After"],
+    )
 
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(auth_router.router)
