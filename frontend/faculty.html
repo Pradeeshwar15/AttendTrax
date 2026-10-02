@@ -51,9 +51,14 @@
             <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
           </svg>
         </div>
-        <span class="brand-name">AttendTrax</span>
+        <div>
+          <span class="brand-name">AttendTrax</span>
+          <div class="brand-sub">Faculty Portal</div>
+        </div>
       </div>
-      <div class="brand-sub">Faculty Portal</div>
+      <button class="sidebar-close-btn" id="sidebar-close-btn" aria-label="Close sidebar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
 
     <div class="sidebar-user">
@@ -62,10 +67,6 @@
         <div class="user-name" id="sidebar-name">—</div>
         <span class="user-role role-faculty">Faculty</span>
       </div>
-      <button class="logout-btn" id="logout-btn" aria-label="Sign out" title="Sign out">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        Sign Out
-      </button>
     </div>
 
     <nav class="sidebar-nav">
@@ -88,6 +89,12 @@
         Change Password
       </div>
     </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" id="logout-btn" aria-label="Sign out" title="Sign out">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign Out
+      </button>
+    </div>
   </aside>
 
   <!-- MAIN -->
@@ -352,17 +359,31 @@ document.getElementById('topbar-date').textContent = todayDisplay();
 document.getElementById('today-badge').textContent = todayShort();
 
 function toggleSidebar(open) {
+  const layout   = document.querySelector('.app-layout');
   const sidebar  = document.getElementById('sidebar');
   const backdrop = document.getElementById('sidebar-backdrop');
-  if (open === undefined) {
-    sidebar.classList.toggle('open');
-    backdrop?.classList.toggle('active', sidebar.classList.contains('open'));
-  } else if (open) {
-    sidebar.classList.add('open');
-    backdrop?.classList.add('active');
+  const isMobile = window.innerWidth <= 1024;
+
+  if (isMobile) {
+    if (open === undefined) {
+      const willOpen = !sidebar.classList.contains('open');
+      sidebar.classList.toggle('open', willOpen);
+      backdrop?.classList.toggle('active', willOpen);
+    } else if (open) {
+      sidebar.classList.add('open');
+      backdrop?.classList.add('active');
+    } else {
+      sidebar.classList.remove('open');
+      backdrop?.classList.remove('active');
+    }
   } else {
-    sidebar.classList.remove('open');
-    backdrop?.classList.remove('active');
+    if (open === undefined) {
+      layout?.classList.toggle('sidebar-collapsed');
+    } else if (open) {
+      layout?.classList.remove('sidebar-collapsed');
+    } else {
+      layout?.classList.add('sidebar-collapsed');
+    }
   }
 }
 
@@ -376,11 +397,15 @@ document.querySelectorAll('.nav-item').forEach(item => {
     document.getElementById(`section-${sec}`).classList.add('active');
     document.getElementById('section-title').textContent = sectionTitles[sec] || sec;
     if (sec === 'records') populateRecordClassDropdown();
-    toggleSidebar(false);
+    if (window.innerWidth <= 1024) toggleSidebar(false);
   });
 });
 
-document.getElementById('menu-toggle').addEventListener('click', () => toggleSidebar());
+document.getElementById('menu-toggle')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  toggleSidebar();
+});
+document.getElementById('sidebar-close-btn')?.addEventListener('click', () => toggleSidebar(false));
 document.getElementById('sidebar-backdrop')?.addEventListener('click', () => toggleSidebar(false));
 const logoutModal = document.getElementById('logout-modal');
 const openLogout = () => {
