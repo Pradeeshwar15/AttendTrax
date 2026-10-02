@@ -54,10 +54,24 @@ async function apiFetch(path, options = {}) {
     ...(options.headers || {}),
   };
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers,
-  });
+  let res;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers,
+    });
+  } catch (netErr) {
+    // Retry once after brief pause (handles Render free tier cold-start wakeups)
+    try {
+      await new Promise(r => setTimeout(r, 1500));
+      res = await fetch(`${API_BASE}${path}`, {
+        ...options,
+        headers,
+      });
+    } catch (retryErr) {
+      throw new Error('Connecting to server… Please try again in a few seconds.');
+    }
+  }
 
   if (res.status === 401 && !path.includes('/auth/login')) {
     clearAuth();

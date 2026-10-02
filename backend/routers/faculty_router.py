@@ -18,25 +18,25 @@ _faculty_dep = Depends(require_role("FACULTY", "ADMIN"))
 
 # ── GET helpers ───────────────────────────────────────────────────────────────
 @router.get("/classes")
-async def list_classes(current_user: dict = _faculty_dep):
+def list_classes(current_user: dict = _faculty_dep):
     """Return all active classes (faculty needs to select one)."""
     return sheets.get_all_classes()
 
 
 @router.get("/classes/{class_id}/subjects")
-async def list_subjects(class_id: str, current_user: dict = _faculty_dep):
+def list_subjects(class_id: str, current_user: dict = _faculty_dep):
     """Return subjects assigned to a class."""
     return sheets.get_subjects_for_class(class_id)
 
 
 @router.get("/hours")
-async def list_hours(_=_faculty_dep):
+def list_hours(_=_faculty_dep):
     """Return hour labels."""
     return [{"value": k, "label": v} for k, v in HOUR_LABELS.items()]
 
 
 @router.get("/classes/{class_id}/students")
-async def list_students(class_id: str, _=_faculty_dep):
+def list_students(class_id: str, _=_faculty_dep):
     """Return students for attendance marking."""
     return sheets.get_students_for_attendance(class_id)
 
@@ -55,7 +55,7 @@ class SubmitAttendanceRequest(BaseModel):
 
 
 @router.post("/attendance")
-async def submit_attendance(
+def submit_attendance(
     body: SubmitAttendanceRequest,
     current_user: dict = _faculty_dep,
 ):
@@ -96,7 +96,7 @@ async def submit_attendance(
 
 # ── Check if slot already submitted ──────────────────────────────────────────
 @router.get("/attendance/check")
-async def check_slot(
+def check_slot(
     class_id: str,
     subject_id: str = "",
     hour: str = "DAY",
@@ -110,7 +110,7 @@ async def check_slot(
 
 # ── Faculty Attendance Report ────────────────────────────────────────────────
 @router.get("/reports/class/{class_id}")
-async def get_class_report(
+def get_class_report(
     class_id: str,
     current_user: dict = _faculty_dep,
 ):

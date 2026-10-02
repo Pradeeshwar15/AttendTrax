@@ -219,20 +219,6 @@
         </button>
       </form>
 
-      <!-- Quick Demo Access -->
-      <div class="quick-demo-logins">
-        <span style="font-size:0.75rem;color:var(--gray-400);width:100%;">⚡ Quick Demo Logins:</span>
-        <button type="button" class="demo-login-chip" onclick="fillDemo('admin', 'AttendTrax@2026')">
-          👑 Admin (admin)
-        </button>
-        <button type="button" class="demo-login-chip" onclick="fillDemo('fathima.cse', 'Staff@2026')">
-          👨‍🏫 Faculty (fathima.cse)
-        </button>
-        <button type="button" class="demo-login-chip" onclick="fillDemo('410125104001', '410125104001')">
-          🧑‍🎓 Student (410125104001)
-        </button>
-      </div>
-
       <div class="login-footer">
         <p>AttendTrax &copy; 2026 &nbsp;·&nbsp; High-Performance Attendance &amp; Analytics</p>
       </div>
@@ -242,12 +228,6 @@
 
 <script src="api.js"></script>
 <script>
-  function fillDemo(user, pw) {
-    document.getElementById('username').value = user;
-    document.getElementById('password').value = pw;
-    document.getElementById('login-error').classList.add('hidden');
-    document.getElementById('login-form').dispatchEvent(new Event('submit'));
-  }
 
   // Redirect if already logged in
   (function() {

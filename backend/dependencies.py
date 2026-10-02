@@ -11,7 +11,7 @@ from sheets import get_user_by_username
 bearer_scheme = HTTPBearer()
 
 
-async def get_current_user(
+def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
 ) -> dict:
     token = credentials.credentials
@@ -45,7 +45,7 @@ async def get_current_user(
 
 
 def require_role(*roles: str):
-    async def checker(current_user: dict = Depends(get_current_user)):
+    def checker(current_user: dict = Depends(get_current_user)):
         if current_user.get("Role", "").upper() not in [r.upper() for r in roles]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

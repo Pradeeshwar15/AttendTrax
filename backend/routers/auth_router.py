@@ -97,7 +97,7 @@ class LoginResponse(BaseModel):
 
 
 @router.post("/login", response_model=LoginResponse)
-async def login(body: LoginRequest, request: Request):
+def login(body: LoginRequest, request: Request):
     cfg = get_settings()
     client_ip = _get_client_ip(request)
     uname = body.username.strip()
