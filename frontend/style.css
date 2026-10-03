@@ -651,40 +651,36 @@ tbody td { padding: 0.85rem 1rem; color: var(--gray-700); vertical-align: middle
 }
 
 .sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
   width: var(--sidebar-width);
   min-width: var(--sidebar-width);
   max-width: var(--sidebar-width);
-  background: linear-gradient(180deg, #090d16 0%, #0f172a 40%, #1e1b4b 100%);
-  display: flex;
-  flex-direction: column;
-  position: sticky;
-  top: 0;
-  bottom: 0;
   height: 100vh;
   height: 100dvh;
-  min-height: 100vh;
+  background: linear-gradient(180deg, #090d16 0%, #0f172a 45%, #111827 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
   z-index: 100;
   flex-shrink: 0;
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), margin-left 0.28s cubic-bezier(0.16, 1, 0.3, 1), width 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease;
-  box-shadow: 2px 0 16px rgba(0, 0, 0, 0.2);
-  overflow-y: auto;
-  overflow-x: hidden;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.24);
+  overflow: hidden;
 }
 
-/* Collapsed state for desktop - main content dynamically occupies full screen */
+/* Collapsed state for desktop */
 .app-layout.sidebar-collapsed .sidebar {
-  margin-left: calc(-1 * var(--sidebar-width));
-  width: 0;
-  min-width: 0;
-  max-width: 0;
-  opacity: 0;
+  transform: translateX(-100%);
   pointer-events: none;
   box-shadow: none;
 }
 
 .sidebar-brand {
-  padding: 1.15rem 1.25rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 1.25rem 1.25rem 1.1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -696,17 +692,18 @@ tbody td { padding: 0.85rem 1rem; color: var(--gray-700); vertical-align: middle
   gap: 0.75rem;
 }
 .brand-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.12);
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.35) 0%, rgba(59, 130, 246, 0.2) 100%);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 .brand-name {
   font-family: 'Outfit', sans-serif;
@@ -718,9 +715,10 @@ tbody td { padding: 0.85rem 1rem; color: var(--gray-700); vertical-align: middle
 }
 .brand-sub {
   font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.65);
-  font-weight: 500;
-  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   margin-top: 1px;
 }
 
@@ -742,8 +740,11 @@ tbody td { padding: 0.85rem 1rem; color: var(--gray-700); vertical-align: middle
 }
 
 .sidebar-user {
-  padding: 0.85rem 1.25rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin: 0.85rem 0.85rem 0.4rem;
+  padding: 0.75rem 0.85rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -791,10 +792,14 @@ tbody td { padding: 0.85rem 1rem; color: var(--gray-700); vertical-align: middle
 
 .sidebar-nav {
   flex: 1;
-  padding: 0.75rem 0.6rem;
+  padding: 0.6rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
   overflow-y: auto;
+  overflow-x: hidden;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
 .sidebar-nav::-webkit-scrollbar { width: 4px; }
 .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
@@ -804,24 +809,28 @@ tbody td { padding: 0.85rem 1rem; color: var(--gray-700); vertical-align: middle
   align-items: center;
   gap: 0.75rem;
   padding: 0.65rem 0.85rem;
-  margin-bottom: 0.25rem;
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.72);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
   border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  border-left: 3px solid transparent;
   transition: all var(--transition-fast);
+  user-select: none;
 }
 .nav-item:hover {
   color: #fff;
-  background: rgba(255, 255, 255, 0.1);
-  transform: translateX(2px);
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateX(3px);
 }
 .nav-item.active {
   color: #fff;
-  background: rgba(255, 255, 255, 0.18);
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.24) 0%, rgba(59, 130, 246, 0.1) 100%);
+  border-color: rgba(99, 102, 241, 0.25);
+  border-left: 3px solid #6366f1;
   font-weight: 600;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 .nav-item .nav-icon {
   display: flex;
@@ -833,10 +842,10 @@ tbody td { padding: 0.85rem 1rem; color: var(--gray-700); vertical-align: middle
 
 .sidebar-footer {
   margin-top: auto;
-  padding: 0.9rem 1.25rem;
+  padding: 0.85rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.22);
 }
 .logout-btn {
   display: flex;
@@ -844,31 +853,36 @@ tbody td { padding: 0.85rem 1rem; color: var(--gray-700); vertical-align: middle
   gap: 0.65rem;
   color: rgba(255, 255, 255, 0.75);
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-fast);
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-sm);
-  padding: 0.55rem 0.85rem;
+  padding: 0.6rem 0.85rem;
   width: 100%;
 }
 .logout-btn:hover {
   color: #fee2e2;
-  background: rgba(239, 68, 68, 0.16);
-  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.35);
 }
 
-/* ── Main content (Dynamically adjusts to remaining space) ───────────────── */
+/* ── Main content (Fixed Sidebar Alignment & Smooth Expansion) ───────────── */
 .main-content {
-  flex: 1 1 0%;
+  margin-left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width));
   min-width: 0;
-  width: auto;
-  margin-left: 0;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  transition: flex 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: margin-left 0.3s cubic-bezier(0.16, 1, 0.3, 1), width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.app-layout.sidebar-collapsed .main-content {
+  margin-left: 0;
+  width: 100%;
+  max-width: 100%;
 }
 
 .topbar {
