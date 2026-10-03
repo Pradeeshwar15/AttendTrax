@@ -40,6 +40,9 @@
 </div>
 
 <div class="app-layout">
+  <!-- FROSTED BACKDROP FOR MOBILE DRAWER -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
@@ -358,12 +361,23 @@ document.getElementById('today-badge').textContent = todayShort();
 
 function toggleSidebar(open) {
   const layout = document.querySelector('.app-layout');
-  if (open === undefined) {
-    layout?.classList.toggle('sidebar-collapsed');
-  } else if (open) {
-    layout?.classList.remove('sidebar-collapsed');
+  const isMobile = window.innerWidth < 1024;
+  if (isMobile) {
+    if (open === undefined) {
+      layout?.classList.toggle('sidebar-open');
+    } else if (open) {
+      layout?.classList.add('sidebar-open');
+    } else {
+      layout?.classList.remove('sidebar-open');
+    }
   } else {
-    layout?.classList.add('sidebar-collapsed');
+    if (open === undefined) {
+      layout?.classList.toggle('sidebar-collapsed');
+    } else if (open) {
+      layout?.classList.remove('sidebar-collapsed');
+    } else {
+      layout?.classList.add('sidebar-collapsed');
+    }
   }
 }
 
@@ -377,6 +391,8 @@ document.querySelectorAll('.nav-item').forEach(item => {
     document.getElementById(`section-${sec}`).classList.add('active');
     document.getElementById('section-title').textContent = sectionTitles[sec] || sec;
     if (sec === 'records') populateRecordClassDropdown();
+    // Smoothly close drawer on mobile upon section switch
+    if (window.innerWidth < 1024) toggleSidebar(false);
   });
 });
 
@@ -385,6 +401,8 @@ document.getElementById('menu-toggle')?.addEventListener('click', (e) => {
   toggleSidebar();
 });
 document.getElementById('sidebar-close-btn')?.addEventListener('click', () => toggleSidebar(false));
+document.getElementById('sidebar-backdrop')?.addEventListener('click', () => toggleSidebar(false));
+
 const logoutModal = document.getElementById('logout-modal');
 const openLogout = () => {
   logoutModal.classList.remove('hidden');
@@ -405,7 +423,10 @@ logoutModal.addEventListener('click', (e) => {
   if (e.target === logoutModal) closeLogout();
 });
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && !logoutModal.classList.contains('hidden')) closeLogout();
+  if (e.key === 'Escape') {
+    if (logoutModal && !logoutModal.classList.contains('hidden')) closeLogout();
+    toggleSidebar(false);
+  }
 });
 
 // ── Load classes ────────────────────────────────────────────────────────────
@@ -488,14 +509,14 @@ function renderStudentTable(students) {
   students.forEach((s, idx) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td style="color:var(--gray-400);font-size:0.82rem;">${idx + 1}</td>
+      <td style="color:var(--gray-400);font-size:0.82rem;">#${idx + 1}</td>
       <td><span class="student-reg">${escapeHtml(s.reg_no)}</span></td>
       <td><span class="student-name">${escapeHtml(s.name)}</span></td>
       <td style="text-align:center;">
-        <div class="attendance-chip-group" data-reg="${escapeHtml(s.reg_no)}" style="display:inline-flex;gap:0.3rem;">
-          <button type="button" class="attendance-chip chip-P active" data-val="P">P</button>
-          <button type="button" class="attendance-chip chip-A"       data-val="A">A</button>
-          <button type="button" class="attendance-chip chip-OD"      data-val="OD">OD</button>
+        <div class="attendance-chip-group" data-reg="${escapeHtml(s.reg_no)}">
+          <button type="button" class="attendance-chip chip-P active" data-val="P">🟢 Present</button>
+          <button type="button" class="attendance-chip chip-A"       data-val="A">🔴 Absent</button>
+          <button type="button" class="attendance-chip chip-OD"      data-val="OD">🟡 On-Duty</button>
         </div>
       </td>`;
     tbody.appendChild(tr);
@@ -503,6 +524,7 @@ function renderStudentTable(students) {
   tbody.querySelectorAll('.attendance-chip-group').forEach(group => {
     group.querySelectorAll('.attendance-chip').forEach(chip => {
       chip.addEventListener('click', () => {
+        if (navigator.vibrate) { try { navigator.vibrate(10); } catch(e) {} }
         group.querySelectorAll('.attendance-chip').forEach(c => c.classList.remove('active'));
         chip.classList.add('active');
         updateLiveCounters();

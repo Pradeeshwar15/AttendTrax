@@ -186,6 +186,9 @@
 </div>
 
 <div class="app-layout">
+  <!-- Frosted Backdrop for Mobile Drawer -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
   <!-- ══════════════════ SIDEBAR ══════════════════ -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
@@ -970,12 +973,23 @@ const secTitles = {
 
 function toggleSidebar(open) {
   const layout = document.querySelector('.app-layout');
-  if (open === undefined) {
-    layout?.classList.toggle('sidebar-collapsed');
-  } else if (open) {
-    layout?.classList.remove('sidebar-collapsed');
+  const isMobile = window.innerWidth < 1024;
+  if (isMobile) {
+    if (open === undefined) {
+      layout?.classList.toggle('sidebar-open');
+    } else if (open) {
+      layout?.classList.add('sidebar-open');
+    } else {
+      layout?.classList.remove('sidebar-open');
+    }
   } else {
-    layout?.classList.add('sidebar-collapsed');
+    if (open === undefined) {
+      layout?.classList.toggle('sidebar-collapsed');
+    } else if (open) {
+      layout?.classList.remove('sidebar-collapsed');
+    } else {
+      layout?.classList.add('sidebar-collapsed');
+    }
   }
 }
 
@@ -988,6 +1002,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
     document.getElementById(`section-${sec}`).classList.add('active');
     document.getElementById('section-title').textContent = secTitles[sec] || sec;
     if (sectionLoaders[sec]) sectionLoaders[sec]();
+    if (window.innerWidth < 1024) toggleSidebar(false);
   });
 });
 
@@ -996,6 +1011,7 @@ document.getElementById('menu-toggle')?.addEventListener('click', (e) => {
   toggleSidebar();
 });
 document.getElementById('sidebar-close-btn')?.addEventListener('click', () => toggleSidebar(false));
+document.getElementById('sidebar-backdrop')?.addEventListener('click', () => toggleSidebar(false));
 
 const logoutModal = document.getElementById('logout-modal');
 const openLogout = () => {

@@ -557,32 +557,97 @@ tbody td { padding: 0.85rem 1rem; color: var(--gray-700); vertical-align: middle
 }
 
 /* ── Chip selectors for P/A marking ─────────────────────────────────────────── */
-.attendance-chip-group { display: flex; gap: 0.35rem; }
-.attendance-chip {
-  padding: 0.25rem 0.7rem;
+/* ── Tactical Chip Selectors for P/A/OD Attendance ───────────────────────────── */
+.attendance-chip-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--gray-100);
+  padding: 3px;
   border-radius: 999px;
-  font-size: 0.78rem;
+  border: 1px solid var(--gray-200);
+}
+
+.attendance-chip {
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
   font-weight: 700;
   border: 1.5px solid transparent;
   cursor: pointer;
+  background: transparent;
+  color: var(--gray-600);
   transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  user-select: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
-.chip-P { border-color: #10b981; color: #10b981; }
-.chip-P.active { background: #10b981; color: #fff; }
-.chip-A { border-color: #ef4444; color: #ef4444; }
-.chip-A.active { background: #ef4444; color: #fff; }
-.chip-OD { border-color: #f59e0b; color: #d97706; }
-.chip-OD.active { background: #f59e0b; color: #fff; }
-.chip-free { border-color: var(--gray-300); color: var(--gray-400); }
-.chip-free.active { background: var(--gray-300); color: var(--gray-600); }
 
-/* ── Dynamic Split Sidebar Layout (Adapts to remaining space) ────────────── */
+.attendance-chip:hover {
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--gray-900);
+}
+
+.chip-P {
+  color: #065f46;
+}
+.chip-P.active {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.35);
+  border-color: #059669;
+}
+
+.chip-A {
+  color: #991b1b;
+}
+.chip-A.active {
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.35);
+  border-color: #dc2626;
+}
+
+.chip-OD {
+  color: #92400e;
+}
+.chip-OD.active {
+  background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.35);
+  border-color: #d97706;
+}
+
+/* ── Modern App Layout & Drawer Architecture (Professional Enterprise Standard) ── */
 .app-layout {
   display: flex;
   min-height: 100vh;
   width: 100%;
   position: relative;
   overflow-x: hidden;
+  background: var(--gray-50);
+}
+
+/* Frosted glass backdrop scrim */
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 998;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.26s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-backdrop.active,
+.app-layout.sidebar-open .sidebar-backdrop {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .sidebar {
@@ -595,14 +660,15 @@ tbody td { padding: 0.85rem 1rem; color: var(--gray-700); vertical-align: middle
   position: sticky;
   top: 0;
   height: 100vh;
+  height: 100dvh;
   z-index: 100;
   flex-shrink: 0;
-  transition: margin-left 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.24s ease, box-shadow 0.28s ease;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), margin-left 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease;
   box-shadow: 2px 0 16px rgba(0, 0, 0, 0.2);
   overflow: hidden;
 }
 
-/* Collapsed state – pushes content to 100% full width */
+/* Collapsed state for desktop */
 .app-layout.sidebar-collapsed .sidebar {
   margin-left: calc(-1 * var(--sidebar-width));
   opacity: 0;
@@ -849,8 +915,49 @@ tbody td { padding: 0.85rem 1rem; color: var(--gray-700); vertical-align: middle
   color: var(--gray-900);
 }
 
-/* ── Responsive adjustments ──────────────────────────────────────────────────── */
-@media (max-width: 1024px) {
+/* ── Responsive adjustments & Mobile Overlay Drawer ────────────────────────── */
+@media (max-width: 1023.98px) {
+  .sidebar {
+    position: fixed !important;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 280px !important;
+    max-width: 85vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    z-index: 1000 !important;
+    transform: translateX(-105%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+    box-shadow: none;
+    margin-left: 0 !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  /* Drawer open on mobile/tablet */
+  .app-layout.sidebar-open .sidebar,
+  .sidebar.drawer-open {
+    transform: translateX(0) !important;
+    box-shadow: 10px 0 40px rgba(0, 0, 0, 0.38) !important;
+  }
+
+  /* Main content stays 100% full width and is NEVER squeezed or distorted */
+  .main-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin-left: 0 !important;
+    flex: 1 1 100% !important;
+    padding-left: 0 !important;
+  }
+
+  .topbar {
+    padding: 0 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 80;
+  }
   .page-content {
     padding: 1.25rem 1rem;
   }
@@ -860,30 +967,102 @@ tbody td { padding: 0.85rem 1rem; color: var(--gray-700); vertical-align: middle
 }
 
 @media (max-width: 640px) {
-  :root {
-    --sidebar-width: 220px;
-  }
   .topbar {
     padding: 0 0.85rem;
+    height: 60px;
   }
   .topbar-title {
-    font-size: 0.92rem;
+    font-size: 0.95rem;
+  }
+  .topbar-date {
+    display: none;
   }
   .stat-grid {
     grid-template-columns: 1fr;
   }
   .page-content {
-    padding: 1rem 0.75rem;
+    padding: 0.85rem 0.65rem 5rem; /* bottom padding for sticky bar */
   }
   .analytics-hero {
     padding: 1.25rem 1rem;
+  }
+  .card-body {
+    padding: 1rem 0.85rem;
+  }
+  .card-header {
+    padding: 0.85rem 1rem;
+  }
+
+  /* Mobile-first attendance marking cards */
+  .mark-table thead {
+    display: none;
+  }
+  .mark-table, .mark-table tbody, .mark-table tr, .mark-table td {
+    display: block;
+    width: 100%;
+  }
+  .mark-table tr {
+    background: #fff;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    margin-bottom: 0.75rem;
+    padding: 0.85rem 1rem;
+    box-shadow: var(--shadow-xs);
+    position: relative;
+  }
+  .mark-table td {
+    padding: 0.25rem 0;
+    border: none;
+  }
+  .mark-table td:first-child {
+    position: absolute;
+    top: 0.75rem;
+    right: 1rem;
+    font-size: 0.75rem;
+    color: var(--gray-400);
+  }
+  .mark-table .student-name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    display: block;
+    margin-bottom: 0.15rem;
+  }
+  .mark-table .student-reg {
+    font-size: 0.82rem;
+    font-family: ui-monospace, monospace;
+    font-weight: 600;
+    color: var(--brand-700);
+    background: var(--brand-50);
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    display: inline-block;
+    margin-bottom: 0.6rem;
+  }
+  .mark-table td:last-child {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--gray-200);
+    text-align: left !important;
+  }
+  .mark-table .attendance-chip-group {
+    display: flex;
+    width: 100%;
+    gap: 0.35rem;
+  }
+  .mark-table .attendance-chip {
+    flex: 1;
+    justify-content: center;
+    padding: 0.6rem 0.5rem;
+    font-size: 0.85rem;
+    border-radius: 8px;
   }
 }
 
 /* ── Attendance marking table ─────────────────────────────────────────────────── */
 .mark-table tbody td { vertical-align: middle; }
 .mark-table .student-name { font-weight: 600; }
-.mark-table .student-reg  { color: var(--gray-400); font-size: 0.8rem; }
+.mark-table .student-reg  { color: var(--gray-500); font-size: 0.82rem; }
 .bulk-actions {
   display: flex; gap: 0.5rem; flex-wrap: wrap;
   margin-bottom: 1rem;
