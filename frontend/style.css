@@ -562,10 +562,10 @@ tbody td { padding: 0.85rem 1rem; color: var(--gray-700); vertical-align: middle
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  background: var(--gray-100);
+
   padding: 3px;
   border-radius: 999px;
-  border: 1px solid var(--gray-200);
+
 }
 
 .attendance-chip {
@@ -1373,24 +1373,236 @@ tbody td { padding: 0.85rem 1rem; color: var(--gray-700); vertical-align: middle
   border: 1px solid var(--gray-200);
 }
 
-/* ── Minimalist App Footer with Developer Credits ───────────────────────────── */
+/* ── Developer Promotional Showcase & Enterprise Footer ────────────────────── */
 .app-footer {
   margin-top: auto;
-  padding: 1.5rem 1.75rem 1.75rem;
+  padding: 2.25rem 2rem 2rem;
   border-top: 1px solid var(--gray-200);
   background: #ffffff;
   width: 100%;
 }
 
-.footer-inner {
-  max-width: 1400px;
+.dev-showcase-container {
+  max-width: 1300px;
   margin: 0 auto;
+}
+
+.dev-showcase-header {
+  text-align: center;
+  margin-bottom: 1.75rem;
+}
+
+.showcase-tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #4f46e5;
+  background: #eef2ff;
+  border: 1px solid #e0e7ff;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+}
+
+.showcase-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--gray-900);
+  letter-spacing: -0.015em;
+  font-family: 'Outfit', sans-serif;
+}
+
+.showcase-sub {
+  font-size: 0.84rem;
+  color: var(--gray-500);
+  margin-top: 0.25rem;
+  max-width: 650px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.dev-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.75rem;
+}
+
+.dev-profile-card {
+  background: var(--gray-25, #fcfcfd);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding: 1.4rem;
+  display: flex;
+  gap: 1.2rem;
+  align-items: flex-start;
+  box-shadow: var(--shadow-xs);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+  position: relative;
+  overflow: hidden;
+}
+
+.dev-profile-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #4f46e5, #3b82f6);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.dev-profile-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--brand-300);
+  background: #ffffff;
+}
+
+.dev-profile-card:hover::before {
+  opacity: 1;
+}
+
+.dev-photo-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.dev-avatar-frame {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  position: relative;
+}
+
+.avatar-pradeeshwar {
+  background: linear-gradient(135deg, #1e1b4b 0%, #4338ca 50%, #2563eb 100%);
+}
+
+.avatar-kanaga {
+  background: linear-gradient(135deg, #042f2e 0%, #0d9488 50%, #0284c7 100%);
+}
+
+.dev-initials {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+.dev-status-indicator {
+  width: 14px;
+  height: 14px;
+  background: #10b981;
+  border: 2.5px solid #ffffff;
+  border-radius: 50%;
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.dev-details {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.dev-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.dev-name {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--gray-900);
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.dev-role-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+
+.badge-architect {
+  background: #eef2ff;
+  color: #3730a3;
+  border: 1px solid #c7d2fe;
+}
+
+.badge-systems {
+  background: #ecfeff;
+  color: #0e7490;
+  border: 1px solid #a5f3fc;
+}
+
+.dev-bio {
+  font-size: 0.83rem;
+  color: var(--gray-600);
+  line-height: 1.45;
+}
+
+.dev-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.15rem;
+}
+
+.skill-tag {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  background: var(--gray-100);
+  color: var(--gray-700);
+  border-radius: 6px;
+  border: 1px solid var(--gray-200);
+}
+
+.dev-dept-info {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--gray-500);
+  margin-top: 0.2rem;
+}
+
+.dev-dept-info svg {
+  color: var(--gray-400);
+  flex-shrink: 0;
+}
+
+.footer-bottom-bar {
+  border-top: 1px solid var(--gray-200);
+  padding-top: 1.25rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 1rem;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--gray-500);
 }
 
@@ -1414,42 +1626,36 @@ tbody td { padding: 0.85rem 1rem; color: var(--gray-700); vertical-align: middle
   font-size: 0.8rem;
 }
 
-.footer-credit-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: var(--gray-50);
-  border: 1px solid var(--gray-200);
-  padding: 0.35rem 0.85rem;
-  border-radius: 999px;
-  font-size: 0.8rem;
-  color: var(--gray-600);
-  box-shadow: var(--shadow-xs);
-}
-
-.footer-credit-badge .dev-names {
-  color: var(--gray-900);
-  font-weight: 700;
-}
-
-.footer-credit-badge .dept-tag {
-  background: var(--gray-900);
-  color: #ffffff;
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 0.15rem 0.55rem;
-  border-radius: 999px;
-  letter-spacing: 0.03em;
+.footer-copy {
+  color: var(--gray-400);
+  font-size: 0.78rem;
 }
 
 @media (max-width: 768px) {
   .app-footer {
-    padding: 1.25rem 1rem 3.5rem;
+    padding: 1.5rem 1rem 3.5rem;
   }
-  .footer-inner {
+  .dev-cards-grid {
+    grid-template-columns: 1fr;
+  }
+  .dev-profile-card {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
+    align-items: center;
+    text-align: center;
+  }
+  .dev-meta {
+    justify-content: center;
+  }
+  .dev-skills {
+    justify-content: center;
+  }
+  .dev-dept-info {
+    justify-content: center;
+  }
+  .footer-bottom-bar {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
   }
 }
 
