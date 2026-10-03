@@ -829,7 +829,7 @@
                 <span class="tag" style="opacity:.6;">Username (opt)</span>
                 <span class="tag" style="opacity:.6;">Password (opt)</span>
               </p>
-              <p class="text-xs text-muted" style="margin-bottom:1rem;">Username defaults to Name, Password defaults to RegNo if blank. Duplicate RegNos are skipped.</p>
+              <p class="text-xs text-muted" style="margin-bottom:1rem;">Username defaults to <strong>Register Number</strong> (e.g. 410123104041), Password defaults to <strong>&lt;RegNo&gt;@CSE</strong> (e.g. 410123104041@CSE) if blank. Duplicate RegNos are skipped.</p>
               <div class="drop-zone" id="drop-zone-students">
                 <div class="drop-icon">📄</div>
                 <p class="font-semibold" style="margin-bottom:.25rem;">Drop your .xlsx here</p>
@@ -2165,8 +2165,8 @@ document.getElementById('add-student-btn').addEventListener('click', async () =>
       <div class="form-group"><label class="form-label">Reg No</label><input data-field="reg_no" class="form-control" placeholder="e.g. 23CS001" /></div>
       <div class="form-group"><label class="form-label">Full Name</label><input data-field="name" class="form-control" placeholder="Student full name" /></div>
       <div class="form-group"><label class="form-label">Class</label><select data-field="class_id" class="form-control"><option value="">— Select —</option>${opts}</select></div>
-      <div class="form-group"><label class="form-label">Login Username (optional, defaults to Name)</label><input data-field="username" class="form-control" placeholder="Leave blank to use Name" /></div>
-      <div class="form-group"><label class="form-label">Login Password (optional, defaults to Reg No)</label><input data-field="password" class="form-control" type="password" placeholder="Leave blank to use Reg No" /></div>
+      <div class="form-group"><label class="form-label">Login Username (optional, defaults to Reg No)</label><input data-field="username" class="form-control" placeholder="Leave blank to use Reg No" /></div>
+      <div class="form-group"><label class="form-label">Login Password (optional, defaults to &lt;RegNo&gt;@CSE)</label><input data-field="password" class="form-control" type="password" placeholder="Leave blank to use &lt;RegNo&gt;@CSE" /></div>
     </div>`);
   if (!result?.reg_no || !result?.name || !result?.class_id) return;
   showLoader(true);

@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from auth import verify_password, create_access_token, hash_password
 from config import get_settings
 from dependencies import get_current_user
-from sheets import get_user_by_username, update_user_password
+from sheets import get_user_by_username, update_user_password, get_student_by_regnum, create_user
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -127,12 +127,58 @@ def login(body: LoginRequest, request: Request):
     # ── 2. Fall back to Google Sheets for Faculty / Student logins ────────
     user = get_user_by_username(uname)
     if not user:
+        # Check if login username is a student Register Number in Students sheet
+        student = get_student_by_regnum(uname)
+        if student:
+            reg_no = str(student.get("RegNo", "")).strip()
+            # Student default password: <RegNo>@CSE (e.g. 410123104041@CSE)
+            expected_default = f"{reg_no}@CSE"
+            if body.password.strip().upper() == expected_default.upper():
+                login_rate_limiter.record_success(client_ip, uname)
+                # Auto-register student in Users sheet if not already there
+                try:
+                    create_user({
+                        "user_id": reg_no,
+                        "name": str(student.get("Name", "")),
+                        "username": reg_no,
+                        "password_hash": hash_password(body.password.strip()),
+                        "role": "STUDENT",
+                        "class_id": str(student.get("ClassID", "")),
+                    })
+                except Exception:
+                    pass
+
+                token = create_access_token({"sub": reg_no, "role": "STUDENT"})
+                return LoginResponse(
+                    access_token=token,
+                    role="STUDENT",
+                    name=str(student.get("Name", "")),
+                    user_id=reg_no,
+                    class_id=str(student.get("ClassID", "")),
+                )
+
         login_rate_limiter.record_failure(client_ip, uname)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password.",
         )
-    if not verify_password(body.password, str(user.get("PasswordHash", ""))):
+
+    # User found in Users sheet
+    user_role = str(user.get("Role", "")).upper()
+    user_id = str(user.get("UserID", "")).strip()
+    pwd_valid = verify_password(body.password, str(user.get("PasswordHash", "")))
+
+    # For student accounts: support institutional default <RegNo>@CSE if custom hash doesn't match
+    if not pwd_valid and user_role == "STUDENT":
+        reg_check = user_id or str(user.get("Username", "")).strip()
+        if body.password.strip().upper() == f"{reg_check}@CSE".upper():
+            pwd_valid = True
+            try:
+                update_user_password(str(user.get("Username", "")), hash_password(body.password.strip()))
+            except Exception:
+                pass
+
+    if not pwd_valid:
         login_rate_limiter.record_failure(client_ip, uname)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -140,7 +186,7 @@ def login(body: LoginRequest, request: Request):
         )
 
     login_rate_limiter.record_success(client_ip, uname)
-    token = create_access_token({"sub": uname, "role": user["Role"]})
+    token = create_access_token({"sub": str(user.get("Username", uname)), "role": user["Role"]})
     return LoginResponse(
         access_token=token,
         role=str(user.get("Role", "")),

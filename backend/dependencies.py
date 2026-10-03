@@ -6,7 +6,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from auth import decode_token
 from config import get_settings
-from sheets import get_user_by_username
+from sheets import get_user_by_username, get_student_by_regnum
 
 bearer_scheme = HTTPBearer()
 
@@ -40,6 +40,16 @@ def get_current_user(
     # ── Regular users – look up in Google Sheets ──────────────────────────
     user = get_user_by_username(username)
     if not user:
+        student = get_student_by_regnum(username)
+        if student:
+            return {
+                "UserID":       str(student.get("RegNo", "")),
+                "Name":         str(student.get("Name", "")),
+                "Username":     str(student.get("RegNo", "")),
+                "Role":         "STUDENT",
+                "ClassID":      str(student.get("ClassID", "")),
+                "PasswordHash": "",
+            }
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found.")
     return user
 

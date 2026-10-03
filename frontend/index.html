@@ -189,9 +189,18 @@
       </div>
 
       <form id="login-form" class="form-stack" novalidate>
+        <!-- Student Credentials Guidance -->
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--radius-md);padding:0.75rem 0.9rem;font-size:0.8rem;color:#166534;line-height:1.45;">
+          <div style="font-weight:700;margin-bottom:0.2rem;display:flex;align-items:center;gap:0.35rem;">
+            <span>💡</span> Student Login Format:
+          </div>
+          <div>• Username: <strong>Register No.</strong> (e.g. <code>410123104041</code>)</div>
+          <div>• Password: <strong>&lt;RegNo&gt;@CSE</strong> (e.g. <code>410123104041@CSE</code>)</div>
+        </div>
+
         <!-- Username -->
         <div class="form-group">
-          <label class="form-label" for="username">Username / ID</label>
+          <label class="form-label" for="username">Username / Register No / ID</label>
           <div class="input-icon-wrap">
             <span class="input-icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -200,7 +209,7 @@
               id="username"
               type="text"
               class="form-control"
-              placeholder="e.g. admin or faculty ID"
+              placeholder="e.g. 410123104041 or admin"
               autocomplete="username"
               required
             />
@@ -218,7 +227,7 @@
               id="password"
               type="password"
               class="form-control"
-              placeholder="Enter your password"
+              placeholder="e.g. 410123104041@CSE"
               autocomplete="current-password"
               required
             />

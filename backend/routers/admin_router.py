@@ -152,8 +152,8 @@ async def add_student(body: AddStudentRequest, _=_admin_dep):
         "class_name": class_name,
     })
 
-    username = body.username or body.name
-    password = body.password or body.reg_no
+    username = (body.username or body.reg_no).strip()
+    password = (body.password or f"{body.reg_no}@CSE").strip()
     sheets.create_user({
         "user_id": body.reg_no,
         "name": body.name,
@@ -482,8 +482,8 @@ async def import_students(
         row_username = str(row[username_col]).strip() if username_col != -1 and username_col < len(row) and row[username_col] is not None else ""
         row_password = str(row[password_col]).strip() if password_col != -1 and password_col < len(row) and row[password_col] is not None else ""
         
-        final_username = row_username or name
-        final_password = row_password or reg_no
+        final_username = row_username or reg_no
+        final_password = row_password or f"{reg_no}@CSE"
 
         students_to_add.append({
             "reg_no": reg_no,
