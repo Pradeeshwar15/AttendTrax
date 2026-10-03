@@ -719,7 +719,7 @@ tbody td { padding: 0.85rem 1rem; color: var(--gray-700); vertical-align: middle
 }
 
 .sidebar-close-btn {
-  display: inline-flex;
+  display: none;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: #fff;
@@ -943,6 +943,9 @@ tbody td { padding: 0.85rem 1rem; color: var(--gray-700); vertical-align: middle
   }
 
   /* Drawer open on mobile/tablet */
+  .sidebar-close-btn {
+    display: inline-flex !important;
+  }
   .app-layout.sidebar-open .sidebar,
   .sidebar.drawer-open {
     transform: translateX(0) !important;
