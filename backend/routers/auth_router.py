@@ -4,12 +4,13 @@
 import time
 import threading
 from typing import Dict, List
-from fastapi import APIRouter, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel
 
-from auth import verify_password, create_access_token
+from auth import verify_password, create_access_token, hash_password
 from config import get_settings
-from sheets import get_user_by_username
+from dependencies import get_current_user
+from sheets import get_user_by_username, update_user_password
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -147,4 +148,38 @@ def login(body: LoginRequest, request: Request):
         user_id=str(user.get("UserID", "")),
         class_id=str(user.get("ClassID", "")),
     )
+
+
+class ChangePasswordRequest(BaseModel):
+    new_password: str
+
+
+@router.post("/change-password")
+def change_password(
+    body: ChangePasswordRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    new_pwd = body.new_password.strip()
+    if not new_pwd or len(new_pwd) < 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 6 characters long.",
+        )
+
+    username = current_user.get("Username") or current_user.get("sub") or ""
+    cfg = get_settings()
+    if username.strip().lower() == cfg.ADMIN_USERNAME.strip().lower():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Admin credentials cannot be changed through this portal.",
+        )
+
+    new_hash = hash_password(new_pwd)
+    success = update_user_password(username, new_hash)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User '{username}' was not found in the database.",
+        )
+    return {"message": "Password changed successfully!"}
 

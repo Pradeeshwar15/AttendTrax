@@ -221,20 +221,21 @@ def get_all_faculty() -> List[Dict]:
     ]
 
 
-def update_user_password(username: str, new_hash: str) -> None:
+def update_user_password(username: str, new_hash: str) -> bool:
     ws = _get_worksheet(get_settings().USERS_SHEET_ID, "Users")
     records = ws.get_all_records()
     for i, row in enumerate(records, start=2):   # row 1 = header
-        if str(row.get("Username", "")).strip().lower() == username.lower():
+        if str(row.get("Username", "")).strip().lower() == username.strip().lower():
             # Standard order: UserID, Name, Username, PasswordHash, Role, ClassID -> col 4
             col = 4
-            if "PasswordHash" in row:
-                headers = list(records[0].keys()) if records else []
+            if records:
+                headers = list(records[0].keys())
                 if "PasswordHash" in headers:
                     col = headers.index("PasswordHash") + 1
             ws.update_cell(i, col, new_hash)
             invalidate_cache("users")
-            return
+            return True
+    return False
 
 
 def delete_user(username: str) -> None:
