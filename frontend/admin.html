@@ -1937,12 +1937,6 @@ async function saveModalModifiedAttendance() {
     return;
   }
 
-  const confirmed = await openConfirm(
-    'Confirm Attendance Modification',
-    `Are you sure you want to resubmit and update the attendance for ${currentEditingDailyData.class_id} on ${currentEditingDailyData.date} (${currentEditingDailyData.hour})? This will overwrite previous submissions and update all records.`
-  );
-  if (!confirmed) return;
-
   const attendanceList = [];
   rows.forEach(r => {
     const reg = r.getAttribute('data-reg');
@@ -1959,16 +1953,29 @@ async function saveModalModifiedAttendance() {
     attendance: attendanceList,
   };
 
+  const saveBtn = document.getElementById('modal-daily-save');
+  const origHtml = saveBtn ? saveBtn.innerHTML : '';
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<span class="spinner"></span> Saving...';
+  }
+
   showLoader(true);
   try {
+    api.clearCache();
     const res = await api.post('/admin/attendance/modify', payload);
-    showToast(res.message || 'Daily attendance updated and resubmitted successfully! 🎉', 'success', 4000);
+    api.clearCache();
+    showToast(res.message || 'Daily attendance modified and resubmitted successfully! 🎉', 'success', 4000);
     closeDailyAttendanceModal();
-    // Refresh overview
+    // Immediate refresh of daily overview
     await loadDailyAttendanceOverview();
   } catch (err) {
     showToast(err.message || 'Failed to update attendance.', 'error');
   } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = origHtml;
+    }
     showLoader(false);
   }
 }

@@ -870,7 +870,7 @@ def admin_update_attendance(
             ]))
         log_ws.append_rows(new_rows, value_input_option="USER_ENTERED")
 
-    invalidate_cache("attendance_log_raw")
+    invalidate_cache()
     return {
         "message": f"Daily attendance for {cid} on {dstr} ({hr}) successfully updated by Admin.",
         "updated_count": len(attendance),
