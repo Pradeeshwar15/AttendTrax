@@ -879,12 +879,14 @@ def admin_update_attendance(
     }
 
 
-def get_date_attendance_overview(date_str: str) -> Dict[str, Any]:
+def get_date_attendance_overview(date_str: str, force_refresh: bool = True) -> Dict[str, Any]:
     """
     Get full institutional attendance overview for a specific date:
     - Lists all submitted sessions with faculty name, subject, and student stats.
     - Lists all classes that have not yet submitted attendance for that date.
     """
+    if force_refresh:
+        invalidate_cache("attendance_log_raw")
     dstr = date_str.strip()
     classes = get_all_classes()
     all_users = get_all_users()
@@ -1118,7 +1120,7 @@ def get_class_attendance_report(class_id: str) -> List[Dict]:
 # ─────────────────────────────────────────────────────────────────────────────
 # ADMIN – Comprehensive Dashboard Analytics
 # ─────────────────────────────────────────────────────────────────────────────
-def get_admin_analytics() -> Dict[str, Any]:
+def get_admin_analytics(force_refresh: bool = True) -> Dict[str, Any]:
     active_classes = get_all_classes()
     class_map = {str(c["ClassID"]).strip(): str(c.get("ClassName", c["ClassID"])).strip() for c in active_classes}
     active_students = [s for s in _get_raw_students() if s.get("Status", "").upper() == "ACTIVE"]
@@ -1126,25 +1128,30 @@ def get_admin_analytics() -> Dict[str, Any]:
     active_subjects = [s for s in _get_raw_subjects() if s.get("Status", "").upper() == "ACTIVE"]
     faculty_users = [u for u in get_all_users() if str(u.get("Role", "")).upper() == "FACULTY"]
     
+    if force_refresh:
+        invalidate_cache("attendance_log_raw")
     logs = _get_raw_attendance_log()
     today_str = date.today().strftime("%d-%m-%Y")
     
     total_records = len(logs)
-    valid_logs = [r for r in logs if r.get("Status", "") in ("P", "A")]
+    valid_logs = [r for r in logs if str(r.get("Status", "")).strip().upper() in ("P", "A")]
     total_hours = len(valid_logs)
-    attended_hours = len([r for r in valid_logs if r.get("Status", "") == "P"])
+    attended_hours = len([r for r in valid_logs if str(r.get("Status", "")).strip().upper() == "P"])
     overall_percentage = round((attended_hours / total_hours) * 100, 1) if total_hours else 0.0
 
-    today_logs = [r for r in logs if str(r.get("Date", "")).strip() == today_str and r.get("Status", "") in ("P", "A")]
+    today_logs = [
+        r for r in logs
+        if _match_dates(str(r.get("Date", "")), today_str) and str(r.get("Status", "")).strip().upper() in ("P", "A")
+    ]
     today_total = len(today_logs)
-    today_attended = len([r for r in today_logs if r.get("Status", "") == "P"])
+    today_attended = len([r for r in today_logs if str(r.get("Status", "")).strip().upper() == "P"])
     today_absent = today_total - today_attended
     today_percentage = round((today_attended / today_total) * 100, 1) if today_total else 0.0
 
     status_distribution = {
         "present": attended_hours,
         "absent": total_hours - attended_hours,
-        "on_duty": len([r for r in logs if r.get("Status", "") == "-"]),
+        "on_duty": len([r for r in logs if str(r.get("Status", "")).strip().upper() in ("OD", "-", "ONDUTY")]),
     }
 
     class_info_map = {str(c["ClassID"]).strip(): c for c in active_classes}
@@ -1159,7 +1166,7 @@ def get_admin_analytics() -> Dict[str, Any]:
         if rn not in student_att_map:
             student_att_map[rn] = {"total": 0, "attended": 0}
         student_att_map[rn]["total"] += 1
-        if r.get("Status", "") == "P":
+        if str(r.get("Status", "")).strip().upper() == "P":
             student_att_map[rn]["attended"] += 1
 
     defaulters = []
@@ -1208,7 +1215,7 @@ def get_admin_analytics() -> Dict[str, Any]:
             else:
                 class_stat_map[cid]["absent"] += 1
 
-            if d_str == today_str:
+            if _match_dates(d_str, today_str):
                 class_stat_map[cid]["today_total"] += 1
                 if st_code == "P":
                     class_stat_map[cid]["today_attended"] += 1
@@ -1219,7 +1226,7 @@ def get_admin_analytics() -> Dict[str, Any]:
                 class_stat_map[cid]["subjects"][sub_id]["total"] += 1
                 if st_code == "P":
                     class_stat_map[cid]["subjects"][sub_id]["attended"] += 1
-        elif st_code == "-":
+        elif st_code in ("OD", "-", "ONDUTY"):
             class_stat_map[cid]["on_duty"] += 1
 
     class_stats = []

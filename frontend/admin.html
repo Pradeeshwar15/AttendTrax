@@ -297,7 +297,17 @@
         </button>
         <span class="topbar-title" id="section-title">Dashboard & Analytics</span>
       </div>
-      <span class="topbar-date" id="topbar-date"></span>
+      <div class="flex items-center gap-3">
+        <div class="live-sync-indicator" id="live-sync-badge" title="Real-time multi-device cloud synchronization active">
+          <span class="live-pulse-dot"></span>
+          <span>Live Sync</span>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" id="topbar-refresh-btn" title="Fetch latest attendance submissions immediately">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          <span>Sync Now</span>
+        </button>
+        <span class="topbar-date" id="topbar-date"></span>
+      </div>
     </header>
 
     <main class="page-content">
@@ -2951,8 +2961,101 @@ function downloadCsvTemplate(filename, csvContent, toastMsg) {
   showToast(toastMsg, 'info', 6000);
 }
 
-// ── Initial Load: Analytics Dashboard ────────────────────────────────────────
+// ── Real-Time Multi-Device Live Auto-Sync ────────────────────────────────────
+let _autoSyncInterval = null;
+
+function startAutoSync() {
+  if (_autoSyncInterval) clearInterval(_autoSyncInterval);
+  _autoSyncInterval = setInterval(async () => {
+    if (document.hidden) return; // Don't waste resources when backgrounded
+    const activeSection = document.querySelector('.section.active')?.id;
+    if (activeSection === 'section-dashboard') {
+      try {
+        const data = await api.get('/admin/analytics', { bypassCache: true });
+        if (data) {
+          analyticsData = data;
+          renderKpis(data);
+          if (typeof Chart !== 'undefined') {
+            renderTrendChart(data.trend || []);
+            renderStatusChart(data.status_distribution || {});
+            renderClassChart(data.class_stats || []);
+            renderHourChart(data.hour_stats || []);
+          }
+          renderSectionSummaries(data.section_summaries || [], data.year_summaries || []);
+          renderSectionTable(data.class_stats || []);
+          renderDefaulters(data.defaulters || []);
+          renderLeaderboards(data.class_stats || []);
+          renderRecentActivity(data.recent_activity || []);
+        }
+      } catch (e) {
+        // Silently skip transient polling glitches
+      }
+    } else if (activeSection === 'section-daily-attendance') {
+      const dateInput = document.getElementById('daily-overview-date');
+      const dateRaw = dateInput ? dateInput.value : '';
+      if (dateRaw && !currentEditingDailyData) {
+        const parts = dateRaw.split('-');
+        const dateStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
+        try {
+          const res = await api.get(`/admin/attendance/overview?date=${encodeURIComponent(dateStr)}`, { bypassCache: true });
+          currentDailyOverviewData = res;
+          renderDailyAttendanceOverview(res);
+        } catch (e) {
+          // Silently skip transient polling glitches
+        }
+      }
+    }
+  }, 12000); // Poll every 12 seconds for seamless multi-device updates
+}
+
+// Window focus & visibility auto-refresh
+window.addEventListener('focus', () => {
+  api.clearCache();
+  const activeSection = document.querySelector('.section.active')?.id;
+  if (activeSection === 'section-dashboard') loadDashboardAnalytics();
+  else if (activeSection === 'section-daily-attendance') loadDailyAttendanceOverview();
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    api.clearCache();
+    const activeSection = document.querySelector('.section.active')?.id;
+    if (activeSection === 'section-dashboard') loadDashboardAnalytics();
+    else if (activeSection === 'section-daily-attendance') loadDailyAttendanceOverview();
+  }
+});
+
+// Topbar Sync Now button
+document.getElementById('topbar-refresh-btn')?.addEventListener('click', async () => {
+  api.clearCache();
+  const btn = document.getElementById('topbar-refresh-btn');
+  const origHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Syncing...';
+  }
+  showToast('Synchronizing cloud records across faculty logins…', 'info', 1500);
+
+  const activeSection = document.querySelector('.section.active')?.id;
+  if (activeSection === 'section-dashboard') {
+    await loadDashboardAnalytics();
+  } else if (activeSection === 'section-daily-attendance') {
+    await loadDailyAttendanceOverview();
+  } else {
+    const secKey = activeSection?.replace('section-', '');
+    if (sectionLoaders[secKey]) sectionLoaders[secKey]();
+  }
+
+  if (btn) {
+    btn.disabled = false;
+    btn.innerHTML = origHtml;
+  }
+  showToast('Cloud attendance records up to date! ✅', 'success', 2000);
+});
+
+// ── Initial Load: Analytics Dashboard & Live Auto-Sync ───────────────────────
 loadDashboardAnalytics();
+startAutoSync();
 </script>
 </body>
 </html>

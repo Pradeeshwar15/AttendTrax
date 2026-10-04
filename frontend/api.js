@@ -28,7 +28,7 @@ function clearAuth() {
 
 // ── In-memory Client Cache ──────────────────────────────────────────────────
 const _apiCache = new Map();
-const CLIENT_CACHE_TTL = 15000; // 15 seconds
+const CLIENT_CACHE_TTL = 10000; // 10 seconds for static metadata only
 
 function clearClientCache() {
   _apiCache.clear();
@@ -38,7 +38,12 @@ function clearClientCache() {
 async function apiFetch(path, options = {}) {
   const method = (options.method || 'GET').toUpperCase();
   const isGet = method === 'GET';
-  const bypass = options.bypassCache === true;
+  
+  // Real-time dynamic endpoints should NEVER be served from stale local cache
+  const isDynamicEndpoint = path.includes('/analytics') || 
+                            path.includes('/attendance') || 
+                            path.includes('/reports');
+  const bypass = options.bypassCache === true || isDynamicEndpoint;
 
   if (isGet && !bypass) {
     const cached = _apiCache.get(path);

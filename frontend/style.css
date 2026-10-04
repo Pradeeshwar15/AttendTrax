@@ -533,6 +533,38 @@ tbody td {
 .dot-absent  { background: var(--danger); }
 .dot-od      { background: var(--warning); }
 
+/* ── Live Sync Pulse Indicator ────────────────────────────────────────────── */
+.live-sync-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.22rem 0.65rem;
+  background: var(--success-bg);
+  border: 1px solid var(--success-ring);
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--success-text);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.live-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.7);
+  animation: livePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  flex-shrink: 0;
+}
+
+@keyframes livePulse {
+  0% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.7); }
+  70% { box-shadow: 0 0 0 6px rgba(5, 150, 105, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); }
+}
+
 /* ── Segmented Chip Selectors for P / A / OD Attendance ─────────────────────── */
 .attendance-chip-group {
   display: inline-flex;
