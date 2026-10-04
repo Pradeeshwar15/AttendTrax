@@ -249,8 +249,35 @@ def delete_user(username: str) -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# CLASSES
+# CLASSES & ALIASES
 # ─────────────────────────────────────────────────────────────────────────────
+CLASS_ALIASES = {
+    "CSE4A": ["CSE4A", "CSE27A", "IV", "CSE IV", "CSE IV A", "IV A", "CSE 4A"],
+    "CSE27A": ["CSE4A", "CSE27A", "IV", "CSE IV", "CSE IV A", "IV A", "CSE 4A"],
+    "CSE3A": ["CSE3A", "CSE28A", "III A", "CSE III A", "CSE 3A"],
+    "CSE28A": ["CSE3A", "CSE28A", "III A", "CSE III A", "CSE 3A"],
+    "CSE3B": ["CSE3B", "CSE28B", "III B", "CSE III B", "CSE 3B"],
+    "CSE28B": ["CSE3B", "CSE28B", "III B", "CSE III B", "CSE 3B"],
+    "CSE2A": ["CSE2A", "CSE29A", "II A", "CSE II A", "CSE 2A"],
+    "CSE29A": ["CSE2A", "CSE29A", "II A", "CSE II A", "CSE 2A"],
+    "CSE2B": ["CSE2B", "CSE29B", "II B", "CSE II B", "CSE 2B"],
+    "CSE29B": ["CSE2B", "CSE29B", "II B", "CSE II B", "CSE 2B"],
+}
+
+
+def _classes_match(cid1: str, cid2: str) -> bool:
+    """Check if two class IDs match directly or through cohort/alias mapping (e.g. CSE4A <-> CSE27A)."""
+    c1 = str(cid1).strip().upper()
+    c2 = str(cid2).strip().upper()
+    if not c1 or not c2:
+        return False
+    if c1 == c2:
+        return True
+    a1 = [a.upper() for a in CLASS_ALIASES.get(c1, [c1])]
+    a2 = [a.upper() for a in CLASS_ALIASES.get(c2, [c2])]
+    return c2 in a1 or c1 in a2 or bool(set(a1) & set(a2))
+
+
 def _get_raw_classes() -> List[Dict]:
     def _fetch():
         ws = _get_worksheet(get_settings().CLASSES_SHEET_ID, "Classes")
@@ -265,7 +292,7 @@ def get_all_classes() -> List[Dict]:
 def get_class_by_id(class_id: str) -> Optional[Dict]:
     cid = class_id.strip()
     for r in _get_raw_classes():
-        if str(r.get("ClassID", "")).strip() == cid:
+        if _classes_match(r.get("ClassID", ""), cid):
             return r
     return None
 
@@ -326,7 +353,7 @@ def get_subjects_for_class(class_id: str) -> List[Dict]:
     cid = class_id.strip()
     return [
         r for r in _get_raw_subjects()
-        if str(r.get("ClassID", "")).strip() == cid
+        if _classes_match(r.get("ClassID", ""), cid)
         and r.get("Status", "").upper() == "ACTIVE"
     ]
 
@@ -387,7 +414,7 @@ def get_students_by_class(class_id: str) -> List[Dict]:
     cid = class_id.strip()
     return [
         r for r in _get_raw_students()
-        if str(r.get("ClassID", "")).strip() == cid
+        if _classes_match(r.get("ClassID", ""), cid)
         and r.get("Status", "").upper() == "ACTIVE"
     ]
 
@@ -462,7 +489,7 @@ def _get_class_spreadsheet(class_id: str) -> gspread.Spreadsheet:
     records = _get_raw_classes()
     cid = str(class_id).strip()
     for row in records:
-        if str(row.get("ClassID", "")).strip() == cid:
+        if _classes_match(row.get("ClassID", ""), cid):
             sid = str(row.get("SpreadsheetID", "")).strip()
             if sid:
                 return _open_by_id(sid)
@@ -471,6 +498,9 @@ def _get_class_spreadsheet(class_id: str) -> gspread.Spreadsheet:
         from setup_sheets import SHEET_IDS
         if cid in SHEET_IDS and SHEET_IDS[cid].strip():
             return _open_by_id(SHEET_IDS[cid].strip())
+        for alias in CLASS_ALIASES.get(cid.upper(), []):
+            if alias in SHEET_IDS and SHEET_IDS[alias].strip():
+                return _open_by_id(SHEET_IDS[alias].strip())
     except Exception:
         pass
     raise ValueError(f"No SpreadsheetID configured for class '{class_id}' in Classes sheet or setup_sheets.py.")
@@ -482,6 +512,13 @@ def _get_class_id_for_spreadsheet(spreadsheet_id: str) -> Optional[str]:
         for row in _get_raw_classes():
             if str(row.get("SpreadsheetID", "")).strip() == spreadsheet_id.strip():
                 return str(row.get("ClassID", "")).strip()
+    except Exception:
+        pass
+    try:
+        from setup_sheets import SHEET_IDS
+        for cid, sid in SHEET_IDS.items():
+            if sid.strip() == spreadsheet_id.strip():
+                return cid
     except Exception:
         pass
     return None
@@ -602,7 +639,7 @@ def check_attendance_exists(class_id: str, date_str: str, hour: str, subject_id:
         r_date = str(r.get("Date", "")).strip()
         r_hr = str(r.get("Hour", "")).strip().upper()
         r_sid = str(r.get("SubjectID", "")).strip()
-        if r_cid == cid and r_date == dstr and (not hr or r_hr == hr or hr == "DAY"):
+        if _classes_match(r_cid, cid) and _match_dates(r_date, dstr) and (not hr or r_hr == hr or hr == "DAY"):
             if not sid or r_sid == sid:
                 return True
     return False
@@ -726,7 +763,7 @@ def get_daily_attendance_for_edit(
         r_sid = str(r.get("SubjectID", "")).strip()
         r_reg = str(r.get("RegNo", "")).strip()
 
-        if r_cid == cid and _match_dates(r_date, dstr) and (not hr or r_hr == hr or hr == "DAY"):
+        if _classes_match(r_cid, cid) and _match_dates(r_date, dstr) and (not hr or r_hr == hr or hr == "DAY"):
             if not sid or not r_sid or r_sid == sid:
                 matching_records[r_reg] = r
                 if not faculty_id:
@@ -1098,7 +1135,7 @@ def get_class_attendance_report(class_id: str) -> List[Dict]:
     students = get_students_by_class(class_id)
     records = _get_raw_attendance_log()
     cid = class_id.strip()
-    class_rows = [r for r in records if str(r.get("ClassID", "")).strip() == cid]
+    class_rows = [r for r in records if _classes_match(r.get("ClassID", ""), cid)]
 
     result = []
     for s in students:
