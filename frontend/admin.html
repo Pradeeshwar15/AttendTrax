@@ -9,27 +9,29 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    .sidebar { background: linear-gradient(180deg, #1e1b4b 0%, #312e81 50%, #4f46e5 100%); }
-    .role-admin { background: #fef3c7; color: #92400e; }
-
     /* Tab pills */
-    .tab-pills { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+    .tab-pills { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
     .tab-pill {
-      padding: 0.45rem 1rem;
-      border-radius: 999px;
-      font-size: 0.82rem;
+      padding: 0.42rem 0.95rem;
+      border-radius: var(--radius-full);
+      font-size: 0.8125rem;
       font-weight: 600;
-      border: 1.5px solid var(--gray-200);
-      background: #fff;
-      color: var(--gray-500);
+      border: 1px solid var(--gray-300);
+      background: #ffffff;
+      color: var(--gray-600);
       cursor: pointer;
       transition: all var(--transition-fast);
     }
+    .tab-pill:hover {
+      background: var(--gray-50);
+      border-color: var(--gray-400);
+      color: var(--gray-900);
+    }
     .tab-pill.active {
-      background: linear-gradient(135deg, var(--indigo-600), var(--brand-600));
-      color: #fff;
-      border-color: transparent;
-      box-shadow: 0 2px 8px rgb(79 70 229 / 0.3);
+      background: var(--brand-600);
+      color: #ffffff;
+      border-color: var(--brand-700);
+      box-shadow: var(--shadow-xs);
     }
 
     /* Action bar */
@@ -47,33 +49,33 @@
       display: inline-flex;
       align-items: center;
       gap: 0.3rem;
-      padding: 0.35rem 0.65rem;
-      border-radius: 999px;
+      padding: 0.32rem 0.65rem;
+      border-radius: var(--radius-full);
       font-size: 0.78rem;
       font-weight: 600;
-      border: 1.5px solid var(--gray-200);
-      background: #fff;
-      color: var(--gray-600);
+      border: 1px solid var(--gray-300);
+      background: #ffffff;
+      color: var(--gray-700);
       cursor: pointer;
       transition: all var(--transition-fast);
       user-select: none;
     }
     .status-pill-opt input { display: none; }
-    .status-pill-opt:hover { border-color: var(--gray-300); }
+    .status-pill-opt:hover { border-color: var(--gray-400); }
     .status-pill-opt.active-p {
-      background: #d1fae5;
-      color: #065f46;
-      border-color: #34d399;
+      background: var(--success-bg);
+      color: var(--success-text);
+      border-color: var(--success-ring);
     }
     .status-pill-opt.active-a {
-      background: #fee2e2;
-      color: #991b1b;
-      border-color: #f87171;
+      background: var(--danger-bg);
+      color: var(--danger-text);
+      border-color: var(--danger-ring);
     }
     .status-pill-opt.active-od {
-      background: #fef3c7;
-      color: #92400e;
-      border-color: #fbbf24;
+      background: var(--warning-bg);
+      color: var(--warning-text);
+      border-color: var(--warning-ring);
     }
   </style>
 </head>
