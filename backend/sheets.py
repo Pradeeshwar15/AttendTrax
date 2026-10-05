@@ -1170,20 +1170,32 @@ def get_admin_analytics(force_refresh: bool = True) -> Dict[str, Any]:
     logs = _get_raw_attendance_log()
     today_str = date.today().strftime("%d-%m-%Y")
     
+    # Helper to resolve raw ClassID in log to canonical active class ID
+    def _find_canonical_cid(raw_cid: str) -> Optional[str]:
+        rc = str(raw_cid).strip()
+        for cid in class_map.keys():
+            if _classes_match(rc, cid):
+                return cid
+        return None
+
+    # Filter overall logs
     total_records = len(logs)
     valid_logs = [r for r in logs if str(r.get("Status", "")).strip().upper() in ("P", "A")]
     total_hours = len(valid_logs)
     attended_hours = len([r for r in valid_logs if str(r.get("Status", "")).strip().upper() == "P"])
     overall_percentage = round((attended_hours / total_hours) * 100, 1) if total_hours else 0.0
 
-    today_logs = [
+    # Today's overall attendance telemetry
+    all_today_logs = [
         r for r in logs
-        if _match_dates(str(r.get("Date", "")), today_str) and str(r.get("Status", "")).strip().upper() in ("P", "A")
+        if _match_dates(str(r.get("Date", "")), today_str)
     ]
-    today_total = len(today_logs)
-    today_attended = len([r for r in today_logs if str(r.get("Status", "")).strip().upper() == "P"])
-    today_absent = today_total - today_attended
-    today_percentage = round((today_attended / today_total) * 100, 1) if today_total else 0.0
+    today_present = len([r for r in all_today_logs if str(r.get("Status", "")).strip().upper() == "P"])
+    today_absent = len([r for r in all_today_logs if str(r.get("Status", "")).strip().upper() == "A"])
+    today_od = len([r for r in all_today_logs if str(r.get("Status", "")).strip().upper() in ("OD", "-", "ONDUTY")])
+    today_total = len(all_today_logs)
+    today_effective = today_present + today_absent
+    today_percentage = round((today_present / today_effective) * 100, 1) if today_effective else (100.0 if today_od > 0 else 0.0)
 
     status_distribution = {
         "present": attended_hours,
@@ -1211,7 +1223,8 @@ def get_admin_analytics(force_refresh: bool = True) -> Dict[str, Any]:
     for rn, s in student_map.items():
         st = student_att_map.get(rn, {"total": 0, "attended": 0})
         pct = round((st["attended"] / st["total"]) * 100, 1) if st["total"] else 0.0
-        cid = str(s.get("ClassID", "")).strip()
+        raw_cid = str(s.get("ClassID", "")).strip()
+        cid = _find_canonical_cid(raw_cid) or raw_cid
         if st["total"] > 0 and pct < 75.0:
             if cid in class_defaulter_count:
                 class_defaulter_count[cid] += 1
@@ -1231,47 +1244,88 @@ def get_admin_analytics(force_refresh: bool = True) -> Dict[str, Any]:
     class_stat_map = {
         cid: {
             "total": 0, "attended": 0, "absent": 0, "on_duty": 0,
-            "today_total": 0, "today_attended": 0,
+            "today_total": 0, "today_present": 0, "today_absent": 0, "today_od": 0,
             "subjects": {}
         }
         for cid in class_map.keys()
     }
 
     for r in logs:
-        cid = str(r.get("ClassID", "")).strip()
-        if cid not in class_stat_map:
+        raw_cid = str(r.get("ClassID", "")).strip()
+        cid = _find_canonical_cid(raw_cid)
+        if not cid or cid not in class_stat_map:
             continue
         st_code = str(r.get("Status", "")).strip().upper()
         d_str = str(r.get("Date", "")).strip()
         sub_id = str(r.get("SubjectID", "")).strip()
 
-        if st_code in ("P", "A"):
+        is_today = _match_dates(d_str, today_str)
+
+        if st_code == "P":
             class_stat_map[cid]["total"] += 1
-            if st_code == "P":
-                class_stat_map[cid]["attended"] += 1
-            else:
-                class_stat_map[cid]["absent"] += 1
-
-            if _match_dates(d_str, today_str):
+            class_stat_map[cid]["attended"] += 1
+            if is_today:
                 class_stat_map[cid]["today_total"] += 1
-                if st_code == "P":
-                    class_stat_map[cid]["today_attended"] += 1
-
+                class_stat_map[cid]["today_present"] += 1
             if sub_id:
                 if sub_id not in class_stat_map[cid]["subjects"]:
                     class_stat_map[cid]["subjects"][sub_id] = {"total": 0, "attended": 0}
                 class_stat_map[cid]["subjects"][sub_id]["total"] += 1
-                if st_code == "P":
-                    class_stat_map[cid]["subjects"][sub_id]["attended"] += 1
+                class_stat_map[cid]["subjects"][sub_id]["attended"] += 1
+        elif st_code == "A":
+            class_stat_map[cid]["total"] += 1
+            class_stat_map[cid]["absent"] += 1
+            if is_today:
+                class_stat_map[cid]["today_total"] += 1
+                class_stat_map[cid]["today_absent"] += 1
+            if sub_id:
+                if sub_id not in class_stat_map[cid]["subjects"]:
+                    class_stat_map[cid]["subjects"][sub_id] = {"total": 0, "attended": 0}
+                class_stat_map[cid]["subjects"][sub_id]["total"] += 1
         elif st_code in ("OD", "-", "ONDUTY"):
             class_stat_map[cid]["on_duty"] += 1
+            if is_today:
+                class_stat_map[cid]["today_total"] += 1
+                class_stat_map[cid]["today_od"] += 1
 
     class_stats = []
     for cid, c_info in class_info_map.items():
-        st = class_stat_map.get(cid, {"total": 0, "attended": 0, "absent": 0, "on_duty": 0, "today_total": 0, "today_attended": 0, "subjects": {}})
+        st = class_stat_map.get(cid, {
+            "total": 0, "attended": 0, "absent": 0, "on_duty": 0,
+            "today_total": 0, "today_present": 0, "today_absent": 0, "today_od": 0,
+            "subjects": {}
+        })
         pct = round((st["attended"] / st["total"]) * 100, 1) if st["total"] else 0.0
-        today_pct = round((st["today_attended"] / st["today_total"]) * 100, 1) if st["today_total"] else 0.0
-        students_count = len([s for s in active_students if str(s.get("ClassID", "")).strip() == cid])
+        
+        t_pres = st["today_present"]
+        t_abs = st["today_absent"]
+        t_od = st["today_od"]
+        t_eff = t_pres + t_abs
+        today_pct = round((t_pres / t_eff) * 100, 1) if t_eff else (100.0 if t_od > 0 else 0.0)
+        
+        students_count = len([s for s in active_students if _classes_match(s.get("ClassID", ""), cid)])
+
+        # Batch & Academic mapping
+        raw_yr = str(c_info.get("Year", "")).strip()
+        sec = str(c_info.get("Section", "")).strip().upper() or "A"
+        
+        # Determine Batch and Year details
+        if raw_yr in ("27", "2027", "4"):
+            batch_label = "Batch 2027"
+            year_name = "IV Year (4th Year)"
+            batch_sort = 2027
+        elif raw_yr in ("28", "2028", "3"):
+            batch_label = "Batch 2028"
+            year_name = "III Year (3rd Year)"
+            batch_sort = 2028
+        elif raw_yr in ("29", "2029", "2"):
+            batch_label = "Batch 2029"
+            year_name = "II Year (2nd Year)"
+            batch_sort = 2029
+        else:
+            batch_label = f"Batch {raw_yr}"
+            year_name = f"Year {raw_yr}"
+            batch_sort = 9999
 
         # Subject breakdown for this class/section
         sub_list = []
@@ -1289,8 +1343,12 @@ def get_admin_analytics(force_refresh: bool = True) -> Dict[str, Any]:
         class_stats.append({
             "class_id": cid,
             "class_name": c_info.get("ClassName", cid),
-            "year": str(c_info.get("Year", "")).strip(),
-            "section": str(c_info.get("Section", "")).strip().upper(),
+            "year": raw_yr,
+            "batch_label": batch_label,
+            "academic_year": year_name,
+            "batch_sort": batch_sort,
+            "section": sec,
+            "section_title": f"{batch_label} · Section {sec}",
             "semester": str(c_info.get("Semester", "")).strip(),
             "student_count": students_count,
             "total": st["total"],
@@ -1299,45 +1357,38 @@ def get_admin_analytics(force_refresh: bool = True) -> Dict[str, Any]:
             "on_duty": st["on_duty"],
             "percentage": pct,
             "today_total": st["today_total"],
-            "today_attended": st["today_attended"],
+            "today_present": t_pres,
+            "today_attended": t_pres,
+            "today_absent": t_abs,
+            "today_od": t_od,
             "today_percentage": today_pct,
             "defaulters_count": class_defaulter_count.get(cid, 0),
             "subject_breakdown": sub_list,
         })
-    class_stats.sort(key=lambda x: x["percentage"], reverse=True)
+    
+    # Sort class stats by batch (2027, 2028, 2029) then section (A, B)
+    class_stats.sort(key=lambda x: (x["batch_sort"], x["section"]))
 
-    # Section-wise & Year-wise grouped performance summary
-    sec_grouped = {}
-    year_grouped = {}
-    for cs in class_stats:
-        sec = cs["section"] or "N/A"
-        yr = cs["year"] or "N/A"
-
-        if sec not in sec_grouped:
-            sec_grouped[sec] = {"section": sec, "total": 0, "attended": 0, "student_count": 0, "defaulters_count": 0}
-        sec_grouped[sec]["total"] += cs["total"]
-        sec_grouped[sec]["attended"] += cs["attended"]
-        sec_grouped[sec]["student_count"] += cs["student_count"]
-        sec_grouped[sec]["defaulters_count"] += cs["defaulters_count"]
-
-        if yr not in year_grouped:
-            year_grouped[yr] = {"year": yr, "total": 0, "attended": 0, "student_count": 0, "defaulters_count": 0}
-        year_grouped[yr]["total"] += cs["total"]
-        year_grouped[yr]["attended"] += cs["attended"]
-        year_grouped[yr]["student_count"] += cs["student_count"]
-        year_grouped[yr]["defaulters_count"] += cs["defaulters_count"]
-
+    # Section Summaries: direct institutional section breakdown
     section_summaries = []
-    for sec, val in sec_grouped.items():
-        pct = round((val["attended"] / val["total"]) * 100, 1) if val["total"] else 0.0
-        section_summaries.append({**val, "percentage": pct})
-    section_summaries.sort(key=lambda x: x["section"])
+    for cs in class_stats:
+        section_summaries.append({
+            "class_id": cs["class_id"],
+            "class_name": cs["class_name"],
+            "section": cs["section"],
+            "batch_label": cs["batch_label"],
+            "section_title": cs["section_title"],
+            "student_count": cs["student_count"],
+            "percentage": cs["percentage"],
+            "today_total": cs["today_total"],
+            "today_present": cs["today_present"],
+            "today_absent": cs["today_absent"],
+            "today_od": cs["today_od"],
+            "today_percentage": cs["today_percentage"],
+            "defaulters_count": cs["defaulters_count"],
+        })
 
     year_summaries = []
-    for yr, val in year_grouped.items():
-        pct = round((val["attended"] / val["total"]) * 100, 1) if val["total"] else 0.0
-        year_summaries.append({**val, "percentage": pct})
-    year_summaries.sort(key=lambda x: x["year"])
 
     hour_stats = []
     for h in ALL_HOURS:
@@ -1426,8 +1477,10 @@ def get_admin_analytics(force_refresh: bool = True) -> Dict[str, Any]:
         "today": {
             "date": today_str,
             "total": today_total,
-            "attended": today_attended,
+            "present": today_present,
+            "attended": today_present,
             "absent": today_absent,
+            "on_duty": today_od,
             "percentage": today_percentage,
         },
         "status_distribution": status_distribution,
