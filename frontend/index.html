@@ -337,6 +337,13 @@
 
 <script src="api.js"></script>
 <script>
+  // Silent background pre-warm ping to wake up backend immediately on page load
+  (function preWarmBackend() {
+    try {
+      fetch(`${API_BASE}/`, { method: 'GET', mode: 'no-cors' }).catch(() => {});
+    } catch (e) {}
+  })();
+
   // Redirect if already logged in
   (function() {
     const token = getToken();
