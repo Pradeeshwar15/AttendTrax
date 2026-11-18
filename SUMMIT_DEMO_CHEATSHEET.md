@@ -26,17 +26,24 @@
 | **Vice Principal** | `viceprincipal` | `VP@2026` | `admin.html` (Executive Cockpit) | Macro campus statistics, today's class compliance |
 | **Central Admin** | `admin` | `AttendTrax@2026` | `admin.html` | System administration & user management |
 
-### 🏢 Department Heads (HODs)
+### 🏢 Department Heads (HODs) - 9 Academic Departments
 | Department | Username | Password | Focus |
 | :--- | :--- | :--- | :--- |
 | **CSE HOD** | `hod.cse` | `Hod@2026` | Computer Science Department & Faculty review |
-| **ECE HOD** | `hod.ece` | `Hod@2026` | Electronics & Communication Department |
-| **EEE HOD** | `hod.eee` | `Hod@2026` | Electrical & Electronics Department |
-| **MECH HOD** | `hod.mech` | `Hod@2026` | Mechanical Engineering Department |
-| **CIVIL HOD** | `hod.civil` | `Hod@2026` | Civil Engineering Department |
 | **IT HOD** | `hod.it` | `Hod@2026` | Information Technology Department |
 | **AI&DS HOD** | `hod.aids` | `Hod@2026` | Artificial Intelligence & Data Science |
-| **CSBS HOD** | `hod.csbs` | `Hod@2026` | CS & Business Systems Department |
+| **AI&ML HOD** | `hod.aiml` | `Hod@2026` | Artificial Intelligence & Machine Learning |
+| **Cyber Security HOD** | `hod.cyber` | `Hod@2026` | Cyber Security Department |
+| **ECE HOD** | `hod.ece` | `Hod@2026` | Electronics & Communication Department |
+| **MECH HOD** | `hod.mech` | `Hod@2026` | Mechanical Engineering Department |
+| **EEE HOD** | `hod.eee` | `Hod@2026` | Electrical & Electronics Department |
+| **S&H HOD** | `hod.sh` | `Hod@2026` | Science & Humanities Department |
+
+### 🎯 Placement & Training Department (Universal Student Access)
+| Role | Username | Password | Designated Portal | Capabilities |
+| :--- | :--- | :--- | :--- | :--- |
+| **Placement HOD** | `hod.placement` | `Hod@2026` | `admin.html` & `faculty.html` | Cross-dept student directory, cohort filtering by year/branch, training drives |
+| **Placement Staff / Trainer** | `placement.staff` | `Staff@2026` | `faculty.html` | Universal attendance marking across all 9 branches (Slot: `PLACEMENT`) |
 
 ### 🛡️ Campus Wardens & Gate Security
 | Role | Username | Password | Portal | Key Task |

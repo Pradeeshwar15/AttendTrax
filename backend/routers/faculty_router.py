@@ -2,7 +2,7 @@
 # routers/faculty_router.py  –  Faculty endpoints with Sub-10ms SQL Performance
 # =============================================================================
 from datetime import date, datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, status
 from pydantic import BaseModel
@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import sheets
 from database import get_db
 from dependencies import require_role
-from models import ClassRoom, Student, Subject, AttendanceSession, AttendanceRecord, User
+from models import ClassRoom, Student, Subject, AttendanceSession, AttendanceRecord, User, Department
 from sheets import ALL_HOURS, HOUR_LABELS
 
 router = APIRouter(prefix="/faculty", tags=["Faculty"])
@@ -28,22 +28,31 @@ async def list_classes(
 ):
     """Return all active classes with sub-millisecond SQL response."""
     try:
-        stmt = select(ClassRoom).where(ClassRoom.status == "ACTIVE").order_by(ClassRoom.class_code)
-        classes = (await db.execute(stmt)).scalars().all()
-        if classes:
+        stmt = (
+            select(ClassRoom, Department.code)
+            .join(Department, ClassRoom.department_id == Department.id)
+            .where(ClassRoom.status == "ACTIVE")
+            .where(Department.is_active == True)
+            .order_by(Department.code, ClassRoom.class_code)
+        )
+        res = await db.execute(stmt)
+        rows = res.all()
+        if rows:
             return [
                 {
                     "ClassID": c.class_code,
-                    "ClassName": c.class_name,
+                    "ClassName": f"[{dept_code}] {c.class_name}" if dept_code else c.class_name,
+                    "RawClassName": c.class_name,
+                    "Department": dept_code or "",
                     "Year": str(c.year),
                     "Section": c.section,
                     "Semester": str(c.semester),
                     "Status": c.status,
                 }
-                for c in classes
+                for c, dept_code in rows
             ]
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"[Faculty Router Notice] SQL query fallback to sheets: {exc}")
     return sheets.get_all_classes()
 
 
@@ -59,15 +68,20 @@ async def list_subjects(
         subjs = (await db.execute(stmt)).scalars().all()
         if subjs:
             return [{"SubjectID": s.subject_code, "SubjectName": s.name} for s in subjs]
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"[Faculty Router Notice] SQL query fallback to sheets: {exc}")
     return sheets.get_subjects_for_class(class_id)
 
 
 @router.get("/hours")
-def list_hours(_=_faculty_dep):
-    """Return hour labels."""
-    return [{"value": k, "label": v} for k, v in HOUR_LABELS.items()]
+def list_hours(current_user: dict = _faculty_dep):
+    """Return hour labels with Placement training options."""
+    hours = [{"value": k, "label": v} for k, v in HOUR_LABELS.items()]
+    user_dept = str(current_user.get("department_code") or "").upper()
+    username = str(current_user.get("Username") or current_user.get("sub") or "").lower()
+    if user_dept == "PLACEMENT" or "placement" in username:
+        hours.insert(0, {"value": "PLACEMENT", "label": "🎯 Placement Training Run / Assessment Drive"})
+    return hours
 
 
 @router.get("/classes/{class_id}/students")
@@ -90,14 +104,14 @@ async def list_students(
             students = (await db.execute(st_stmt)).scalars().all()
             if students:
                 return [{"reg_no": s.reg_no, "name": s.name} for s in students]
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"[Faculty Router Notice] SQL query fallback to sheets: {exc}")
     return sheets.get_students_for_attendance(class_id)
 
 
 # ── Attendance submission (Instant SQL + Non-Blocking Sheets Sync) ───────────
 class AttendanceEntry(BaseModel):
-    reg_no: str
+    reg_no: Union[str, int]
     status: str   # "P", "A", or "OD"
 
 
@@ -201,7 +215,7 @@ async def submit_attendance(
             class_id=cid,
             session_date=today_date,
             slot_hour=hour_val,
-            session_type="DAILY" if hour_val in ("DAILY", "DAY") else "HOURLY",
+            session_type="TRAINING" if hour_val in ("PLACEMENT", "TRAINING") else ("DAILY" if hour_val in ("DAILY", "DAY") else "HOURLY"),
             faculty_id=fac_uid,
             lock_status="LOCKED"
         )
@@ -273,8 +287,8 @@ async def check_slot(
             )
             exists = (await db.execute(chk_stmt)).scalar_one_or_none() is not None
             return {"already_submitted": exists, "date": today_str}
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"[Faculty Router Notice] SQL query fallback to sheets: {exc}")
 
     exists = sheets.check_attendance_exists(class_id, today_str, hour_val, subject_id)
     return {"already_submitted": exists, "date": today_str}
@@ -331,6 +345,6 @@ async def get_class_report(
                         "Percentage": pct,
                     })
                 return report
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"[Faculty Router Notice] SQL query fallback to sheets: {exc}")
     return sheets.get_class_attendance_report(class_id)

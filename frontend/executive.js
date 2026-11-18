@@ -40,8 +40,7 @@ const DEPT_COLORS = {
   CYBER: '#0d9488', // Teal
   AIML:  '#9333ea', // Purple
   SH:    '#d97706', // Warm Amber
-  CIVIL: '#ea580c', // Orange
-  CSBS:  '#6366f1', // Indigo
+  PLACEMENT: '#10b981', // Emerald Teal
 };
 
 // ── Initialize Executive View ──────────────────────────────────────────────

@@ -16,17 +16,19 @@ It operates on a **Hybrid Dual-Engine Architecture**:
 - **Admin Past-Day Modification**: Authorized administrators can view past date logs and update/resubmit missing attendance directly in Google Sheets.
 - **Excel & Bulk Import**: One-click import for past attendance records, classes, subjects, and student lists.
 
-### 2. Multi-Department Hierarchy (8 Departments)
+### 2. Multi-Department Hierarchy (9 Academic Departments + Placement)
 - Full college-wide scaling supporting:
   - **CSE** (Computer Science & Engineering)
-  - **ECE** (Electronics & Communication Engineering)
-  - **EEE** (Electrical & Electronics Engineering)
-  - **MECH** (Mechanical Engineering)
-  - **CIVIL** (Civil Engineering)
-  - **IT** (Information Technology)
   - **AIDS** (Artificial Intelligence & Data Science)
-  - **CSBS** (Computer Science & Business Systems)
-- **Executive 8-Dept Switcher**: Allows the Principal and Vice Principal to toggle between departmental data instantly.
+  - **AIML** (Artificial Intelligence & Machine Learning)
+  - **CYBER SECURITY** (Cyber Security)
+  - **EEE** (Electrical & Electronics Engineering)
+  - **ECE** (Electronics & Communication Engineering)
+  - **MECH** (Mechanical Engineering)
+  - **S&H** (Science & Humanities)
+  - **IT** (Information Technology)
+- **Placement & Training Department**: Cross-department universal student roster access for campus training runs, aptitude bootcamps, and recruitment drives.
+- **Executive Governance & Switcher**: Allows the Principal and Vice Principal to review institutional benchmarks and toggle departmental data cleanly.
 
 ### 3. Faculty Leave & Permission Workflow
 - **Multi-Level Approval Chain**: Faculty &rarr; Level 1: Department HOD &rarr; Level 2: Principal / Vice Principal &rarr; Approved.

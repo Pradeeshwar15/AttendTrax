@@ -173,6 +173,16 @@
 
       <!-- MARK ATTENDANCE -->
       <section class="section active" id="section-mark">
+        <div id="placement-mode-banner" class="hidden" style="max-width:680px;margin:0 auto 1rem auto;background:linear-gradient(135deg, #065f46 0%, #047857 100%);color:#fff;border-radius:10px;padding:0.85rem 1.25rem;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 12px rgba(4,120,87,0.15);">
+          <div style="display:flex;align-items:center;gap:0.75rem;">
+            <span style="font-size:1.5rem;">🎯</span>
+            <div>
+              <div style="font-weight:700;font-size:0.95rem;letter-spacing:0.02em;">PLACEMENT &amp; TRAINING ATTENDANCE MODE</div>
+              <div style="font-size:0.75rem;opacity:0.9;">Universal Access: Take and record training run attendance across all 9 departments independently.</div>
+            </div>
+          </div>
+          <span class="badge" style="background:#ecfdf5;color:#065f46;font-weight:700;font-size:0.75rem;padding:0.35rem 0.65rem;">SESSION: PLACEMENT</span>
+        </div>
         <div class="card selection-card">
           <div class="card-header">
             <h3>Daily Attendance Entry</h3>
@@ -931,6 +941,36 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+function isPlacementUser() {
+  const uname = (getUsername() || '').toLowerCase();
+  if (uname.includes('placement')) return true;
+  const token = getToken();
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload && (payload.department_code === 'PLACEMENT' || payload.department_id === 10)) return true;
+    } catch(e) {}
+  }
+  return false;
+}
+
+function initPlacementMode() {
+  if (isPlacementUser()) {
+    const banner = document.getElementById('placement-mode-banner');
+    if (banner) banner.classList.remove('hidden');
+    const tb = document.getElementById('today-badge');
+    if (tb) {
+      tb.textContent = 'Placement Session';
+      tb.className = 'badge badge-success';
+      tb.style.background = '#047857';
+      tb.style.color = '#fff';
+    }
+    const entryTitle = document.querySelector('#section-mark h3');
+    if (entryTitle) entryTitle.textContent = 'Placement & Training Attendance Entry';
+  }
+}
+initPlacementMode();
+
 // ── Load classes ────────────────────────────────────────────────────────────
 let allClasses = [];
 async function loadClasses() {
@@ -965,8 +1005,15 @@ document.getElementById('selection-form').addEventListener('submit', async (e) =
   const classId   = document.getElementById('sel-class').value;
   showLoader(true);
   try {
-    const check = await api.get(`/faculty/attendance/check?class_id=${classId}&subject_id=&hour=DAY`);
-    document.getElementById('already-submitted-alert').classList.toggle('hidden', !check.already_submitted);
+    const hourVal = isPlacementUser() ? 'PLACEMENT' : 'DAY';
+    const check = await api.get(`/faculty/attendance/check?class_id=${classId}&subject_id=&hour=${hourVal}`);
+    const alertEl = document.getElementById('already-submitted-alert');
+    if (alertEl) {
+      alertEl.textContent = isPlacementUser()
+        ? '🎯 Placement Training attendance for this Class has already been recorded today.'
+        : 'Daily attendance for this Class has already been submitted today and cannot be modified.';
+      alertEl.classList.toggle('hidden', !check.already_submitted);
+    }
     document.getElementById('mark-section').classList.add('hidden');
     if (check.already_submitted) { showLoader(false); return; }
     const students = await api.get(`/faculty/classes/${classId}/students`);
@@ -1071,8 +1118,10 @@ document.getElementById('submit-attendance-btn').addEventListener('click', async
   btn.disabled  = true;
   btnText.innerHTML = '<span class="spinner"></span> Submitting...';
   try {
+    const hourVal = isPlacementUser() ? 'PLACEMENT' : 'DAY';
+    const subjVal = isPlacementUser() ? 'PLC-TECH' : '';
     const res = await api.post('/faculty/attendance', {
-      class_id: classId, subject_id: "", hour: 'DAY', attendance: attendanceRows,
+      class_id: classId, subject_id: subjVal, hour: hourVal, attendance: attendanceRows,
     });
     api.clearCache();
     showToast(res.message || 'Attendance submitted!', 'success');

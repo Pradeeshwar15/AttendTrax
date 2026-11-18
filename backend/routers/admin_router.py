@@ -68,7 +68,8 @@ async def list_all_classes(current_user: dict = _admin_dep):
     username = (current_user.get("Username") or current_user.get("sub") or "").lower()
     if user_role == "DEPT_ADMIN":
         dept = username.replace("hod.", "").upper() if username.startswith("hod.") else "CSE"
-        return [c for c in all_classes if str(c.get("ClassID", "")).upper().startswith(dept)]
+        if dept != "PLACEMENT":
+            return [c for c in all_classes if str(c.get("ClassID", "")).upper().startswith(dept)]
     return all_classes
 
 
@@ -142,15 +143,32 @@ class AddStudentRequest(BaseModel):
 
 
 @router.get("/students")
-async def list_all_students(class_id: Optional[str] = None, current_user: dict = _admin_dep):
-    if class_id:
+async def list_all_students(
+    class_id: Optional[str] = None,
+    department_code: Optional[str] = None,
+    year: Optional[str] = None,
+    current_user: dict = _admin_dep,
+):
+    if class_id and class_id != "ALL":
         return sheets.get_students_by_class(class_id)
     all_students = sheets.get_all_students()
     user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
     username = (current_user.get("Username") or current_user.get("sub") or "").lower()
     if user_role == "DEPT_ADMIN":
         dept = username.replace("hod.", "").upper() if username.startswith("hod.") else "CSE"
-        return [s for s in all_students if str(s.get("ClassID", "")).upper().startswith(dept)]
+        if dept != "PLACEMENT":
+            all_students = [s for s in all_students if str(s.get("ClassID", "")).upper().startswith(dept)]
+
+    if department_code and department_code.strip().upper() != "ALL":
+        clean_dept = _normalize_dept_code(department_code)
+        all_students = [s for s in all_students if str(s.get("ClassID", "")).upper().startswith(clean_dept)]
+
+    if year and str(year).strip():
+        y_val = str(year).strip()
+        all_students = [
+            s for s in all_students
+            if y_val in str(s.get("ClassName", "")) or y_val in str(s.get("Year", "")) or y_val in str(s.get("ClassID", ""))
+        ]
     return all_students
 
 
@@ -212,8 +230,9 @@ DEPT_ALIAS_MAP = {
     "EEE": "EEE",
     "MECH": "MECH",
     "MECHANICAL": "MECH",
-    "CIVIL": "CIVIL",
-    "CSBS": "CSBS",
+    "PLACEMENT": "PLACEMENT",
+    "TRAINING & PLACEMENT": "PLACEMENT",
+    "T&P": "PLACEMENT",
 }
 
 def _normalize_dept_code(code: str) -> str:
@@ -230,8 +249,8 @@ def _resolve_hod_dept_code(current_user: dict) -> str:
             return _normalize_dept_code(dept_part)
         dept_id = current_user.get("department_id")
         dept_map = {
-            1: "CSE", 2: "ECE", 3: "EEE", 4: "MECH", 5: "CIVIL", 6: "IT", 7: "AIDS", 8: "CSBS",
-            12: "CYBER", 13: "AIML", 14: "SH"
+            1: "CSE", 2: "ECE", 3: "EEE", 4: "MECH", 6: "IT", 7: "AIDS",
+            10: "PLACEMENT", 12: "CYBER", 13: "AIML", 14: "SH"
         }
         if dept_id and str(dept_id).isdigit():
             return dept_map.get(int(dept_id), "CSE")
@@ -271,6 +290,7 @@ async def list_all_faculty(
         .join(User, Faculty.user_id == User.id)
         .join(Department, Faculty.department_id == Department.id)
         .where(User.status == "ACTIVE")
+        .where(Department.is_active == True)
         .order_by(Department.code, User.full_name)
     )
 

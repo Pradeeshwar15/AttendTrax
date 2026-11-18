@@ -71,9 +71,9 @@ async def get_executive_dashboard(
             target_dept_id = target_dept.id
 
     # 1. Total Enrolled Students, Faculty, Classes in instant scalar queries
-    stu_q = select(func.count(Student.id)).where(Student.status == "ACTIVE")
-    fac_q = select(func.count(Faculty.id))
-    cls_q = select(func.count(ClassRoom.id)).where(ClassRoom.status == "ACTIVE")
+    stu_q = select(func.count(Student.id)).join(Department, Student.department_id == Department.id).where(Student.status == "ACTIVE").where(Department.is_active == True)
+    fac_q = select(func.count(Faculty.id)).join(Department, Faculty.department_id == Department.id).where(Department.is_active == True)
+    cls_q = select(func.count(ClassRoom.id)).join(Department, ClassRoom.department_id == Department.id).where(ClassRoom.status == "ACTIVE").where(Department.is_active == True)
 
     if target_dept_id:
         stu_q = stu_q.where(Student.department_id == target_dept_id)
@@ -85,7 +85,7 @@ async def get_executive_dashboard(
     total_classes = (await db.execute(cls_q)).scalar() or 0
 
     # 2. Fast student department lookup map (id -> department_id)
-    students_rows = (await db.execute(select(Student.id, Student.department_id))).all()
+    students_rows = (await db.execute(select(Student.id, Student.department_id).join(Department, Student.department_id == Department.id).where(Department.is_active == True))).all()
     student_dept_map = {sid: did for sid, did in students_rows}
 
     # 3. Today's Classes Marked vs Pending

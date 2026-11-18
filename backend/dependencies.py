@@ -45,6 +45,7 @@ async def get_current_user(
             "Role": hardcoded["role"],
             "role": hardcoded["role"],
             "department_id": hardcoded["department_id"],
+            "department_code": hardcoded.get("department_code", ""),
             "ClassID": hardcoded.get("class_id", ""),
             "class_id": hardcoded.get("class_id", ""),
         }

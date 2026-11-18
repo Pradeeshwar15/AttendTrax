@@ -414,6 +414,7 @@
           <option value="CYBER">🛡️ Cyber Security</option>
           <option value="AIML">🧠 AI &amp; ML</option>
           <option value="SH">📚 S &amp; H</option>
+          <option value="PLACEMENT">🎯 Placement &amp; Training</option>
         </select>
         <div class="live-sync-indicator" id="live-sync-badge" title="Real-time multi-device cloud synchronization active">
           <span class="live-pulse-dot"></span>
@@ -1159,11 +1160,46 @@
 
       <!-- ═══════════ STUDENTS ═══════════ -->
       <section class="section" id="section-students">
-        <div class="flex items-center gap-4" style="margin-bottom:1rem;flex-wrap:wrap;">
-          <div class="form-group" style="flex:1;min-width:200px;">
-            <label class="form-label">Filter by Class</label>
-            <select id="student-class-filter" class="form-control">
-              <option value="">— Select Class —</option>
+        <div id="placement-students-banner" style="display:none;margin-bottom:1rem;background:linear-gradient(135deg, #065f46 0%, #047857 100%);color:#fff;border-radius:8px;padding:0.75rem 1.25rem;align-items:center;justify-content:space-between;box-shadow:0 4px 12px rgba(4,120,87,0.15);">
+          <div style="display:flex;align-items:center;gap:0.75rem;">
+            <span style="font-size:1.4rem;">🎯</span>
+            <div>
+              <strong style="font-size:0.9rem;letter-spacing:0.02em;">PLACEMENT &amp; TRAINING STUDENT DIRECTORY</strong>
+              <div style="font-size:0.75rem;opacity:0.9;">Universal Student Pool: Accessing eligible candidate rosters across all 9 institutional academic branches.</div>
+            </div>
+          </div>
+          <span class="badge" style="background:#ecfdf5;color:#065f46;font-weight:700;">UNIVERSAL ACCESS</span>
+        </div>
+        <div class="flex items-center gap-3" style="margin-bottom:1rem;flex-wrap:wrap;">
+          <div class="form-group" id="student-dept-wrap" style="flex:1;min-width:180px;margin-bottom:0;display:none;">
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;">🏛️ Branch / Department</label>
+            <select id="student-dept-filter" class="form-control" style="font-size:0.85rem;">
+              <option value="ALL">🏛️ All 9 Academic Departments</option>
+              <option value="CSE">💻 CSE</option>
+              <option value="IT">🌐 IT</option>
+              <option value="AIDS">🤖 AI &amp; DS</option>
+              <option value="ECE">📡 ECE</option>
+              <option value="MECH">⚙️ MECH</option>
+              <option value="EEE">⚡ EEE</option>
+              <option value="CYBER">🛡️ Cyber Security</option>
+              <option value="AIML">🧠 AI &amp; ML</option>
+              <option value="SH">📚 S &amp; H</option>
+            </select>
+          </div>
+          <div class="form-group" id="student-year-wrap" style="flex:1;min-width:160px;margin-bottom:0;display:none;">
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;">🎓 Graduation Year</label>
+            <select id="student-year-filter" class="form-control" style="font-size:0.85rem;">
+              <option value="ALL">All Years (I - IV)</option>
+              <option value="4">IV Year (Final Year Batch)</option>
+              <option value="3">III Year (Pre-Final Batch)</option>
+              <option value="2">II Year (Foundational)</option>
+              <option value="1">I Year (First Year)</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex:1.2;min-width:200px;margin-bottom:0;">
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;">Filter by Class</label>
+            <select id="student-class-filter" class="form-control" style="font-size:0.85rem;">
+              <option value="ALL">🌐 All Classes (View All)</option>
             </select>
           </div>
           <div style="align-self:flex-end;">
@@ -1208,6 +1244,7 @@
               <option value="CYBER">🛡️ Cyber Security</option>
               <option value="AIML">🧠 AI &amp; ML - Machine Learning</option>
               <option value="SH">📚 S &amp; H - Science &amp; Humanities</option>
+              <option value="PLACEMENT">🎯 PLACEMENT - Training &amp; Placement</option>
             </select>
           </div>
         </div>
@@ -1284,6 +1321,7 @@
                     <option value="CYBER">🛡️ Cyber Security (CYBER)</option>
                     <option value="AIML">🧠 AI &amp; Machine Learning (AI &amp; ML)</option>
                     <option value="SH">📚 Science &amp; Humanities (S &amp; H)</option>
+                    <option value="PLACEMENT">🎯 Training &amp; Placement (PLACEMENT)</option>
                   </select>
                 </div>
                 <div class="form-group" style="min-width:240px;margin-bottom:0;">
@@ -3447,30 +3485,57 @@ async function deactivateClass(e) {
 //  STUDENTS
 // ════════════════════════════════════════════════════════════════
 async function populateStudentClassFilter() {
+  const curUsername = (getUsername() || '').toLowerCase();
+  const userRole = (getRole() || '').toUpperCase();
+  const isPlacement = curUsername.includes('placement');
+  const isExec = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
+
+  if (isPlacement) {
+    const banner = document.getElementById('placement-students-banner');
+    if (banner) banner.style.display = 'flex';
+  }
+
+  if (isPlacement || isExec) {
+    const deptWrap = document.getElementById('student-dept-wrap');
+    if (deptWrap) deptWrap.style.display = 'block';
+    const yearWrap = document.getElementById('student-year-wrap');
+    if (yearWrap) yearWrap.style.display = 'block';
+  }
+
   const sel = document.getElementById('student-class-filter');
   if (sel.options.length > 1) return;
   const classes = await api.get('/admin/classes').catch(() => []);
-  const allOpt = document.createElement('option');
-  allOpt.value = 'ALL'; allOpt.textContent = '🌐 All Classes (View All)';
-  sel.appendChild(allOpt);
+  sel.innerHTML = '<option value="ALL">🌐 All Classes (View All)</option>';
   classes.forEach(c => {
     const o = document.createElement('option');
     o.value = c.ClassID; o.textContent = c.ClassName;
     sel.appendChild(o);
   });
+
+  loadStudentsAdmin();
 }
 
-document.getElementById('student-class-filter').addEventListener('change', async function() {
-  const classId = this.value;
+async function loadStudentsAdmin() {
+  const classId = document.getElementById('student-class-filter')?.value || 'ALL';
+  const deptCode = document.getElementById('student-dept-filter')?.value || 'ALL';
+  const yearVal = document.getElementById('student-year-filter')?.value || 'ALL';
   const tbody = document.getElementById('students-tbody-admin');
-  if (!classId) { tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:2rem;">Select a class.</td></tr>'; return; }
   showLoader(true);
   try {
-    const endpoint = classId === 'ALL' ? '/admin/students' : `/admin/classes/${classId}/students`;
+    let endpoint = '/admin/students';
+    if (classId && classId !== 'ALL') {
+      endpoint = `/admin/classes/${encodeURIComponent(classId)}/students`;
+    } else {
+      const params = new URLSearchParams();
+      if (deptCode && deptCode !== 'ALL') params.append('department_code', deptCode);
+      if (yearVal && yearVal !== 'ALL') params.append('year', yearVal);
+      const q = params.toString();
+      if (q) endpoint += `?${q}`;
+    }
     const students = await api.get(endpoint);
     tbody.innerHTML = '';
-    if (!students.length) {
-      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:2rem;">No students found.</td></tr>';
+    if (!students || !students.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:2rem;">No students found for this selection.</td></tr>';
     } else {
       const sortedStudents = [...students].sort((a, b) => String(a.RegNo || a.reg_no || '').localeCompare(String(b.RegNo || b.reg_no || ''), undefined, { numeric: true, sensitivity: 'base' }));
       sortedStudents.forEach(s => {
@@ -3489,7 +3554,11 @@ document.getElementById('student-class-filter').addEventListener('change', async
     }
   } catch(e) { showToast(e.message,'error'); }
   finally { showLoader(false); }
-});
+}
+
+document.getElementById('student-class-filter')?.addEventListener('change', loadStudentsAdmin);
+document.getElementById('student-dept-filter')?.addEventListener('change', loadStudentsAdmin);
+document.getElementById('student-year-filter')?.addEventListener('change', loadStudentsAdmin);
 
 document.getElementById('add-student-btn').addEventListener('click', async () => {
   const classId = document.getElementById('student-class-filter').value;
@@ -3632,6 +3701,7 @@ document.getElementById('add-faculty-btn').addEventListener('click', async () =>
            <option value="CYBER">🛡️ CYBER - Cyber Security</option>
            <option value="AIML">🧠 AIML - AI &amp; Machine Learning</option>
            <option value="SH">📚 SH - Science &amp; Humanities</option>
+           <option value="PLACEMENT">🎯 PLACEMENT - Training &amp; Placement</option>
          </select>
        </div>`;
 

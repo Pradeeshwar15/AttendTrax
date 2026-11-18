@@ -30,9 +30,12 @@ DEPARTMENTS_DATA = [
     {"code": "CYBER", "name": "Department of Cyber Security", "hod_name": "Dr. R. Vignesh (HOD CYBER)"},
     {"code": "AIML",  "name": "Department of Artificial Intelligence & Machine Learning", "hod_name": "Dr. T. Suresh (HOD AI&ML)"},
     {"code": "SH",    "name": "Department of Science & Humanities", "hod_name": "Dr. M. Geetha (HOD S&H)"},
+    {"code": "PLACEMENT", "name": "Department of Training & Placement", "hod_name": "Dr. K. Sridhar (Head - Training & Placement)"},
 ]
 
 FACULTY_SEED = [
+    {"username": "placement.staff", "code": "PLC001", "name": "Prof. Rajesh M", "dept": "PLACEMENT", "desig": "Placement Trainer"},
+    {"username": "placement.officer", "code": "PLC002", "name": "Prof. Sridhar K", "dept": "PLACEMENT", "desig": "Placement Officer"},
     {"username": "fathima.cse", "code": "CSE002", "name": "Fathima A", "dept": "CSE", "desig": "Assistant Professor"},
     {"username": "antonysudha.cse", "code": "CS001", "name": "Dr ANTONY SUDHA K", "dept": "CSE", "desig": "Professor & Head"},
     {"username": "manickam.cse", "code": "CSE003", "name": "Manickam R", "dept": "CSE", "desig": "Associate Professor"},
@@ -283,15 +286,16 @@ async def hydrate():
         except Exception as e:
             print(f"  [Notice] Google Sheets student sync: {e}")
 
-        # Ensure demo cohorts exist for ECE, EEE, MECH, CIVIL, IT, AI&DS, CSBS
+        # Ensure demo cohorts exist for ECE, EEE, MECH, IT, AI&DS, CYBER, AIML, SH
         demo_depts = [
             ("ECE", "ECE29A", "410125106"),
             ("EEE", "EEE29A", "410125105"),
             ("MECH", "MECH29A", "410125114"),
-            ("CIVIL", "CIVIL29A", "410125103"),
             ("IT", "IT29A", "410125205"),
             ("AIDS", "AIDS29A", "410125243"),
-            ("CSBS", "CSBS29A", "410125244"),
+            ("CYBER", "CYBER29A", "410125245"),
+            ("AIML", "AIML29A", "410125246"),
+            ("SH", "SH29A", "410125247"),
         ]
         sample_names = ["Aarav", "Bhavna", "Chirag", "Divya", "Eashwar", "Farhan", "Gayathri", "Harish", "Ishaan", "Jayashree", "Karthik", "Lakshmi", "Manish", "Nithya", "Omkar", "Pooja", "Rahul", "Swathi", "Tarun", "Varsha"]
 
@@ -331,8 +335,8 @@ async def hydrate():
         await session.commit()
         print(f"  + Students registered: {len(student_reg_map)}")
 
-        # 7. Generate High-Speed Baseline Attendance for 8 Departments
-        print("[6/6] Generating 8-Department comparative attendance baseline & leaves...")
+        # 7. Generate High-Speed Baseline Attendance for 9 Academic Departments
+        print("[6/6] Generating 9-Department comparative attendance baseline & leaves...")
         today = date.today()
         working_dates = []
         cur_d = today
@@ -343,8 +347,8 @@ async def hydrate():
         working_dates.reverse()
 
         dept_rates = {
-            "CSE": 0.92, "AIDS": 0.89, "ECE": 0.87, "IT": 0.86,
-            "MECH": 0.84, "CIVIL": 0.82, "EEE": 0.80, "CSBS": 0.79
+            "CSE": 0.93, "AIDS": 0.91, "AIML": 0.90, "CYBER": 0.89,
+            "IT": 0.88, "ECE": 0.87, "MECH": 0.85, "EEE": 0.84, "SH": 0.92
         }
 
         random.seed(42)
@@ -368,7 +372,7 @@ async def hydrate():
             for s_date in working_dates:
                 if s_date in existing_dates:
                     continue
-                if s_date == today and d_code in ("MECH", "CSBS"):
+                if s_date == today and d_code in ("MECH", "EEE"):
                     continue # leave pending today for live demonstration
 
                 sess = AttendanceSession(
@@ -470,9 +474,17 @@ async def ensure_hydrated():
                 print(f"[AUTO-HYDRATION] Database contains {user_count} users. Seeding all departments...")
                 await hydrate()
             else:
-                # Ensure all 9 departments and their HOD accounts are present
+                # Ensure all 10 departments (9 academic + 1 placement) and HOD accounts are present
                 hod_hash = hash_password("Hod@2026")
                 staff_hash = hash_password("Staff@2026")
+
+                # Deactivate retired legacy departments (CIVIL, CSBS)
+                stmt_legacy = select(Department).where(Department.code.in_(["CIVIL", "CSBS"]))
+                legacy_depts = (await session.execute(stmt_legacy)).scalars().all()
+                for ld in legacy_depts:
+                    ld.is_active = False
+                await session.flush()
+
                 for d in DEPARTMENTS_DATA:
                     code = d["code"]
                     stmt_d = select(Department).where(Department.code == code)

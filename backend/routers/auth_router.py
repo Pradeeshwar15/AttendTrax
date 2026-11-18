@@ -7,7 +7,7 @@ from typing import Dict, List
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel
 
-from auth import verify_password, create_access_token, hash_password
+from auth import verify_password, create_access_token, hash_password, get_hardcoded_user
 from config import get_settings
 from database import get_session_factory
 from dependencies import get_current_user
@@ -110,24 +110,32 @@ async def login(body: LoginRequest, request: Request):
     # Rate limit check before verification
     login_rate_limiter.check(client_ip, uname)
 
-    # ── 1. Check hardcoded Admin credentials first ────────────────────────
-    if uname.lower() == cfg.ADMIN_USERNAME.strip().lower():
-        if not verify_password(body.password, cfg.ADMIN_PASSWORD_HASH):
+    # ── 1. Check institutional hardcoded credentials first ────────────────
+    hardcoded = get_hardcoded_user(uname)
+    if hardcoded and hardcoded.get("password_hash"):
+        if verify_password(body.password, hardcoded["password_hash"]):
+            login_rate_limiter.record_success(client_ip, uname)
+            token = create_access_token({
+                "sub": hardcoded["username"],
+                "role": hardcoded["role"],
+                "user_id": hardcoded["user_id"],
+                "department_id": hardcoded.get("department_id"),
+                "department_code": hardcoded.get("department_code", ""),
+            })
+            return LoginResponse(
+                access_token=token,
+                role=hardcoded["role"],
+                name=hardcoded["name"],
+                user_id=str(hardcoded["user_id"]),
+                username=hardcoded["username"],
+                class_id=hardcoded.get("class_id", ""),
+            )
+        else:
             login_rate_limiter.record_failure(client_ip, uname)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid username or password.",
             )
-        login_rate_limiter.record_success(client_ip, uname)
-        token = create_access_token({"sub": cfg.ADMIN_USERNAME, "role": "SUPER_ADMIN"})
-        return LoginResponse(
-            access_token=token,
-            role="SUPER_ADMIN",
-            name=cfg.ADMIN_NAME,
-            user_id="admin",
-            username=cfg.ADMIN_USERNAME,
-            class_id="",
-        )
 
     # ── 2. Primary: Look up in Relational SQL Database ─────────────────────
     try:
