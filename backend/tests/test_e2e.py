@@ -441,6 +441,75 @@ async def run_suite():
         assert len(civil_fac) == 0, f"Legacy CIVIL department found in faculty: {civil_fac}"
         print("  [PASS] Academic Catalog Integrity: Legacy CIVIL & CSBS confirmed retired from active catalog")
 
+        # 11. Academic HOD Attendance Sandboxing vs Placement Universal Access
+        print("\n[11] Testing Strict Academic HOD Attendance Isolation & Placement Universal Access...")
+        # 11a. Academic HOD Login (CSE)
+        r_cse_hod = await client.post("/auth/login", json={"username": "hod.cse", "password": "Hod@2026"})
+        assert r_cse_hod.status_code == 200, f"CSE HOD login failed: {r_cse_hod.text}"
+        cse_hod_headers = {"Authorization": f"Bearer {r_cse_hod.json()['access_token']}"}
+
+        # 11b. CSE HOD Analytics: Isolated Department Metrics (Even if requesting ECE, enforced to CSE)
+        r_cse_ana = await client.get("/admin/analytics?department_code=ECE", headers=cse_hod_headers)
+        assert r_cse_ana.status_code == 200
+        cse_ana = r_cse_ana.json()
+        assert cse_ana.get("department_filter") == "CSE", f"Expected department_filter CSE, got {cse_ana.get('department_filter')}"
+        assert all(str(c.get("class_id")).startswith("CSE") for c in cse_ana.get("class_stats", [])), "Leaked non-CSE classes!"
+        assert "trend" in cse_ana and "status_distribution" in cse_ana
+        print(f"  [PASS] Academic HOD Analytics Sandboxing: Enforced to CSE (Classes: {len(cse_ana['class_stats'])}, Trend points: {len(cse_ana['trend'])})")
+
+        # 11c. Academic HOD attempting cross-department class report (ECE29A) -> 403 Forbidden
+        r_cross_rep = await client.get("/admin/reports/class/ECE29A", headers=cse_hod_headers)
+        assert r_cross_rep.status_code == 403, f"Expected 403 for cross-department class report, got {r_cross_rep.status_code}"
+        print("  [PASS] Academic HOD Access Denied (403) on cross-department class report (/reports/class/ECE29A)")
+
+        # 11d. Academic HOD attempting cross-department daily attendance edit -> 403 Forbidden
+        r_cross_daily = await client.get("/admin/attendance/daily?class_id=ECE29A&date=18-11-2026", headers=cse_hod_headers)
+        assert r_cross_daily.status_code == 403, f"Expected 403 for cross-department daily attendance, got {r_cross_daily.status_code}"
+        print("  [PASS] Academic HOD Access Denied (403) on cross-department daily attendance (/attendance/daily)")
+
+        # 11e. Placement HOD querying ECE analytics & ECE reports -> Allowed (200 OK)
+        r_plc_ece_ana = await client.get("/admin/analytics?department_code=ECE", headers=plc_hod_headers)
+        assert r_plc_ece_ana.status_code == 200
+        assert r_plc_ece_ana.json().get("department_filter") == "ECE"
+        r_plc_ece_rep = await client.get("/admin/reports/class/ECE28A", headers=plc_hod_headers)
+        assert r_plc_ece_rep.status_code == 200, f"Expected 200 for placement HOD on ECE report, got {r_plc_ece_rep.status_code}"
+        print("  [PASS] Placement HOD Universal Access verified: Successfully accessed ECE analytics and ECE class reports")
+
+        # 12. Principal Executive Master Data Export & Factory Default Reset
+        print("\n[12] Testing Principal Master Data Export & Factory Default Reset...")
+        # 12a. Single Dataset Export (CSV)
+        r_exp_stu = await client.get("/admin/executive/export?dataset=students", headers=princ_headers)
+        assert r_exp_stu.status_code == 200
+        assert "text/csv" in r_exp_stu.headers.get("content-type", "")
+        assert "Register Number" in r_exp_stu.text
+        print(f"  [PASS] Student Master CSV Export: {len(r_exp_stu.text.splitlines())} lines generated")
+
+        # 12b. Full Institutional Master Export (ZIP with 3 CSVs)
+        import zipfile, io
+        r_exp_all = await client.get("/admin/executive/export-all", headers=princ_headers)
+        assert r_exp_all.status_code == 200
+        assert "application/zip" in r_exp_all.headers.get("content-type", "")
+        zf = zipfile.ZipFile(io.BytesIO(r_exp_all.content))
+        names = zf.namelist()
+        assert "AttendTrax_Students_Master.csv" in names
+        assert "AttendTrax_Faculty_Master.csv" in names
+        assert "AttendTrax_Attendance_Reports.csv" in names
+        print(f"  [PASS] Full Institutional Master Export (ZIP): Valid package containing {', '.join(names)}")
+
+        # 12c. Principal Factory Default Reset (clears attendance reports/records, preserves students & faculty)
+        r_reset = await client.post("/admin/executive/factory-reset", headers=princ_headers)
+        assert r_reset.status_code == 200
+        reset_res = r_reset.json()
+        assert reset_res["status"] == "success"
+        print(f"  [PASS] Factory Default Reset: {reset_res['message']}")
+
+        # Verify students and faculty are still 100% intact
+        r_stu_chk = await client.get("/admin/students", headers=princ_headers)
+        assert len(r_stu_chk.json()) > 50, "Students were unexpectedly deleted during factory reset!"
+        r_fac_chk = await client.get("/admin/faculty", headers=princ_headers)
+        assert len(r_fac_chk.json()) > 5, "Faculty accounts were unexpectedly deleted during factory reset!"
+        print(f"  [PASS] Factory Reset Safety: Verified {len(r_stu_chk.json())} students and {len(r_fac_chk.json())} faculty safely preserved intact")
+
         print("\n" + "=" * 60)
         print("[SUCCESS] ALL SECURITY & E2E TESTS PASSED 100%!")
         print("=" * 60)

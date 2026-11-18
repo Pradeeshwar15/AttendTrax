@@ -112,6 +112,33 @@ def invalidate_cache(*keys: str) -> None:
                 _data_cache.pop(k, None)
 
 
+def clear_attendance_logs() -> None:
+    """Wipes all rows in Attendance_Log worksheet (keeping headers) and clears raw attendance log cache."""
+    with _cache_lock:
+        _data_cache["attendance_log_raw"] = (time.time(), [])
+        _data_cache.pop("admin_analytics", None)
+    try:
+        log_ws = _get_worksheet(get_settings().ATTENDANCE_LOG_SHEET_ID, "Attendance_Log")
+        if hasattr(log_ws, "batch_clear"):
+            log_ws.batch_clear(["A2:Z"])
+            try:
+                if hasattr(log_ws, "resize"):
+                    log_ws.resize(rows=2)
+            except Exception:
+                pass
+        elif hasattr(log_ws, "resize"):
+            try:
+                log_ws.resize(rows=2)
+            except Exception:
+                pass
+        elif hasattr(log_ws, "clear"):
+            log_ws.clear()
+            headers = ["LogID", "Date", "ClassID", "Hour", "SubjectID", "RegNo", "Status", "FacultyID", "Timestamp"]
+            log_ws.append_row(headers)
+    except Exception as exc:
+        print(f"[Sheets Warning] Could not truncate Google Sheets Attendance_Log: {exc}")
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Date helpers
 # ─────────────────────────────────────────────────────────────────────────────

@@ -83,28 +83,13 @@ def get_session_factory() -> async_sessionmaker[AsyncSession]:
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """FastAPI Dependency for database session injection."""
     session_factory = get_session_factory()
-    try:
-        async with session_factory() as session:
-            try:
-                yield session
-                await session.commit()
-            except Exception:
-                await session.rollback()
-                raise
-    except Exception as exc:
-        # If remote PostgreSQL fails, automatically switch and retry
-        global _using_sqlite_fallback
-        if not _using_sqlite_fallback:
-            factory = switch_to_sqlite()
-            async with factory() as session:
-                try:
-                    yield session
-                    await session.commit()
-                except Exception:
-                    await session.rollback()
-                    raise
-        else:
-            raise exc
+    async with session_factory() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
 
 
 async def init_db() -> None:

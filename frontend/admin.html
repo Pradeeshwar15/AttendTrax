@@ -468,6 +468,12 @@
             <button type="button" class="btn btn-primary btn-sm" id="exec-export-naac-btn" style="background:#2563eb;border-color:#3b82f6;">
               📥 Export NAAC Report
             </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="exec-export-all-btn" style="background:#059669;border-color:#10b981;color:#fff;font-weight:700;">
+              📥 Export All Data (CSV/ZIP)
+            </button>
+            <button type="button" class="btn btn-danger btn-sm" id="exec-factory-reset-btn" style="background:#dc2626;border-color:#ef4444;color:#fff;font-weight:700;">
+              ⚠️ Factory Default Reset
+            </button>
           </div>
         </div>
 
@@ -996,23 +1002,13 @@
             </div>
           </div>
 
-          <!-- Right Column: Class Leaderboard & Live Audit Feed -->
+          <!-- Right Column: Class Leaderboard -->
           <div class="flex flex-col gap-4">
             <!-- Leaderboard -->
-            <div class="card" style="margin:0;">
+            <div class="card" style="margin:0;flex:1;">
               <div class="card-header"><h4 style="font-size:0.95rem;">🏆 Class Performance Ranking</h4></div>
               <div class="card-body" style="padding:0.75rem 1rem;" id="class-leaderboard-container">
                 <p class="text-xs text-muted">Calculating rankings…</p>
-              </div>
-            </div>
-
-            <!-- Recent Sessions Feed -->
-            <div class="card" style="margin:0;flex:1;">
-              <div class="card-header"><h4 style="font-size:0.95rem;">⚡ Recent Attendance Submissions</h4></div>
-              <div class="card-body" style="padding:0.75rem 1rem;">
-                <ul class="activity-feed-list" id="recent-activity-list">
-                  <li class="text-xs text-muted">Loading activity…</li>
-                </ul>
               </div>
             </div>
           </div>
@@ -2466,8 +2462,28 @@ function renderTrendChart(trend) {
   if (!ctx) return;
   if (trendChartInstance) trendChartInstance.destroy();
 
-  const labels = trend.length ? trend.map(t => t.date) : ['No Data'];
-  const values = trend.length ? trend.map(t => t.percentage) : [0];
+  const container = ctx.parentElement;
+  let emptyMsg = container.querySelector('.chart-empty-msg');
+
+  if (!trend || !trend.length) {
+    ctx.style.display = 'none';
+    if (!emptyMsg) {
+      emptyMsg = document.createElement('div');
+      emptyMsg.className = 'chart-empty-msg text-center text-muted';
+      emptyMsg.style.cssText = 'padding: 3.5rem 1rem; font-size: 0.9rem; color: #64748b; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;';
+      emptyMsg.innerHTML = '<div style="font-size:2.2rem;margin-bottom:0.5rem;opacity:0.6;">📈</div><div style="font-weight:600;">No attendance trend records for this department.</div><div style="font-size:0.75rem;margin-top:0.25rem;">Attendance rate trend will plot here once daily sessions are marked.</div>';
+      container.appendChild(emptyMsg);
+    } else {
+      emptyMsg.style.display = 'flex';
+    }
+    return;
+  }
+
+  if (emptyMsg) emptyMsg.style.display = 'none';
+  ctx.style.display = 'block';
+
+  const labels = trend.map(t => t.date);
+  const values = trend.map(t => t.percentage);
 
   trendChartInstance = new Chart(ctx, {
     type: 'line',
@@ -2518,14 +2534,39 @@ function renderStatusChart(dist) {
   if (!ctx) return;
   if (statusChartInstance) statusChartInstance.destroy();
 
-  const data = [dist.present || 0, dist.absent || 0, dist.on_duty || 0];
+  const container = ctx.parentElement;
+  let emptyMsg = container.querySelector('.chart-empty-msg');
+
+  const pres = dist?.present || 0;
+  const abs = dist?.absent || 0;
+  const od = dist?.on_duty || 0;
+  const total = pres + abs + od;
+
+  if (!dist || total === 0) {
+    ctx.style.display = 'none';
+    if (!emptyMsg) {
+      emptyMsg = document.createElement('div');
+      emptyMsg.className = 'chart-empty-msg text-center text-muted';
+      emptyMsg.style.cssText = 'padding: 3.5rem 1rem; font-size: 0.9rem; color: #64748b; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;';
+      emptyMsg.innerHTML = '<div style="font-size:2.2rem;margin-bottom:0.5rem;opacity:0.6;">🍩</div><div style="font-weight:600;">No attendance status records for this department.</div><div style="font-size:0.75rem;margin-top:0.25rem;">Present/Absent/On-Duty distribution will appear here once sessions are marked.</div>';
+      container.appendChild(emptyMsg);
+    } else {
+      emptyMsg.style.display = 'flex';
+    }
+    return;
+  }
+
+  if (emptyMsg) emptyMsg.style.display = 'none';
+  ctx.style.display = 'block';
+
+  const data = [pres, abs, od];
 
   statusChartInstance = new Chart(ctx, {
     type: 'doughnut',
     data: {
       labels: ['Present (P)', 'Absent (A)', 'On-Duty / Leave (-)'],
       datasets: [{
-        data: data.reduce((a, b) => a + b, 0) ? data : [1, 0, 0],
+        data: data,
         backgroundColor: ['#10b981', '#ef4444', '#f59e0b'],
         borderWidth: 2,
         borderColor: '#fff',
@@ -2973,6 +3014,7 @@ function renderLeaderboards(classes) {
 
 function renderRecentActivity(activity) {
   const list = document.getElementById('recent-activity-list');
+  if (!list) return;
   list.innerHTML = '';
   if (!activity.length) {
     list.innerHTML = '<li class="text-xs text-muted" style="padding:0.5rem;">No recent submissions recorded.</li>';
@@ -4535,11 +4577,18 @@ document.getElementById('global-dept-selector')?.addEventListener('change', (e) 
       // Lock global department dropdown to HOD's department
       const deptSel = document.getElementById('global-dept-selector');
       if (deptSel) {
-        deptSel.value = hodDept;
-        deptSel.disabled = true;
-        deptSel.style.display = 'inline-block';
-        deptSel.style.opacity = '0.9';
-        deptSel.title = `Locked to ${hodDept} Department (Head of Department Session)`;
+        if (hodDept === 'PLACEMENT') {
+          deptSel.value = 'ALL';
+          deptSel.disabled = false;
+          deptSel.style.display = 'inline-block';
+          deptSel.title = 'Universal Placement Access (All Departments)';
+        } else {
+          deptSel.value = hodDept;
+          deptSel.disabled = true;
+          deptSel.style.display = 'inline-block';
+          deptSel.style.opacity = '0.9';
+          deptSel.title = `Locked to ${hodDept} Department (Head of Department Session)`;
+        }
       }
 
       document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
@@ -4547,9 +4596,13 @@ document.getElementById('global-dept-selector')?.addEventListener('change', (e) 
       navDash?.classList.add('active');
       secDash?.classList.add('active');
       const titleEl = document.getElementById('section-title');
-      if (titleEl) titleEl.textContent = `${hodDept} Department Drilldown & Analytics`;
+      if (titleEl) {
+        titleEl.textContent = hodDept === 'PLACEMENT'
+          ? 'Training & Placement - Cross-Department Drilldown & Analytics'
+          : `${hodDept} Department Drilldown & Analytics`;
+      }
       
-      await loadDashboardAnalytics(hodDept);
+      await loadDashboardAnalytics(hodDept === 'PLACEMENT' ? 'ALL' : hodDept);
     }
 
     await loadAllLeaveQueues();

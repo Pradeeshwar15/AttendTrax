@@ -1002,6 +1002,59 @@ function setupExecutiveEventListeners() {
   const exportBtn = document.getElementById('exec-export-naac-btn');
   if (exportBtn) exportBtn.addEventListener('click', exportNAACComplianceReport);
 
+  // Institutional Master Export (ZIP with Students, Faculty, Attendance CSVs)
+  const exportAllBtn = document.getElementById('exec-export-all-btn');
+  if (exportAllBtn) {
+    exportAllBtn.addEventListener('click', async () => {
+      try {
+        showToast('Preparing institutional data export package (ZIP)...', 'info', 2000);
+        const token = getToken();
+        const res = await fetch(`${API_BASE}/admin/executive/export-all`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+        if (!res.ok) throw new Error(`Export failed (${res.status})`);
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const todayStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        a.download = `AttendTrax_Institutional_Data_${todayStr}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        showToast('Institutional data package downloaded successfully!', 'success');
+      } catch (err) {
+        showToast(err.message || 'Export error', 'error');
+      }
+    });
+  }
+
+  // Factory Default Reset Button
+  const factoryResetBtn = document.getElementById('exec-factory-reset-btn');
+  if (factoryResetBtn) {
+    factoryResetBtn.addEventListener('click', async () => {
+      const ok = await openConfirm(
+        '⚠️ Factory Default Reset',
+        'Are you sure you want to remove all students\' attendance data under attendance reports? This will wipe all attendance session logs and reset attendance rates to zero. Student profiles, faculty accounts, departments, and classes will NOT be deleted.'
+      );
+      if (!ok) return;
+      showLoader(true);
+      try {
+        const res = await api.post('/admin/executive/factory-reset');
+        showToast(res.message || 'Factory default reset completed.', 'success', 4000);
+        await refreshExecutiveDashboard();
+        if (typeof loadDashboardAnalytics === 'function') {
+          await loadDashboardAnalytics();
+        }
+      } catch (err) {
+        showToast(err.message || 'Failed to execute factory default reset.', 'error');
+      } finally {
+        showLoader(false);
+      }
+    });
+  }
+
   // Dedicated Archive Page Listeners
   const pageArchRefresh = document.getElementById('page-archive-refresh-btn');
   if (pageArchRefresh) pageArchRefresh.addEventListener('click', () => loadSanctionedLeavesArchivePage());
@@ -1633,16 +1686,21 @@ async function initDepartmentReportsSection() {
   const userRole = (getRole() || '').toUpperCase();
   const curUsername = (getUsername() || '').toLowerCase();
 
-  // If HOD, lock department selector to their own department
+  // If HOD, lock department selector to their own department (Placement has universal access)
   if (userRole === 'DEPT_ADMIN') {
     let hodDept = 'CSE';
     if (curUsername.startsWith('hod.')) {
       hodDept = curUsername.replace('hod.', '').toUpperCase();
     }
     if (deptSelect) {
-      deptSelect.value = hodDept;
-      deptSelect.disabled = true;
-      deptSelect.title = `Locked to ${hodDept} Department (Head of Department)`;
+      if (hodDept === 'PLACEMENT') {
+        deptSelect.disabled = false;
+        deptSelect.title = 'Universal Placement Access (All Departments)';
+      } else {
+        deptSelect.value = hodDept;
+        deptSelect.disabled = true;
+        deptSelect.title = `Locked to ${hodDept} Department (Head of Department)`;
+      }
     }
   }
 

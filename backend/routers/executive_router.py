@@ -3,19 +3,25 @@
 # routers/executive_router.py – Ultra-Low Latency Consolidated SQL Intelligence
 # =============================================================================
 import time
+import io
+import csv
+import zipfile
 from datetime import date, datetime, timedelta
 from typing import Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import Response
 from pydantic import BaseModel
-from sqlalchemy import select, func, and_, or_, desc, case
+from sqlalchemy import select, func, and_, or_, desc, case, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import sheets
 from database import get_db
 from dependencies import require_role
 from models import (
     Department, User, ClassRoom, Student, Faculty, Subject,
     AttendanceSession, AttendanceRecord, FacultyLeave, AuditLog
 )
+from routers.admin_router import _ADMIN_ANALYTICS_CACHE
 
 router = APIRouter(prefix="/admin/executive", tags=["Executive Principal Intelligence"])
 
@@ -867,3 +873,329 @@ async def get_executive_audit_logs(
         })
 
     return logs
+
+
+# ── Executive Factory Default Reset & Institutional Master Data Export ────────
+@router.post("/factory-reset")
+async def executive_factory_default_reset(
+    current_user: dict = _exec_dep,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Principal Executive Action: Factory Default Reset.
+    Removes all students' attendance records and sessions under attendance reports,
+    resetting attendance metrics to initial baseline.
+    Student profiles, faculty accounts, departments, and classes remain intact.
+    """
+    # 1. Delete all attendance records and sessions from database
+    await db.execute(delete(AttendanceRecord))
+    await db.execute(delete(AttendanceSession))
+
+    # 2. Reset sheets attendance logs
+    sheets.clear_attendance_logs()
+
+    # 3. Invalidate executive and admin caches
+    _DASHBOARD_CACHE.clear()
+    _RADAR_CACHE.clear()
+    _ADMIN_ANALYTICS_CACHE.clear()
+
+    # 4. Record audit log
+    uid = current_user.get("UserID") or current_user.get("id")
+    uname = current_user.get("Username") or current_user.get("sub") or "Principal"
+    audit = AuditLog(
+        user_id=int(uid) if uid and str(uid).isdigit() else None,
+        action="FACTORY_RESET",
+        target_entity="ATTENDANCE_DATA",
+        target_id=0,
+        old_values={"scope": "COLLEGE_ATTENDANCE"},
+        new_values={
+            "scope": "COLLEGE_ATTENDANCE",
+            "status": "RESET_TO_FACTORY_DEFAULT",
+            "performed_by": uname,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+    )
+    db.add(audit)
+    await db.commit()
+
+    return {
+        "status": "success",
+        "message": "Factory reset complete: All student attendance records and sessions under attendance reports have been cleared.",
+        "cleared_entities": ["attendance_records", "attendance_sessions", "attendance_reports"]
+    }
+
+
+@router.get("/export-all")
+async def executive_export_all_institutional_data(
+    current_user: dict = _exec_dep,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Principal Executive Action: Export all institutional data to a compressed ZIP archive containing:
+    - Students_Master.csv
+    - Faculty_Master.csv
+    - Attendance_Reports.csv
+    """
+    # 1. Export Students
+    stu_stmt = (
+        select(
+            Student.reg_no,
+            Student.name,
+            Department.code.label("department"),
+            ClassRoom.class_code.label("class_id"),
+            ClassRoom.year,
+            ClassRoom.section,
+            Student.status
+        )
+        .join(Department, Student.department_id == Department.id)
+        .outerjoin(ClassRoom, Student.class_id == ClassRoom.id)
+        .where(Department.is_active == True)
+        .order_by(Department.code, ClassRoom.class_code, Student.reg_no)
+    )
+    stu_rows = (await db.execute(stu_stmt)).all()
+
+    stu_buf = io.StringIO()
+    stu_writer = csv.writer(stu_buf)
+    stu_writer.writerow(["Register Number", "Student Name", "Department", "Class ID", "Year", "Section", "Status"])
+    for r in stu_rows:
+        stu_writer.writerow([r.reg_no, r.name, r.department, r.class_id or "", r.year or "", r.section or "", r.status])
+    stu_csv = stu_buf.getvalue()
+
+    # 2. Export Faculty
+    fac_stmt = (
+        select(
+            Faculty.faculty_code.label("faculty_id"),
+            User.full_name,
+            Department.code.label("department"),
+            User.email,
+            User.role,
+            Faculty.designation
+        )
+        .join(User, Faculty.user_id == User.id)
+        .join(Department, Faculty.department_id == Department.id)
+        .where(Department.is_active == True)
+        .order_by(Department.code, Faculty.faculty_code)
+    )
+    fac_rows = (await db.execute(fac_stmt)).all()
+
+    fac_buf = io.StringIO()
+    fac_writer = csv.writer(fac_buf)
+    fac_writer.writerow(["Faculty ID", "Full Name", "Department", "Email", "Role", "Designation"])
+    for r in fac_rows:
+        fac_writer.writerow([r.faculty_id, r.full_name, r.department, r.email, r.role, r.designation or "Faculty"])
+    fac_csv = fac_buf.getvalue()
+
+    # 3. Export Attendance Sessions / Reports
+    att_stmt = (
+        select(
+            AttendanceSession.id,
+            AttendanceSession.session_date,
+            Department.code.label("department"),
+            ClassRoom.class_code.label("class_id"),
+            AttendanceSession.slot_hour,
+            AttendanceSession.session_type,
+            Subject.subject_code.label("subject_code"),
+            User.full_name.label("faculty_name"),
+            func.count(AttendanceRecord.id).label("total"),
+            func.sum(case((AttendanceRecord.status == "P", 1), else_=0)).label("present"),
+            func.sum(case((AttendanceRecord.status == "A", 1), else_=0)).label("absent"),
+            func.sum(case((AttendanceRecord.status == "OD", 1), else_=0)).label("on_duty"),
+        )
+        .join(ClassRoom, AttendanceSession.class_id == ClassRoom.id)
+        .join(Department, ClassRoom.department_id == Department.id)
+        .outerjoin(Subject, AttendanceSession.subject_id == Subject.id)
+        .outerjoin(User, AttendanceSession.faculty_id == User.id)
+        .outerjoin(AttendanceRecord, AttendanceRecord.session_id == AttendanceSession.id)
+        .group_by(
+            AttendanceSession.id,
+            AttendanceSession.session_date,
+            Department.code,
+            ClassRoom.class_code,
+            AttendanceSession.slot_hour,
+            AttendanceSession.session_type,
+            Subject.subject_code,
+            User.full_name
+        )
+        .order_by(AttendanceSession.session_date.desc(), Department.code, ClassRoom.class_code)
+    )
+    att_rows = (await db.execute(att_stmt)).all()
+
+    att_buf = io.StringIO()
+    att_writer = csv.writer(att_buf)
+    att_writer.writerow([
+        "Session ID", "Date", "Department", "Class ID", "Hour / Slot",
+        "Session Type", "Subject", "Faculty", "Total Students",
+        "Present", "Absent", "On Duty", "Attendance %"
+    ])
+    for r in att_rows:
+        tot = r.total or 0
+        pres = r.present or 0
+        od = r.on_duty or 0
+        pct = round(((pres + od) / tot) * 100, 1) if tot > 0 else 0.0
+        att_writer.writerow([
+            r.id,
+            r.session_date.strftime("%d-%m-%Y") if isinstance(r.session_date, (date, datetime)) else str(r.session_date),
+            r.department,
+            r.class_id,
+            r.slot_hour,
+            r.session_type,
+            r.subject_code or "—",
+            r.faculty_name or "—",
+            tot,
+            pres,
+            r.absent or 0,
+            od,
+            f"{pct}%"
+        ])
+    att_csv = att_buf.getvalue()
+
+    # Create ZIP archive
+    zip_buf = io.BytesIO()
+    with zipfile.ZipFile(zip_buf, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("AttendTrax_Students_Master.csv", stu_csv)
+        zf.writestr("AttendTrax_Faculty_Master.csv", fac_csv)
+        zf.writestr("AttendTrax_Attendance_Reports.csv", att_csv)
+
+    zip_bytes = zip_buf.getvalue()
+    today_str = date.today().strftime("%Y%m%d")
+    return Response(
+        content=zip_bytes,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f"attachment; filename=AttendTrax_Institutional_Data_{today_str}.zip",
+            "Access-Control-Expose-Headers": "Content-Disposition"
+        }
+    )
+
+
+@router.get("/export")
+async def executive_export_single_dataset(
+    dataset: str = "students",
+    current_user: dict = _exec_dep,
+    db: AsyncSession = Depends(get_db),
+):
+    """Export single CSV dataset (students, faculty, or attendance)."""
+    ds = dataset.lower().strip()
+    if ds in ("students", "student"):
+        stu_stmt = (
+            select(
+                Student.reg_no,
+                Student.name,
+                Department.code.label("department"),
+                ClassRoom.class_code.label("class_id"),
+                ClassRoom.year,
+                ClassRoom.section,
+                Student.status
+            )
+            .join(Department, Student.department_id == Department.id)
+            .outerjoin(ClassRoom, Student.class_id == ClassRoom.id)
+            .where(Department.is_active == True)
+            .order_by(Department.code, ClassRoom.class_code, Student.reg_no)
+        )
+        rows = (await db.execute(stu_stmt)).all()
+        buf = io.StringIO()
+        w = csv.writer(buf)
+        w.writerow(["Register Number", "Student Name", "Department", "Class ID", "Year", "Section", "Status"])
+        for r in rows:
+            w.writerow([r.reg_no, r.name, r.department, r.class_id or "", r.year or "", r.section or "", r.status])
+        return Response(
+            content=buf.getvalue(),
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename=AttendTrax_Students_{date.today().strftime('%Y%m%d')}.csv"}
+        )
+
+    elif ds in ("faculty", "staff"):
+        fac_stmt = (
+            select(
+                Faculty.faculty_code.label("faculty_id"),
+                User.full_name,
+                Department.code.label("department"),
+                User.email,
+                User.role,
+                Faculty.designation
+            )
+            .join(User, Faculty.user_id == User.id)
+            .join(Department, Faculty.department_id == Department.id)
+            .where(Department.is_active == True)
+            .order_by(Department.code, Faculty.faculty_code)
+        )
+        rows = (await db.execute(fac_stmt)).all()
+        buf = io.StringIO()
+        w = csv.writer(buf)
+        w.writerow(["Faculty ID", "Full Name", "Department", "Email", "Role", "Designation"])
+        for r in rows:
+            w.writerow([r.faculty_id, r.full_name, r.department, r.email, r.role, r.designation or "Faculty"])
+        return Response(
+            content=buf.getvalue(),
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename=AttendTrax_Faculty_{date.today().strftime('%Y%m%d')}.csv"}
+        )
+
+    elif ds in ("attendance", "attendances", "reports"):
+        att_stmt = (
+            select(
+                AttendanceSession.id,
+                AttendanceSession.session_date,
+                Department.code.label("department"),
+                ClassRoom.class_code.label("class_id"),
+                AttendanceSession.slot_hour,
+                AttendanceSession.session_type,
+                Subject.subject_code.label("subject_code"),
+                User.full_name.label("faculty_name"),
+                func.count(AttendanceRecord.id).label("total"),
+                func.sum(case((AttendanceRecord.status == "P", 1), else_=0)).label("present"),
+                func.sum(case((AttendanceRecord.status == "A", 1), else_=0)).label("absent"),
+                func.sum(case((AttendanceRecord.status == "OD", 1), else_=0)).label("on_duty"),
+            )
+            .join(ClassRoom, AttendanceSession.class_id == ClassRoom.id)
+            .join(Department, ClassRoom.department_id == Department.id)
+            .outerjoin(Subject, AttendanceSession.subject_id == Subject.id)
+            .outerjoin(User, AttendanceSession.faculty_id == User.id)
+            .outerjoin(AttendanceRecord, AttendanceRecord.session_id == AttendanceSession.id)
+            .group_by(
+            AttendanceSession.id,
+            AttendanceSession.session_date,
+            Department.code,
+            ClassRoom.class_code,
+            AttendanceSession.slot_hour,
+            AttendanceSession.session_type,
+            Subject.subject_code,
+            User.full_name
+        )
+            .order_by(AttendanceSession.session_date.desc(), Department.code, ClassRoom.class_code)
+        )
+        rows = (await db.execute(att_stmt)).all()
+        buf = io.StringIO()
+        w = csv.writer(buf)
+        w.writerow([
+            "Session ID", "Date", "Department", "Class ID", "Hour / Slot",
+            "Session Type", "Subject", "Faculty", "Total Students",
+            "Present", "Absent", "On Duty", "Attendance %"
+        ])
+        for r in rows:
+            tot = r.total or 0
+            pres = r.present or 0
+            od = r.on_duty or 0
+            pct = round(((pres + od) / tot) * 100, 1) if tot > 0 else 0.0
+            w.writerow([
+                r.id,
+                r.session_date.strftime("%d-%m-%Y") if isinstance(r.session_date, (date, datetime)) else str(r.session_date),
+                r.department,
+                r.class_id,
+                r.slot_hour,
+                r.session_type,
+                r.subject_code or "—",
+                r.faculty_name or "—",
+                tot,
+                pres,
+                r.absent or 0,
+                od,
+                f"{pct}%"
+            ])
+        return Response(
+            content=buf.getvalue(),
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename=AttendTrax_Attendance_{date.today().strftime('%Y%m%d')}.csv"}
+        )
+
+    raise HTTPException(status_code=400, detail="Invalid dataset specified. Choose 'students', 'faculty', or 'attendance'.")

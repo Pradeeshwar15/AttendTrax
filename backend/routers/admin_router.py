@@ -10,14 +10,14 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from fastapi.responses import Response
 from pydantic import BaseModel
-from sqlalchemy import select, and_, or_, desc
+from sqlalchemy import select, and_, or_, desc, case, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import sheets
 from auth import hash_password
 from database import get_db
 from dependencies import require_role
-from models import User, Faculty, Department
+from models import User, Faculty, Department, ClassRoom, Student, AttendanceSession, AttendanceRecord
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -285,6 +285,9 @@ async def list_all_faculty(
     user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
     hod_dept = _resolve_hod_dept_code(current_user)
 
+    if department_code and _normalize_dept_code(department_code) in ("CIVIL", "CSBS"):
+        return []
+
     stmt = (
         select(Faculty, User, Department)
         .join(User, Faculty.user_id == User.id)
@@ -507,18 +510,146 @@ def _get_cached_analytics(bypass: bool = False):
     return data
 
 
-def _filter_analytics_by_dept(raw_data: dict, dept_code: str) -> dict:
+def _matches_dept(class_id: str, dept_code: str) -> bool:
+    dept = _normalize_dept_code(dept_code)
+    if not dept or dept in ("ALL", "PLACEMENT"):
+        return True
+    cid = str(class_id or "").upper().replace(" ", "").replace("_", "").replace("-", "")
+    return cid.startswith(dept) or dept in cid
+
+
+async def _get_dept_analytics_metrics(dept_code: str, db: Optional[AsyncSession] = None) -> tuple[list, dict]:
+    """
+    Computes isolated 14-day Daily Attendance Rate Trend and Overall Status Distribution
+    specifically for the given department code.
+    If no records exist, returns ([], {}).
+    """
+    dept = _normalize_dept_code(dept_code)
+    if not dept or dept in ("ALL", "PLACEMENT"):
+        return None, None
+
+    trend = []
+    status_dist = {}
+
+    if db is not None:
+        try:
+            stmt = (
+                select(
+                    AttendanceSession.session_date,
+                    func.count(AttendanceRecord.id).label("total"),
+                    func.sum(case((AttendanceRecord.status.in_(["P", "OD"]), 1), else_=0)).label("attended"),
+                    func.sum(case((AttendanceRecord.status == "P", 1), else_=0)).label("present"),
+                    func.sum(case((AttendanceRecord.status == "A", 1), else_=0)).label("absent"),
+                    func.sum(case((AttendanceRecord.status == "OD", 1), else_=0)).label("on_duty"),
+                )
+                .join(AttendanceRecord, AttendanceRecord.session_id == AttendanceSession.id)
+                .join(ClassRoom, AttendanceSession.class_id == ClassRoom.id)
+                .join(Department, ClassRoom.department_id == Department.id)
+                .where(
+                    or_(
+                        Department.code == dept,
+                        Department.name.ilike(f"%{dept}%"),
+                        ClassRoom.class_code.ilike(f"{dept}%")
+                    )
+                )
+                .group_by(AttendanceSession.session_date)
+                .order_by(AttendanceSession.session_date.asc())
+            )
+            res = await db.execute(stmt)
+            rows = res.all()
+
+            if rows:
+                tot_pres = 0
+                tot_abs = 0
+                tot_od = 0
+                for r in rows:
+                    tot_pres += (r.present or 0)
+                    tot_abs += (r.absent or 0)
+                    tot_od += (r.on_duty or 0)
+                    d_str = r.session_date.strftime("%d-%m-%Y") if isinstance(r.session_date, (date, datetime)) else str(r.session_date)
+                    pct = round(((r.attended or 0) / r.total) * 100, 1) if r.total else 0.0
+                    trend.append({
+                        "date": d_str,
+                        "total": r.total,
+                        "attended": r.attended or 0,
+                        "percentage": pct
+                    })
+                trend = trend[-14:]
+                if tot_pres + tot_abs + tot_od > 0:
+                    status_dist = {
+                        "present": tot_pres,
+                        "absent": tot_abs,
+                        "on_duty": tot_od
+                    }
+                return trend, status_dist
+        except Exception as exc:
+            print(f"[Analytics Dept Query Warning] {exc}")
+
+    # Fallback to sheets._get_raw_attendance_log()
+    try:
+        logs = sheets._get_raw_attendance_log()
+        date_map = {}
+        tot_p = 0
+        tot_a = 0
+        tot_od = 0
+
+        for r in logs:
+            cid = str(r.get("ClassID", "")).strip().upper()
+            if not (cid.startswith(dept) or dept in cid):
+                continue
+            st = str(r.get("Status", "")).strip().upper()
+            if st not in ("P", "A", "OD", "ONDUTY", "ON DUTY"):
+                continue
+            d = str(r.get("Date", "")).strip()
+            if not d:
+                continue
+            if d not in date_map:
+                date_map[d] = {"total": 0, "attended": 0}
+            date_map[d]["total"] += 1
+            if st == "P":
+                tot_p += 1
+                date_map[d]["attended"] += 1
+            elif st in ("OD", "ONDUTY", "ON DUTY"):
+                tot_od += 1
+                date_map[d]["attended"] += 1
+            elif st == "A":
+                tot_a += 1
+
+        if date_map:
+            def _parse_sort_key(d_str):
+                for fmt in ("%d-%m-%Y", "%Y-%m-%d", "%d/%m/%Y"):
+                    try:
+                        return datetime.strptime(d_str, fmt)
+                    except ValueError:
+                        pass
+                return datetime.min
+
+            sorted_dates = sorted(date_map.keys(), key=_parse_sort_key)
+            for d in sorted_dates[-14:]:
+                t_data = date_map[d]
+                pct = round((t_data["attended"] / t_data["total"]) * 100, 1) if t_data["total"] else 0.0
+                trend.append({
+                    "date": d,
+                    "total": t_data["total"],
+                    "attended": t_data["attended"],
+                    "percentage": pct,
+                })
+            if tot_p + tot_a + tot_od > 0:
+                status_dist = {"present": tot_p, "absent": tot_a, "on_duty": tot_od}
+    except Exception as exc:
+        print(f"[Sheets Analytics Fallback Warning] {exc}")
+
+    return trend, status_dist
+
+
+async def _filter_analytics_by_dept(raw_data: dict, dept_code: str, db: Optional[AsyncSession] = None) -> dict:
     dept = _normalize_dept_code(dept_code)
     if dept == "ALL" or not dept:
         return raw_data
 
-    def _matches_dept(class_id: str) -> bool:
-        cid = str(class_id or "").upper().replace(" ", "").replace("_", "").replace("-", "")
-        return cid.startswith(dept) or dept in cid
-
-    filtered_classes = [c for c in raw_data.get("class_stats", []) if _matches_dept(c.get("class_id") or c.get("ClassID", ""))]
-    filtered_defaulters = [d for d in raw_data.get("defaulters", []) if _matches_dept(d.get("class_id") or d.get("ClassID", ""))]
-    filtered_section_summaries = [s for s in raw_data.get("section_summaries", []) if _matches_dept(s.get("class_id") or s.get("SectionID") or s.get("ClassID", ""))]
+    filtered_classes = [c for c in raw_data.get("class_stats", []) if _matches_dept(c.get("class_id") or c.get("ClassID", ""), dept)]
+    filtered_defaulters = [d for d in raw_data.get("defaulters", []) if _matches_dept(d.get("class_id") or d.get("ClassID", ""), dept)]
+    filtered_section_summaries = [s for s in raw_data.get("section_summaries", []) if _matches_dept(s.get("class_id") or s.get("SectionID") or s.get("ClassID", ""), dept)]
 
     total_students = sum(c.get("student_count", 0) or c.get("Enrolled", 0) for c in filtered_classes)
     total_attended = sum(c.get("attended", 0) or (c.get("Present", 0) + c.get("OD", 0)) for c in filtered_classes)
@@ -538,6 +669,16 @@ def _filter_analytics_by_dept(raw_data: dict, dept_code: str) -> dict:
         "percentage": today_pct,
     }
 
+    # Isolated Department Daily Attendance Rate Trend and Status Distribution
+    dept_trend, dept_status_dist = await _get_dept_analytics_metrics(dept, db=db)
+    if dept_trend is None:
+        dept_trend = []
+    if dept_status_dist is None:
+        c_pres = sum(c.get("attended", 0) or c.get("Present", 0) for c in filtered_classes)
+        c_abs = sum(c.get("absent", 0) or c.get("Absent", 0) for c in filtered_classes)
+        c_od = sum(c.get("on_duty", 0) or c.get("OD", 0) for c in filtered_classes)
+        dept_status_dist = {"present": c_pres, "absent": c_abs, "on_duty": c_od} if (c_pres + c_abs + c_od > 0) else {}
+
     return {
         **raw_data,
         "department_filter": dept,
@@ -549,14 +690,18 @@ def _filter_analytics_by_dept(raw_data: dict, dept_code: str) -> dict:
         "defaulters": filtered_defaulters,
         "defaulters_count": len(filtered_defaulters),
         "section_summaries": filtered_section_summaries,
+        "trend": dept_trend,
+        "status_distribution": dept_status_dist,
+        "recent_activity": [],
     }
 
 # ─────────────────────────────────────────────────────────────────────────────
 @router.get("/analytics")
-def get_analytics(
+async def get_analytics(
     bypass: bool = False,
     department_code: Optional[str] = None,
     current_user: dict = _admin_dep,
+    db: AsyncSession = Depends(get_db),
 ):
     raw_data = _get_cached_analytics(bypass=bypass)
     user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
@@ -564,21 +709,15 @@ def get_analytics(
 
     target_dept = department_code
     if user_role == "DEPT_ADMIN":
-        if username.startswith("hod."):
-            target_dept = username.replace("hod.", "").upper()
+        hod_dept = _resolve_hod_dept_code(current_user)
+        if hod_dept == "PLACEMENT":
+            target_dept = department_code or "ALL"
         else:
-            dept_id = current_user.get("department_id")
-            dept_map = {
-                1: "CSE", 2: "ECE", 3: "EEE", 4: "MECH", 5: "CIVIL", 6: "IT", 7: "AIDS", 8: "CSBS",
-                12: "CYBER", 13: "AIML", 14: "SH"
-            }
-            if dept_id and str(dept_id).isdigit():
-                target_dept = dept_map.get(int(dept_id), "CSE")
-            elif isinstance(dept_id, str):
-                target_dept = dept_id
+            # Academic HOD: strictly locked to their own department
+            target_dept = hod_dept
 
     if target_dept and target_dept.upper() != "ALL":
-        return _filter_analytics_by_dept(raw_data, target_dept)
+        return await _filter_analytics_by_dept(raw_data, target_dept, db=db)
 
     return raw_data
 
@@ -587,12 +726,35 @@ def get_analytics(
 # REPORTS
 # ─────────────────────────────────────────────────────────────────────────────
 @router.get("/reports/class/{class_id}")
-def class_report(class_id: str, _=_admin_dep):
+async def class_report(class_id: str, current_user: dict = _admin_dep):
+    user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
+    if user_role == "DEPT_ADMIN":
+        hod_dept = _resolve_hod_dept_code(current_user)
+        if hod_dept != "PLACEMENT" and not _matches_dept(class_id, hod_dept):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied: HOD of {hod_dept} cannot view class report for {class_id} (outside your department)."
+            )
     return sheets.get_class_attendance_report(class_id)
 
 
 @router.get("/reports/student/{reg_no}")
-def student_report(reg_no: str, _=_admin_dep):
+async def student_report(reg_no: str, current_user: dict = _admin_dep, db: AsyncSession = Depends(get_db)):
+    user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
+    if user_role == "DEPT_ADMIN":
+        hod_dept = _resolve_hod_dept_code(current_user)
+        if hod_dept != "PLACEMENT":
+            stu_stmt = select(Student).join(Department, Student.department_id == Department.id).where(
+                Student.reg_no == str(reg_no).strip()
+            ).where(Department.code == hod_dept)
+            stu = (await db.execute(stu_stmt)).scalar_one_or_none()
+            if not stu:
+                raw_s = [s for s in sheets._get_raw_students() if str(s.get("RegNo", "")).strip() == str(reg_no).strip()]
+                if raw_s and not _matches_dept(raw_s[0].get("ClassID", ""), hod_dept):
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail=f"Access denied: HOD of {hod_dept} cannot view student report for {reg_no} (outside your department)."
+                    )
     return sheets.get_student_attendance_summary(reg_no)
 
 
@@ -613,29 +775,57 @@ class AdminModifyAttendanceRequest(BaseModel):
 
 
 @router.get("/attendance/overview")
-def get_attendance_overview(date: str, _=_admin_dep):
-    """Retrieve full institutional overview of submitted and pending attendances for a date."""
-    return sheets.get_date_attendance_overview(date)
+async def get_attendance_overview(date: str, current_user: dict = _admin_dep):
+    """Retrieve full institutional overview of submitted and pending attendances for a date, sandboxed for HOD."""
+    overview = sheets.get_date_attendance_overview(date)
+    user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
+    if user_role == "DEPT_ADMIN":
+        hod_dept = _resolve_hod_dept_code(current_user)
+        if hod_dept != "PLACEMENT":
+            if isinstance(overview, dict):
+                if "submitted" in overview:
+                    overview["submitted"] = [s for s in overview["submitted"] if _matches_dept(s.get("class_id") or s.get("ClassID", ""), hod_dept)]
+                if "pending" in overview:
+                    overview["pending"] = [p for p in overview["pending"] if _matches_dept(p.get("class_id") or p.get("ClassID", ""), hod_dept)]
+                if "classes" in overview:
+                    overview["classes"] = [c for c in overview["classes"] if _matches_dept(c.get("class_id") or c.get("ClassID", ""), hod_dept)]
+    return overview
 
 
 @router.get("/attendance/daily")
-def get_daily_attendance(
+async def get_daily_attendance(
     class_id: str,
     date: str,
     hour: str = "DAY",
     subject_id: str = "",
-    _=_admin_dep,
+    current_user: dict = _admin_dep,
 ):
     """Retrieve students and their existing attendance status for viewing/modifying."""
+    user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
+    if user_role == "DEPT_ADMIN":
+        hod_dept = _resolve_hod_dept_code(current_user)
+        if hod_dept != "PLACEMENT" and not _matches_dept(class_id, hod_dept):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied: HOD of {hod_dept} cannot view daily attendance for {class_id} (outside your department)."
+            )
     return sheets.get_daily_attendance_for_edit(class_id, date, hour, subject_id)
 
 
 @router.post("/attendance/modify")
-def modify_daily_attendance(
+async def modify_daily_attendance(
     body: AdminModifyAttendanceRequest,
     current_user: dict = _admin_dep,
 ):
     """Admin endpoint to modify and resubmit attendance for any date/class/subject."""
+    user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
+    if user_role == "DEPT_ADMIN":
+        hod_dept = _resolve_hod_dept_code(current_user)
+        if hod_dept != "PLACEMENT" and not _matches_dept(body.class_id, hod_dept):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied: HOD of {hod_dept} cannot modify attendance for {body.class_id} (outside your department)."
+            )
     admin_id = str(current_user.get("UserID", "admin"))
     att_map = {e.reg_no.strip(): e.status.upper() for e in body.attendance}
     _ADMIN_ANALYTICS_CACHE.clear()
