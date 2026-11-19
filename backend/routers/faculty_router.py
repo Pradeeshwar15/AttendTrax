@@ -1,26 +1,41 @@
 # =============================================================================
 # routers/faculty_router.py  –  Faculty endpoints with Sub-10ms SQL Performance
 # =============================================================================
-from datetime import date, datetime
+from datetime import date, datetime, timezone, timedelta
 from typing import Dict, List, Optional, Union
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import select, and_, or_, func, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
-import sheets
 from database import get_db
 from dependencies import require_role
 from models import ClassRoom, Student, Subject, AttendanceSession, AttendanceRecord, User, Department
-from sheets import ALL_HOURS, HOUR_LABELS
+
+ALL_HOURS = ["DAY", "PERIOD_1", "PERIOD_2", "PERIOD_3", "PERIOD_4", "PERIOD_5", "PERIOD_6", "PERIOD_7", "PERIOD_8", "PLACEMENT"]
+HOUR_LABELS = {
+    "DAY": "Daily Register (Full Day)",
+    "PERIOD_1": "Period 1 (08:45 - 09:35)",
+    "PERIOD_2": "Period 2 (09:35 - 10:25)",
+    "PERIOD_3": "Period 3 (10:45 - 11:35)",
+    "PERIOD_4": "Period 4 (11:35 - 12:25)",
+    "PERIOD_5": "Period 5 (01:15 - 02:05)",
+    "PERIOD_6": "Period 6 (02:05 - 02:55)",
+    "PERIOD_7": "Period 7 (03:05 - 03:55)",
+    "PERIOD_8": "Period 8 (03:55 - 04:45)",
+}
+
+def get_ist_today_str() -> str:
+    ist_tz = timezone(timedelta(hours=5, minutes=30))
+    return datetime.now(ist_tz).strftime("%d-%m-%Y")
 
 router = APIRouter(prefix="/faculty", tags=["Faculty"])
 
 _faculty_dep = Depends(require_role("FACULTY", "ADMIN", "CLASS_INCHARGE", "DEPT_ADMIN", "SUPER_ADMIN"))
 
 
-# ── GET helpers (SQL-Accelerated with Sheets Fallback) ────────────────────────
+# ── GET helpers (Pure Supabase SQL) ──────────────────────────────────────────
 @router.get("/classes")
 async def list_classes(
     current_user: dict = _faculty_dep,
@@ -37,23 +52,22 @@ async def list_classes(
         )
         res = await db.execute(stmt)
         rows = res.all()
-        if rows:
-            return [
-                {
-                    "ClassID": c.class_code,
-                    "ClassName": f"[{dept_code}] {c.class_name}" if dept_code else c.class_name,
-                    "RawClassName": c.class_name,
-                    "Department": dept_code or "",
-                    "Year": str(c.year),
-                    "Section": c.section,
-                    "Semester": str(c.semester),
-                    "Status": c.status,
-                }
-                for c, dept_code in rows
-            ]
+        return [
+            {
+                "ClassID": c.class_code,
+                "ClassName": f"[{dept_code}] {c.class_name}" if dept_code else c.class_name,
+                "RawClassName": c.class_name,
+                "Department": dept_code or "",
+                "Year": str(c.year),
+                "Section": c.section,
+                "Semester": str(c.semester),
+                "Status": c.status,
+            }
+            for c, dept_code in rows
+        ]
     except Exception as exc:
-        print(f"[Faculty Router Notice] SQL query fallback to sheets: {exc}")
-    return sheets.get_all_classes()
+        print(f"[Faculty Router Notice] SQL query error: {exc}")
+        return []
 
 
 @router.get("/classes/{class_id}/subjects")
@@ -66,11 +80,10 @@ async def list_subjects(
     try:
         stmt = select(Subject).where(Subject.status == "ACTIVE").order_by(Subject.subject_code)
         subjs = (await db.execute(stmt)).scalars().all()
-        if subjs:
-            return [{"SubjectID": s.subject_code, "SubjectName": s.name} for s in subjs]
+        return [{"SubjectID": s.subject_code, "SubjectName": s.name} for s in subjs]
     except Exception as exc:
-        print(f"[Faculty Router Notice] SQL query fallback to sheets: {exc}")
-    return sheets.get_subjects_for_class(class_id)
+        print(f"[Faculty Router Notice] SQL query error: {exc}")
+        return []
 
 
 @router.get("/hours")
@@ -102,14 +115,13 @@ async def list_students(
                 and_(Student.class_id == cid, Student.status == "ACTIVE")
             ).order_by(Student.reg_no)
             students = (await db.execute(st_stmt)).scalars().all()
-            if students:
-                return [{"reg_no": s.reg_no, "name": s.name} for s in students]
+            return [{"reg_no": s.reg_no, "name": s.name} for s in students]
     except Exception as exc:
-        print(f"[Faculty Router Notice] SQL query fallback to sheets: {exc}")
-    return sheets.get_students_for_attendance(class_id)
+        print(f"[Faculty Router Notice] SQL student lookup error: {exc}")
+    return []
 
 
-# ── Attendance submission (Instant SQL + Non-Blocking Sheets Sync) ───────────
+# ── Attendance submission (Pure Supabase SQL) ────────────────────────────────
 class AttendanceEntry(BaseModel):
     reg_no: Union[str, int]
     status: str   # "P", "A", or "OD"
@@ -122,25 +134,9 @@ class SubmitAttendanceRequest(BaseModel):
     attendance: List[AttendanceEntry]
 
 
-def _background_sheets_sync(class_id: str, date_str: str, hour_val: str, subject_id: str, faculty_id: str, attendance_map: Dict[str, str]):
-    """Background worker task to push attendance to Google Sheets without blocking HTTP client."""
-    try:
-        sheets.save_attendance(
-            class_id=class_id,
-            date_str=date_str,
-            hour=hour_val,
-            subject_id=subject_id,
-            faculty_id=faculty_id,
-            attendance=attendance_map,
-        )
-    except Exception as e:
-        print(f"[Sheets Background Sync Notice] {e}")
-
-
 @router.post("/attendance")
 async def submit_attendance(
     body: SubmitAttendanceRequest,
-    background_tasks: BackgroundTasks,
     current_user: dict = _faculty_dep,
     db: AsyncSession = Depends(get_db),
 ):
@@ -153,7 +149,7 @@ async def submit_attendance(
             raise HTTPException(status_code=400, detail=f"Invalid status '{entry.status}'. Use P, A, or OD.")
 
     # Auto fetch today's date (IST)
-    today_str = sheets.get_ist_today_str()
+    today_str = get_ist_today_str()
     today_date = date.today()
 
     # 1. Check immutability in SQL database
@@ -163,22 +159,23 @@ async def submit_attendance(
         cls_stmt = select(ClassRoom.id).where(ClassRoom.class_code == str(body.class_id))
     cid = (await db.execute(cls_stmt)).scalar_one_or_none()
 
-    if cid:
-        chk_stmt = select(AttendanceSession).where(
-            and_(
-                AttendanceSession.class_id == cid,
-                AttendanceSession.session_date == today_date,
-                AttendanceSession.slot_hour == hour_val
-            )
-        )
-        if (await db.execute(chk_stmt)).scalar_one_or_none():
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Attendance for {body.class_id} on {today_str} ({hour_val}) has already been submitted and is locked.",
-            )
+    if not cid:
+        raise HTTPException(status_code=404, detail=f"Class '{body.class_id}' not found.")
 
-    faculty_id_str = str(current_user.get("Name") or current_user.get("full_name") or current_user.get("UserID") or current_user.get("sub") or "")
-    # Safely resolve faculty integer ID to prevent PostgreSQL 42883 and prevent impersonation
+    chk_stmt = select(AttendanceSession).where(
+        and_(
+            AttendanceSession.class_id == cid,
+            AttendanceSession.session_date == today_date,
+            AttendanceSession.slot_hour == hour_val
+        )
+    )
+    if (await db.execute(chk_stmt)).scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Attendance for {body.class_id} on {today_str} ({hour_val}) has already been submitted and is locked.",
+        )
+
+    # Safely resolve faculty integer ID to prevent impersonation
     fac_uid = None
     raw_uid = current_user.get("user_id")
     if raw_uid is not None and str(raw_uid).isdigit():
@@ -207,54 +204,41 @@ async def submit_attendance(
                 await db.flush()
                 fac_uid = new_u.id
 
-    attendance_map: Dict[str, str] = {e.reg_no: e.status.upper() for e in body.attendance}
+    attendance_map: Dict[str, str] = {str(e.reg_no).strip(): e.status.upper() for e in body.attendance}
 
     # 2. Persist to SQL immediately
-    if cid:
-        new_session = AttendanceSession(
-            class_id=cid,
-            session_date=today_date,
-            slot_hour=hour_val,
-            session_type="TRAINING" if hour_val in ("PLACEMENT", "TRAINING") else ("DAILY" if hour_val in ("DAILY", "DAY") else "HOURLY"),
-            faculty_id=fac_uid,
-            lock_status="LOCKED"
-        )
-        db.add(new_session)
-        await db.flush()
-
-        # Batch insert student records
-        st_stmt = select(Student).where(Student.class_id == cid)
-        students = (await db.execute(st_stmt)).scalars().all()
-        st_map = {s.reg_no: s.id for s in students}
-
-        records_to_insert = []
-        for rn, st_val in attendance_map.items():
-            if rn in st_map:
-                records_to_insert.append(AttendanceRecord(
-                    session_id=new_session.id,
-                    student_id=st_map[rn],
-                    status=st_val
-                ))
-        if records_to_insert:
-            db.add_all(records_to_insert)
-        await db.commit()
-
-    # 3. Queue non-blocking asynchronous sync to Google Sheets
-    background_tasks.add_task(
-        _background_sheets_sync,
-        body.class_id,
-        today_str,
-        hour_val,
-        body.subject_id,
-        faculty_id_str,
-        attendance_map,
+    new_session = AttendanceSession(
+        class_id=cid,
+        session_date=today_date,
+        slot_hour=hour_val,
+        session_type="TRAINING" if hour_val in ("PLACEMENT", "TRAINING") else ("DAILY" if hour_val in ("DAILY", "DAY") else "HOURLY"),
+        faculty_id=fac_uid,
+        lock_status="LOCKED"
     )
+    db.add(new_session)
+    await db.flush()
+
+    # Batch insert student records
+    st_stmt = select(Student).where(Student.class_id == cid)
+    students = (await db.execute(st_stmt)).scalars().all()
+    st_map = {s.reg_no.strip(): s.id for s in students}
+
+    records_to_insert = []
+    for rn, st_val in attendance_map.items():
+        if rn in st_map:
+            records_to_insert.append(AttendanceRecord(
+                session_id=new_session.id,
+                student_id=st_map[rn],
+                status=st_val
+            ))
+    if records_to_insert:
+        db.add_all(records_to_insert)
+    await db.commit()
 
     return {
         "message": "Attendance saved successfully.",
         "date": today_str,
-        "status": "CONFIRMED",
-        "sync": "QUEUED_TO_CLOUD"
+        "status": "CONFIRMED"
     }
 
 
@@ -267,7 +251,7 @@ async def check_slot(
     _=_faculty_dep,
     db: AsyncSession = Depends(get_db),
 ):
-    today_str = sheets.get_ist_today_str()
+    today_str = get_ist_today_str()
     today_date = date.today()
     hour_val = (hour or "DAY").strip().upper()
 
@@ -288,10 +272,9 @@ async def check_slot(
             exists = (await db.execute(chk_stmt)).scalar_one_or_none() is not None
             return {"already_submitted": exists, "date": today_str}
     except Exception as exc:
-        print(f"[Faculty Router Notice] SQL query fallback to sheets: {exc}")
+        print(f"[Faculty Router Notice] SQL check slot error: {exc}")
 
-    exists = sheets.check_attendance_exists(class_id, today_str, hour_val, subject_id)
-    return {"already_submitted": exists, "date": today_str}
+    return {"already_submitted": False, "date": today_str}
 
 
 # ── Faculty Attendance Report (Sub-10ms SQL Aggregation) ─────────────────────
@@ -346,5 +329,5 @@ async def get_class_report(
                     })
                 return report
     except Exception as exc:
-        print(f"[Faculty Router Notice] SQL query fallback to sheets: {exc}")
-    return sheets.get_class_attendance_report(class_id)
+        print(f"[Faculty Router Notice] SQL report error: {exc}")
+    return []

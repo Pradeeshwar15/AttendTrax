@@ -1,6 +1,6 @@
 # =============================================================================
 # dependencies.py  –  FastAPI dependency injection helpers
-# Supports Enterprise RBAC (SQL Database + Google Sheets fallback)
+# Supports Enterprise RBAC (Pure Supabase / PostgreSQL Engine)
 # =============================================================================
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -9,8 +9,7 @@ from sqlalchemy import select
 from auth import decode_token, get_hardcoded_user
 from config import get_settings
 from database import get_session_factory
-from models import User, Student
-from sheets import get_user_by_username, get_student_by_regnum
+from models import User, Student, ClassRoom
 
 bearer_scheme = HTTPBearer()
 
@@ -59,12 +58,18 @@ async def get_current_user(
             user_obj = res.scalar_one_or_none()
             if user_obj:
                 cls_id = ""
+                reg_no = user_obj.username
                 if user_obj.role == "STUDENT":
-                    s_stmt = select(Student.class_id).where(Student.user_id == user_obj.id)
+                    s_stmt = (
+                        select(Student.reg_no, ClassRoom.class_code)
+                        .outerjoin(ClassRoom, Student.class_id == ClassRoom.id)
+                        .where(Student.user_id == user_obj.id)
+                    )
                     s_res = await session.execute(s_stmt)
-                    c_id = s_res.scalar_one_or_none()
-                    if c_id:
-                        cls_id = str(c_id)
+                    s_row = s_res.first()
+                    if s_row:
+                        reg_no = s_row[0] or reg_no
+                        cls_id = s_row[1] or ""
 
                 return {
                     "UserID": str(user_obj.id),
@@ -78,43 +83,13 @@ async def get_current_user(
                     "department_id": user_obj.department_id,
                     "ClassID": cls_id,
                     "class_id": cls_id,
+                    "RegNo": reg_no,
+                    "reg_no": reg_no,
                 }
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"[AUTH DB LOOKUP ERROR] {exc}")
 
-    # ── 3. Fallback: Legacy Google Sheets lookup ─────────────────────────────
-    user = get_user_by_username(username)
-    if not user:
-        student = get_student_by_regnum(username)
-        if student:
-            reg_val = str(student.get("RegNo", ""))
-            return {
-                "UserID": reg_val,
-                "user_id": reg_val,
-                "Name": str(student.get("Name", "")),
-                "full_name": str(student.get("Name", "")),
-                "Username": reg_val,
-                "sub": reg_val,
-                "Role": "STUDENT",
-                "role": "STUDENT",
-                "ClassID": str(student.get("ClassID", "")),
-                "class_id": str(student.get("ClassID", "")),
-                "PasswordHash": "",
-                "department_id": 1,
-            }
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found.")
-
-    role_val = str(user.get("Role", "")).upper()
-    user_id_val = str(user.get("UserID", ""))
-    return {
-        **user,
-        "user_id": user_id_val,
-        "UserID": user_id_val,
-        "role": role_val,
-        "Role": role_val,
-        "sub": user.get("Username", username),
-        "department_id": 1,
-    }
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found.")
 
 
 def require_role(*roles: str):

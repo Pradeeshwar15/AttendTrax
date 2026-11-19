@@ -14,7 +14,6 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from config import get_settings
 from database import init_db
 from routers import auth_router, faculty_router, student_router, admin_router, leave_router, executive_router
-from sheets import warm_up_cache
 
 logger = logging.getLogger("attendtrax.main")
 cfg = get_settings()
@@ -58,8 +57,6 @@ async def startup_event():
         await ensure_hydrated()
     except Exception as e:
         print(f"[Hydration Hook Warning] {e}")
-    # Warm up Google Sheets cache asynchronously in background thread
-    threading.Thread(target=warm_up_cache, daemon=True, name="sheets-warmup").start()
     # Start zero-sleep keep-alive daemon
     threading.Thread(target=_render_keep_alive, daemon=True, name="attendtrax-keepalive").start()
 

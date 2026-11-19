@@ -14,7 +14,6 @@ from pydantic import BaseModel
 from sqlalchemy import select, func, and_, or_, desc, case, delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-import sheets
 from database import get_db
 from dependencies import require_role
 from models import (
@@ -888,14 +887,11 @@ async def executive_factory_default_reset(
     resetting attendance metrics to initial baseline.
     Student profiles, faculty accounts, departments, and classes remain intact.
     """
-    # 1. Delete all attendance records and sessions from database
+# 1. Delete all attendance records and sessions from database
     await db.execute(delete(AttendanceRecord))
     await db.execute(delete(AttendanceSession))
 
-    # 2. Reset sheets attendance logs
-    sheets.clear_attendance_logs()
-
-    # 3. Invalidate executive and admin caches
+    # 2. Invalidate executive and admin caches
     _DASHBOARD_CACHE.clear()
     _RADAR_CACHE.clear()
     _ADMIN_ANALYTICS_CACHE.clear()
@@ -952,12 +948,7 @@ async def executive_purge_academic_cohorts(
     await db.execute(delete(User).where(User.role == "STUDENT"))
     await db.execute(delete(ClassRoom))
 
-    # 2. Reset Google Sheets
-    sheets.clear_attendance_logs()
-    sheets.clear_all_students_sheet()
-    sheets.clear_all_classes_sheet()
-
-    # 3. Invalidate executive and admin caches
+    # 2. Invalidate executive and admin caches
     _DASHBOARD_CACHE.clear()
     _RADAR_CACHE.clear()
     _ADMIN_ANALYTICS_CACHE.clear()

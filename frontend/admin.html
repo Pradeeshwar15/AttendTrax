@@ -1330,9 +1330,10 @@
                   </select>
                 </div>
               </div>
-              <div style="display:flex;gap:0.5rem;align-self:flex-end;">
+              <div style="display:flex;gap:0.5rem;align-self:flex-end;flex-wrap:wrap;">
                 <button class="btn btn-primary" id="load-report-btn">📊 View Student Roster</button>
-                <button class="btn btn-secondary" id="export-csv-btn">📥 Export CSV</button>
+                <button class="btn btn-secondary" id="export-csv-btn">📥 Export Roster CSV</button>
+                <button class="btn btn-secondary" id="export-matrix-csv-btn" style="background:#0284c7;border-color:#0284c7;color:#fff;font-weight:600;">📅 Export 31-Day Matrix CSV</button>
               </div>
             </div>
           </div>
@@ -1394,10 +1395,14 @@
           <!-- Detailed Student Attendance Roster -->
           <div id="report-result" class="hidden">
             <div class="card">
-              <div class="card-header flex items-center justify-between">
+              <div class="card-header flex items-center justify-between" style="flex-wrap:wrap;gap:0.75rem;">
                 <div>
                   <h3 id="report-title" style="margin:0;">Attendance Report</h3>
                   <p class="text-xs text-muted" style="margin-top:0.2rem;" id="report-subtitle">Individual student attendance records</p>
+                </div>
+                <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                  <button class="btn btn-sm btn-secondary" id="export-roster-top-btn">📥 Export Roster CSV</button>
+                  <button class="btn btn-sm btn-primary" id="export-matrix-top-btn" style="background:#0284c7;border-color:#0284c7;">📅 Export 31-Day Matrix CSV</button>
                 </div>
               </div>
               <div class="card-body" style="padding:0;">
@@ -3979,18 +3984,84 @@ function renderReport(data) {
   });
 }
 
-// CSV export
-document.getElementById('export-csv-btn').addEventListener('click', () => {
-  if (!reportData.length) { showToast('No data to export.','warning'); return; }
-  const sorted = [...reportData].sort((a, b) => String(a.reg_no || a.RegNo || '').localeCompare(String(b.reg_no || b.RegNo || ''), undefined, { numeric: true, sensitivity: 'base' }));
-  const header = 'Reg No,Name,Total Working Days,Present,Absent,OD,Percentage\n';
-  const rows   = sorted.map(r => `${r.reg_no},${r.name},${r.working_days ?? 0},${r.attended},${r.absent},${r.od ?? 0},${r.percentage}%`).join('\n');
-  const blob   = new Blob([header + rows], { type: 'text/csv' });
-  const url    = URL.createObjectURL(blob);
-  const a      = document.createElement('a');
-  a.href = url; a.download = 'attendance_report.csv'; a.click();
-  URL.revokeObjectURL(url);
-});
+// ── Attendance Record Exports (Roster Summary & 31-Day Matrix) ─────────────────
+async function exportRosterCsv() {
+  const targetCid = document.getElementById('report-class-filter')?.value;
+  if (!targetCid) {
+    showToast('Please select a class section first.', 'warning');
+    return;
+  }
+  showLoader(true);
+  try {
+    let data = reportData;
+    if (!data || !data.length) {
+      data = await api.get(`/admin/reports/class/${encodeURIComponent(targetCid)}`, { bypassCache: true });
+    }
+    if (!data || !data.length) {
+      showToast('No student records found to export.', 'warning');
+      return;
+    }
+    const sorted = [...data].sort((a, b) => String(a.reg_no || a.RegNo || '').localeCompare(String(b.reg_no || b.RegNo || ''), undefined, { numeric: true, sensitivity: 'base' }));
+    const header = 'Reg No,Student Name,Total Working Days,Present,Absent,OD,Attendance %\n';
+    const rows = sorted.map(r => `"${r.reg_no}","${r.name}",${r.working_days ?? 0},${r.attended},${r.absent},${r.od ?? 0},${r.percentage}%`).join('\n');
+    const blob = new Blob([header + rows], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Attendance_Roster_${targetCid}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast(`Class roster summary for ${targetCid} exported!`, 'success');
+  } catch(err) {
+    showToast(`Roster export failed: ${err.message}`, 'error');
+  } finally {
+    showLoader(false);
+  }
+}
+
+async function exportMatrixCsv() {
+  const targetCid = document.getElementById('report-class-filter')?.value;
+  if (!targetCid) {
+    showToast('Please select a class section first.', 'warning');
+    return;
+  }
+  showLoader(true);
+  try {
+    const token = localStorage.getItem('token');
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+    const url = `${api.BASE_URL}/admin/reports/class/${encodeURIComponent(targetCid)}/matrix/export?month=${month}&year=${year}`;
+    const resp = await fetch(url, {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.detail || `Server error (${resp.status})`);
+    }
+    const blob = await resp.blob();
+    const downloadUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = `Attendance_Matrix_${targetCid}_Month_${month}_${year}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(downloadUrl);
+    showToast(`Detailed 31-day register matrix for ${targetCid} exported!`, 'success');
+  } catch(err) {
+    showToast(`Matrix export failed: ${err.message}`, 'error');
+  } finally {
+    showLoader(false);
+  }
+}
+
+document.getElementById('export-csv-btn')?.addEventListener('click', exportRosterCsv);
+document.getElementById('export-roster-top-btn')?.addEventListener('click', exportRosterCsv);
+document.getElementById('export-matrix-csv-btn')?.addEventListener('click', exportMatrixCsv);
+document.getElementById('export-matrix-top-btn')?.addEventListener('click', exportMatrixCsv);
 
 // ════════════════════════════════════════════════════════════════
 //  IMPORT ATTENDANCE REGISTERS & RECORDS
@@ -4191,15 +4262,21 @@ function wireBulkUpload({ dropId, inputId, fileChosenId, fileNameId, clearBtnId,
     const resultEl = document.getElementById(resultId);
     const formData = new FormData();
     formData.append('file', currentFile);
+    const startTime = performance.now();
     try {
       const res = await api.upload(endpoint, formData);
+      const elapsedSec = ((performance.now() - startTime) / 1000).toFixed(2);
       resultEl.style.cssText = 'background:#d1fae5;border:1px solid #6ee7b7;';
       resultEl.innerHTML = `
-        <p style="color:#065f46;font-weight:700;margin-bottom:.5rem;">✅ Import Successful!</p>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-bottom:.5rem;">
+          <p style="color:#065f46;font-weight:700;margin:0;">✅ Import Successful!</p>
+          <span class="badge" style="background:#10b981;color:#fff;font-weight:700;">⚡ ${elapsedSec}s Execution</span>
+        </div>
         <p class="text-sm">${res.message}</p>
         <div class="flex gap-4" style="margin-top:.5rem;flex-wrap:wrap;">
           <span class="badge badge-info">Inserted: ${res.inserted}</span>
           <span class="badge badge-warning">Skipped: ${res.skipped ?? 0}</span>
+          <span class="badge badge-success">Engine: Supabase Primary (AsyncPG)</span>
         </div>`;
       resultEl.classList.remove('hidden');
       showToast(res.message, 'success');

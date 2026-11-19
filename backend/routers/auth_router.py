@@ -11,9 +11,8 @@ from auth import verify_password, create_access_token, hash_password, get_hardco
 from config import get_settings
 from database import get_session_factory
 from dependencies import get_current_user
-from models import User, Student
-from sheets import get_user_by_username, update_user_password, get_student_by_regnum, create_user
-from sqlalchemy import select
+from models import User, Student, ClassRoom
+from sqlalchemy import select, or_
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -137,20 +136,38 @@ async def login(body: LoginRequest, request: Request):
                 detail="Invalid username or password.",
             )
 
-    # ── 2. Primary: Look up in Relational SQL Database ─────────────────────
+    # ── 2. Primary: Look up in Relational SQL Database (Supabase / SQLite) ──
     try:
         session_factory = get_session_factory()
         async with session_factory() as session:
-            stmt = select(User).where(User.username == uname)
+            stmt = (
+                select(User, Student, ClassRoom.class_code)
+                .outerjoin(Student, Student.user_id == User.id)
+                .outerjoin(ClassRoom, Student.class_id == ClassRoom.id)
+                .where(or_(User.username == uname, Student.reg_no == uname))
+            )
             res = await session.execute(stmt)
-            u_obj = res.scalar_one_or_none()
-            if u_obj:
+            match_row = res.first()
+            if match_row:
+                u_obj, st_obj, cls_code = match_row
                 pwd_ok = verify_password(body.password, u_obj.password_hash)
-                # Institutional fallback for students: <RegNo>@CSE
+                
+                # Institutional default fallbacks for students: <RegNo>@2026 or <RegNo>@CSE
                 if not pwd_ok and u_obj.role == "STUDENT":
-                    expected_default = f"{u_obj.username}@CSE"
-                    if body.password.strip().upper() == expected_default.upper():
+                    reg_val = (st_obj.reg_no if st_obj else u_obj.username).strip()
+                    allowed_defaults = {
+                        f"{reg_val}@2026".upper(),
+                        f"{u_obj.username}@2026".upper(),
+                        f"{reg_val}@CSE".upper(),
+                        f"{u_obj.username}@CSE".upper(),
+                    }
+                    if body.password.strip().upper() in allowed_defaults:
                         pwd_ok = True
+                        try:
+                            u_obj.password_hash = hash_password(body.password.strip())
+                            await session.commit()
+                        except Exception as upd_err:
+                            print(f"[AUTH PWD SYNC WARNING] {upd_err}")
 
                 if pwd_ok:
                     login_rate_limiter.record_success(client_ip, uname)
@@ -161,21 +178,13 @@ async def login(body: LoginRequest, request: Request):
                         "department_id": u_obj.department_id,
                     })
 
-                    cls_code = ""
-                    if u_obj.role == "STUDENT":
-                        st_stmt = select(Student).where(Student.user_id == u_obj.id)
-                        st_res = await session.execute(st_stmt)
-                        st_obj = st_res.scalar_one_or_none()
-                        if st_obj and st_obj.class_id:
-                            cls_code = str(st_obj.class_id)
-
                     return LoginResponse(
                         access_token=token,
                         role=u_obj.role,
                         name=u_obj.full_name,
                         user_id=str(u_obj.id),
                         username=u_obj.username,
-                        class_id=cls_code,
+                        class_id=cls_code or "",
                     )
                 else:
                     login_rate_limiter.record_failure(client_ip, uname)
@@ -188,64 +197,10 @@ async def login(body: LoginRequest, request: Request):
     except Exception as exc:
         print(f"[AUTH ERROR] {exc}")
 
-    # ── 3. Fall back to Google Sheets for Faculty / Student logins ────────
-    user = get_user_by_username(uname)
-    if not user:
-        # Check if login username is a student Register Number in Students sheet
-        student = get_student_by_regnum(uname)
-        if student:
-            reg_no = str(student.get("RegNo", "")).strip()
-            # Student default password: <RegNo>@CSE (e.g. 410123104041@CSE)
-            expected_default = f"{reg_no}@CSE"
-            if body.password.strip().upper() == expected_default.upper():
-                login_rate_limiter.record_success(client_ip, uname)
-                token = create_access_token({"sub": reg_no, "role": "STUDENT"})
-                return LoginResponse(
-                    access_token=token,
-                    role="STUDENT",
-                    name=str(student.get("Name", "")),
-                    user_id=reg_no,
-                    username=reg_no,
-                    class_id=str(student.get("ClassID", "")),
-                )
-
-        login_rate_limiter.record_failure(client_ip, uname)
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid username or password.",
-        )
-
-    # User found in Users sheet
-    user_role = str(user.get("Role", "")).upper()
-    user_id = str(user.get("UserID", "")).strip()
-    pwd_valid = verify_password(body.password, str(user.get("PasswordHash", "")))
-
-    # For student accounts: support institutional default <RegNo>@CSE if custom hash doesn't match
-    if not pwd_valid and user_role == "STUDENT":
-        reg_check = user_id or str(user.get("Username", "")).strip()
-        if body.password.strip().upper() == f"{reg_check}@CSE".upper():
-            pwd_valid = True
-            try:
-                update_user_password(str(user.get("Username", "")), hash_password(body.password.strip()))
-            except Exception as exc:
-                print(f"[AUTH ERROR] {exc}")
-
-    if not pwd_valid:
-        login_rate_limiter.record_failure(client_ip, uname)
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid username or password.",
-        )
-
-    login_rate_limiter.record_success(client_ip, uname)
-    token = create_access_token({"sub": str(user.get("Username", uname)), "role": user["Role"]})
-    return LoginResponse(
-        access_token=token,
-        role=str(user.get("Role", "")),
-        name=str(user.get("Name", "")),
-        user_id=str(user.get("UserID", "")),
-        username=str(user.get("Username", uname)),
-        class_id=str(user.get("ClassID", "")),
+    login_rate_limiter.record_failure(client_ip, uname)
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid username or password.",
     )
 
 
@@ -254,7 +209,7 @@ class ChangePasswordRequest(BaseModel):
 
 
 @router.post("/change-password")
-def change_password(
+async def change_password(
     body: ChangePasswordRequest,
     current_user: dict = Depends(get_current_user),
 ):
@@ -274,11 +229,17 @@ def change_password(
         )
 
     new_hash = hash_password(new_pwd)
-    success = update_user_password(username, new_hash)
-    if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User '{username}' was not found in the database.",
-        )
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        stmt = select(User).where(User.username == username)
+        u_obj = (await session.execute(stmt)).scalar_one_or_none()
+        if not u_obj:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"User '{username}' was not found in the database.",
+            )
+        u_obj.password_hash = new_hash
+        await session.commit()
+
     return {"message": "Password changed successfully!"}
 
