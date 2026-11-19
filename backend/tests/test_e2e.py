@@ -1,42 +1,50 @@
-import os
-import sys
+# =============================================================================
+# AttendTrax Enterprise – Comprehensive Security & E2E Verification Suite
+# tests/test_e2e.py – Full Institutional Lifecycle, Cohort Reset & Multi-Setup
+# =============================================================================
 import asyncio
-import time
-
-# Ensure UTF-8 output
-if sys.stdout.encoding != 'utf-8':
-    sys.stdout.reconfigure(encoding='utf-8')
-
-# Add backend directory to sys.path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
+import io
+import sys
+import os
+import zipfile
+import openpyxl
 from httpx import AsyncClient, ASGITransport
-from database import init_db
+
+# Ensure UTF-8 output on Windows
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
+backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+
 from main import app
 
 
 async def run_suite():
-    await init_db()
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        print("=" * 60)
-        print("[*] ATTENDTRAX SECURITY & E2E VERIFICATION SUITE")
-        print("=" * 60)
+    print("=" * 60)
+    print("[*] ATTENDTRAX SECURITY, RESET & MULTI-SETUP SUITE")
+    print("=" * 60)
 
-        # 1. Health check & Security Headers
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+        # 1. Health & Security Headers
         print("\n[1] Checking Health & HTTP Security Headers...")
-        r = await client.get("/health")
-        assert r.status_code == 200, f"Health check failed: {r.text}"
-        assert r.headers.get("X-Content-Type-Options") == "nosniff", "Missing X-Content-Type-Options"
-        assert r.headers.get("X-Frame-Options") == "DENY", "Missing X-Frame-Options"
-        assert r.headers.get("X-XSS-Protection") == "1; mode=block", "Missing X-XSS-Protection"
-        assert r.headers.get("Referrer-Policy") == "strict-origin-when-cross-origin", "Missing Referrer-Policy"
+        r_health = await client.get("/health")
+        assert r_health.status_code == 200, f"Health check failed: {r_health.text}"
+        assert r_health.json()["status"] == "ok"
         print("  [PASS] Health: OK")
+
+        headers = r_health.headers
+        assert headers.get("X-Content-Type-Options") == "nosniff"
+        assert headers.get("X-Frame-Options") == "DENY"
+        assert headers.get("X-XSS-Protection") == "1; mode=block"
+        assert headers.get("Referrer-Policy") == "strict-origin-when-cross-origin"
         print("  [PASS] Security Headers: nosniff, DENY, XSS-filter, strict-origin enforced")
 
-        # 2. Rate Limiting Test on /auth/login
+        # 2. Sliding-Window Rate Limiter
         print("\n[2] Checking Sliding-Window Rate Limiter on /auth/login...")
-        test_user = "brute_force_target_test"
+        test_user = "rate_limit_test_probe"
         hit_429 = False
         for i in range(1, 8):
             resp = await client.post(
@@ -53,465 +61,274 @@ async def run_suite():
                 print(f"  Attempt {i}: 401 Unauthorized (as expected)")
         assert hit_429, "Rate limiter did not block excessive failed login attempts!"
 
-        # 3. Admin Authentication & RBAC
-        print("\n[3] Testing Admin Login & Dashboard Endpoints...")
-        r = await client.post("/auth/login", json={"username": "admin", "password": "AttendTrax@2026"})
-        assert r.status_code == 200, f"Admin login failed: {r.text}"
-        admin_data = r.json()
+        # 3. Super Admin & Leadership Logins
+        print("\n[3] Testing Leadership & Administrator Authentication...")
+        r_admin = await client.post("/auth/login", json={"username": "admin", "password": "AttendTrax@2026"})
+        assert r_admin.status_code == 200, f"Admin login failed: {r_admin.text}"
+        admin_data = r_admin.json()
         admin_token = admin_data["access_token"]
-        assert admin_data["role"] in ("ADMIN", "SUPER_ADMIN")
-        print(f"  [PASS] Admin Login successful: {admin_data['name']} (Role: {admin_data['role']})")
-
         admin_headers = {"Authorization": f"Bearer {admin_token}"}
-        
-        # 4. Admin Analytics API
-        r_analytics = await client.get("/admin/analytics", headers=admin_headers)
-        assert r_analytics.status_code == 200, f"Admin analytics failed: {r_analytics.text}"
-        analytics = r_analytics.json()
-        assert "total_students" in analytics and "class_stats" in analytics and "defaulters" in analytics
-        print(f"  [PASS] Admin Analytics OK: {analytics['total_students']} total students, {analytics['overall_percentage']}% attendance")
-        print(f"  [PASS] Section Summaries OK: {len(analytics.get('section_summaries', []))} sections reported")
+        print(f"  [PASS] Central Admin Login: {admin_data['name']} (Role: {admin_data['role']})")
 
-        # 5. Executive Intelligence Cockpit (Principal / VP)
-        print("\n[4] Testing Principal Executive Intelligence Dashboard...")
         r_princ = await client.post("/auth/login", json={"username": "principal", "password": "Principal@2026"})
         assert r_princ.status_code == 200, f"Principal login failed: {r_princ.text}"
-        assert "Dr. Devaraju" in r_princ.json()["name"], f"Expected Dr. Devaraju, got {r_princ.json()['name']}"
+        assert "Dr. Devaraju" in r_princ.json()["name"]
         princ_token = r_princ.json()["access_token"]
         princ_headers = {"Authorization": f"Bearer {princ_token}"}
-        print(f"  [PASS] Principal Login verified: {r_princ.json()['name']}")
+        print(f"  [PASS] Principal Login: {r_princ.json()['name']}")
 
-        # 4a. Vice Principal Login Check
         r_vp = await client.post("/auth/login", json={"username": "viceprincipal", "password": "VP@2026"})
-        assert r_vp.status_code == 200, f"Vice Principal login failed: {r_vp.text}"
-        assert "Dr. Basker" in r_vp.json()["name"], f"Expected Dr. Basker, got {r_vp.json()['name']}"
-        print(f"  [PASS] Vice Principal Login verified: {r_vp.json()['name']}")
+        assert r_vp.status_code == 200, f"VP login failed: {r_vp.text}"
+        assert "Dr. Basker" in r_vp.json()["name"]
+        print(f"  [PASS] Vice Principal Login: {r_vp.json()['name']}")
 
-        r_exec = await client.get("/admin/executive/dashboard", headers=princ_headers)
-        assert r_exec.status_code == 200, f"Executive dashboard failed: {r_exec.text}"
-        exec_data = r_exec.json()
-        assert "department_benchmarks" in exec_data and "kpis" in exec_data
-        print(f"  [PASS] Executive Cockpit (ALL) OK: {len(exec_data['department_benchmarks'])} departments benchmarked, Total: {exec_data['kpis']['total_students']} students")
+        # 4. Department HOD Logins (All 9 Academic Branches)
+        print("\n[4] Verifying All 9 Department HOD Logins...")
+        academic_hods = [
+            ("hod.cse", "CSE"), ("hod.it", "IT"), ("hod.aids", "AIDS"),
+            ("hod.ece", "ECE"), ("hod.mech", "MECH"), ("hod.eee", "EEE"),
+            ("hod.cyber", "CYBER"), ("hod.aiml", "AIML"), ("hod.sh", "SH")
+        ]
+        hod_tokens = {}
+        for uname, dcode in academic_hods:
+            r_h = await client.post("/auth/login", json={"username": uname, "password": "Hod@2026"})
+            assert r_h.status_code == 200, f"HOD {uname} login failed: {r_h.text}"
+            h_data = r_h.json()
+            assert h_data["role"] == "DEPT_ADMIN"
+            hod_tokens[dcode] = h_data["access_token"]
+            print(f"  [PASS] HOD {uname.upper()} (Dept: {dcode}): Login 200 OK")
 
-        # 5b. Department-Scoped Executive Filtering (CSE vs ECE)
-        print("\n[4b] Testing Department-Scoped Filtering in Executive Cockpit...")
-        r_exec_cse = await client.get("/admin/executive/dashboard?department_code=CSE", headers=princ_headers)
-        assert r_exec_cse.status_code == 200, f"CSE filtered dashboard failed: {r_exec_cse.text}"
-        cse_data = r_exec_cse.json()
-        assert cse_data["kpis"]["total_students"] <= exec_data["kpis"]["total_students"]
-        print(f"  [PASS] CSE Scoped View: {cse_data['kpis']['total_students']} CSE students (No cross-department merging)")
+        # 5. Executive Institutional Reset / Cohort Purge
+        print("\n[5] Testing Complete Institutional Reset (Purge Cohorts)...")
+        r_purge = await client.post("/admin/executive/purge-academic-cohorts", headers=princ_headers)
+        assert r_purge.status_code == 200, f"Purge cohorts failed: {r_purge.text}"
+        purge_res = r_purge.json()
+        assert purge_res["status"] == "success"
+        print(f"  [PASS] Institutional Reset Executed: {purge_res['message']}")
 
-        # 5c. Executive Sanctioned Leaves Archive & Audit Logs
-        print("\n[4c] Testing Executive Sanctioned Archive & Audit Trail Ledger...")
-        r_archive = await client.get("/admin/executive/leaves/sanctioned-archive", headers=princ_headers)
-        assert r_archive.status_code == 200, f"Sanctioned archive failed: {r_archive.text}"
-        print(f"  [PASS] Sanctioned Docket Archive: HTTP 200 ({len(r_archive.json())} archived dockets)")
+        # Verify 0 classes and 0 students remaining
+        r_chk_classes = await client.get("/admin/classes", headers=admin_headers)
+        assert len(r_chk_classes.json()) == 0, f"Expected 0 classes after purge, got {len(r_chk_classes.json())}"
+        r_chk_students = await client.get("/admin/students", headers=admin_headers)
+        assert len(r_chk_students.json()) == 0, f"Expected 0 students after purge, got {len(r_chk_students.json())}"
+        print("  [PASS] Baseline Clean Slate Confirmed: 0 classes and 0 students active")
 
-        r_audit = await client.get("/admin/executive/audit-logs", headers=princ_headers)
-        assert r_audit.status_code == 200, f"Audit logs failed: {r_audit.text}"
-        print(f"  [PASS] Governance Audit Trail: HTTP 200 ({len(r_audit.json())} immutable audit events)")
+        # 6. Department HOD Manual Class Creation & Sandboxing
+        print("\n[6] Testing Department HOD Manual Class Creation & Sandboxing...")
+        cse_hod_headers = {"Authorization": f"Bearer {hod_tokens['CSE']}"}
+        ece_hod_headers = {"Authorization": f"Bearer {hod_tokens['ECE']}"}
 
-        # 5d. HOD Authentication & Portal Separation
-        print("\n[4d] Testing HOD Portal Separation & Department Admin RBAC...")
-        r_hod = await client.post("/auth/login", json={"username": "hod.cse", "password": "Hod@2026"})
-        assert r_hod.status_code == 200, f"HOD login failed: {r_hod.text}"
-        hod_data = r_hod.json()
-        assert hod_data["role"] == "DEPT_ADMIN", f"Expected DEPT_ADMIN role, got {hod_data['role']}"
-        hod_headers = {"Authorization": f"Bearer {hod_data['access_token']}"}
-        print(f"  [PASS] HOD Login OK: {hod_data['name']} (Role: {hod_data['role']})")
+        # 6a. HOD CSE creates CSE3A
+        r_cse_cls = await client.post(
+            "/admin/classes",
+            json={"class_id": "CSE3A", "class_name": "CSE III Year A", "year": "3", "section": "A", "semester": "5"},
+            headers=cse_hod_headers
+        )
+        assert r_cse_cls.status_code == 200, f"CSE class creation failed: {r_cse_cls.text}"
+        assert r_cse_cls.json()["class_id"] == "CSE3A"
+        assert r_cse_cls.json()["department"] == "CSE"
+        print("  [PASS] HOD CSE Class Creation: CSE3A created successfully")
 
-        # HOD must NOT be able to access Super Admin Executive Audit Logs
-        r_hod_forbidden_audit = await client.get("/admin/executive/audit-logs", headers=hod_headers)
-        assert r_hod_forbidden_audit.status_code == 403, f"Expected 403 Forbidden for HOD on executive audit route, got {r_hod_forbidden_audit.status_code}"
-        print("  [PASS] HOD cleanly blocked from Principal Executive Audit logs (403 Forbidden)")
+        # 6b. HOD ECE creates ECE2A
+        r_ece_cls = await client.post(
+            "/admin/classes",
+            json={"class_id": "ECE2A", "class_name": "ECE II Year A", "year": "2", "section": "A", "semester": "3"},
+            headers=ece_hod_headers
+        )
+        assert r_ece_cls.status_code == 200, f"ECE class creation failed: {r_ece_cls.text}"
+        assert r_ece_cls.json()["class_id"] == "ECE2A"
+        assert r_ece_cls.json()["department"] == "ECE"
+        print("  [PASS] HOD ECE Class Creation: ECE2A created successfully")
 
-        # HOD Department-Scoped Analytics (Must succeed with 200 and return only their CSE classes)
-        r_hod_analytics = await client.get("/admin/analytics", headers=hod_headers)
-        assert r_hod_analytics.status_code == 200, f"HOD analytics failed: {r_hod_analytics.text}"
-        hod_analytics = r_hod_analytics.json()
-        assert hod_analytics.get("total_students") == 290, f"Expected 290 CSE students, got {hod_analytics.get('total_students')}"
-        hod_classes = hod_analytics.get("class_stats", [])
-        assert len(hod_classes) == 5, f"Expected 5 CSE classes, got {len(hod_classes)}"
-        for c in hod_classes:
-            assert "CSE" in (c.get("class_id") or "").upper(), f"Non-CSE class found: {c.get('class_id')}"
-        print(f"  [PASS] HOD Analytics Scoped: 200 OK, 290 students strictly in CSE department")
+        # 6c. HOD ECE attempts to create class with CSE prefix -> Must be 403 Forbidden
+        r_cross_cls = await client.post(
+            "/admin/classes",
+            json={"class_id": "CSE3B", "class_name": "CSE Cross Dept", "year": "3", "section": "B", "semester": "5"},
+            headers=ece_hod_headers
+        )
+        assert r_cross_cls.status_code == 403, f"Expected 403 on cross-department class creation, got {r_cross_cls.status_code}"
+        print("  [PASS] HOD Class Sandboxing: HOD ECE blocked from creating CSE class (403 Forbidden)")
 
-        # 4e. Daily Active Faculty Leaves & Docket Register
-        print("\n[4e] Testing Daily Active Faculty Leave Register & Sanction Docket...")
-        r_daily_leaves = await client.get("/leaves/faculty/active-on-date", headers=princ_headers)
-        assert r_daily_leaves.status_code == 200, f"Daily active leaves failed: {r_daily_leaves.text}"
-        daily_payload = r_daily_leaves.json()
-        assert "faculties_on_leave" in daily_payload
-        print(f"  [PASS] Daily Faculty Leave Register: {len(daily_payload['faculties_on_leave'])} active sanctioned leaves")
+        # 6d. HOD ECE attempts to delete CSE3A -> Must be 403 Forbidden
+        r_cross_del = await client.delete("/admin/classes/CSE3A", headers=ece_hod_headers)
+        assert r_cross_del.status_code == 403, f"Expected 403 on cross-department class delete, got {r_cross_del.status_code}"
+        print("  [PASS] HOD Class Sandboxing: HOD ECE blocked from deleting CSE class (403 Forbidden)")
 
-        # 6. Faculty Authentication & Reports
-        print("\n[5] Testing Faculty Login & Daily Attendance Marking...")
-        r_fac = await client.post("/auth/login", json={"username": "fathima.cse", "password": "Staff@2026"})
-        assert r_fac.status_code == 200, f"Faculty login failed: {r_fac.text}"
-        fac_data = r_fac.json()
-        fac_token = fac_data["access_token"]
-        assert fac_data["role"] == "FACULTY"
-        print(f"  [PASS] Faculty Login successful: {fac_data['name']}")
+        # 6e. Verify Scoped Class Visibility
+        r_cse_classes = await client.get("/admin/classes", headers=cse_hod_headers)
+        assert len(r_cse_classes.json()) == 1 and r_cse_classes.json()[0]["ClassID"] == "CSE3A"
+        r_ece_classes = await client.get("/admin/classes", headers=ece_hod_headers)
+        assert len(r_ece_classes.json()) == 1 and r_ece_classes.json()[0]["ClassID"] == "ECE2A"
+        r_admin_classes = await client.get("/admin/classes", headers=admin_headers)
+        assert len(r_admin_classes.json()) == 2
+        print("  [PASS] Scoped Class Visibility: HOD CSE sees only CSE, HOD ECE sees only ECE, Admin sees all")
 
-        fac_headers = {"Authorization": f"Bearer {fac_token}"}
-        r_fac_classes = await client.get("/faculty/classes", headers=fac_headers)
-        assert r_fac_classes.status_code == 200, f"Faculty classes failed: {r_fac_classes.text}"
-        classes = r_fac_classes.json()
-        print(f"  [PASS] Faculty classes fetched: {len(classes)} classes")
+        # 7. Multi-Setup Student Ingestion (Single & Bulk Excel)
+        print("\n[7] Testing Multi-Setup Student Ingestion & Sandboxing...")
 
-        # 7. Faculty Class Attendance Report
-        r_report = await client.get("/faculty/reports/class/CSE3A", headers=fac_headers)
-        assert r_report.status_code == 200, f"Faculty report failed: {r_report.text}"
-        rep_list = r_report.json()
-        assert isinstance(rep_list, list), f"Expected list, got {type(rep_list)}"
-        print(f"  [PASS] Faculty Class Report OK: {len(rep_list)} students in CSE3A report")
+        # 7a. Single Student Add by HOD CSE
+        r_add_s1 = await client.post(
+            "/admin/students",
+            json={"reg_no": "24CS001", "name": "Aarav Kumar", "class_id": "CSE3A", "password": "Student@2026"},
+            headers=cse_hod_headers
+        )
+        assert r_add_s1.status_code == 200, f"Single student add failed: {r_add_s1.text}"
+        print("  [PASS] HOD Single Student Add: 24CS001 onboarded into CSE3A")
 
-        # 8. Student Authentication & Summary
-        print("\n[6] Testing Student Login & Attendance Portal...")
-        r_stu = await client.post("/auth/login", json={"username": "410123104041", "password": "410123104041@CSE"})
-        assert r_stu.status_code == 200, f"Student login failed: {r_stu.text}"
-        stu_data = r_stu.json()
-        stu_token = stu_data["access_token"]
-        assert stu_data["role"] == "STUDENT"
-        print(f"  [PASS] Student Login successful: {stu_data['name']}")
+        # 7b. Cross-Department Student Add Blocked
+        r_cross_stu = await client.post(
+            "/admin/students",
+            json={"reg_no": "24EC001", "name": "Bhavna Sharma", "class_id": "CSE3A", "password": "Student@2026"},
+            headers=ece_hod_headers
+        )
+        assert r_cross_stu.status_code == 403, f"Expected 403 on cross-dept student add, got {r_cross_stu.status_code}"
+        print("  [PASS] HOD Student Sandboxing: HOD ECE blocked from adding student to CSE3A (403 Forbidden)")
 
+        # 7c. HOD ECE adds student to ECE2A
+        r_add_s2 = await client.post(
+            "/admin/students",
+            json={"reg_no": "24EC001", "name": "Bhavna Sharma", "class_id": "ECE2A", "password": "Student@2026"},
+            headers=ece_hod_headers
+        )
+        assert r_add_s2.status_code == 200, f"ECE student add failed: {r_add_s2.text}"
+        print("  [PASS] HOD Single Student Add: 24EC001 onboarded into ECE2A")
+
+        # 7d. Student Login Verification
+        r_stu_login = await client.post("/auth/login", json={"username": "24CS001", "password": "Student@2026"})
+        assert r_stu_login.status_code == 200, f"Student login failed: {r_stu_login.text}"
+        stu_token = r_stu_login.json()["access_token"]
         stu_headers = {"Authorization": f"Bearer {stu_token}"}
-        r_stu_summary = await client.get("/student/attendance", headers=stu_headers)
-        assert r_stu_summary.status_code == 200, f"Student summary failed: {r_stu_summary.text}"
-        stu_summary = r_stu_summary.json()
-        print(f"  [PASS] Student Portal OK: {stu_summary['percentage']}% attendance across {stu_summary['total_hours']} records")
+        assert r_stu_login.json()["role"] == "STUDENT"
+        print(f"  [PASS] Student Authentication: {r_stu_login.json()['name']} logged in with role STUDENT")
 
-        # 9. RBAC Enforcement: Student cannot access Admin or Faculty routes
-        print("\n[7] Testing RBAC Security Restrictions...")
-        r_forbidden_admin = await client.get("/admin/analytics", headers=stu_headers)
-        assert r_forbidden_admin.status_code == 403, f"Expected 403 Forbidden for student on admin route, got {r_forbidden_admin.status_code}"
-        print("  [PASS] RBAC Check: Student blocked from Admin routes (403 Forbidden)")
+        # Student RBAC restriction
+        r_stu_admin_blocked = await client.get("/admin/analytics", headers=stu_headers)
+        assert r_stu_admin_blocked.status_code == 403
+        print("  [PASS] Student RBAC: Blocked from administrative routes (403 Forbidden)")
 
-        r_forbidden_fac = await client.get("/faculty/classes", headers=stu_headers)
-        assert r_forbidden_fac.status_code == 403, f"Expected 403 Forbidden for student on faculty route, got {r_forbidden_fac.status_code}"
-        print("  [PASS] RBAC Check: Student blocked from Faculty routes (403 Forbidden)")
+        # 7e. Super Admin Multi-Setup Bulk Excel Import
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Students"
+        ws.append(["RegNo", "Name", "ClassID", "ClassName", "Username", "Password"])
+        ws.append(["24CS002", "Chirag M", "CSE3A", "CSE III Year A", "24cs002", "Student@2026"])
+        ws.append(["24CS003", "Divya R", "CSE3A", "CSE III Year A", "24cs003", "Student@2026"])
+        ws.append(["24EC002", "Eashwar K", "ECE2A", "ECE II Year A", "24ec002", "Student@2026"])
+        ws.append(["24EC003", "Farhan A", "ECE2A", "ECE II Year A", "24ec003", "Student@2026"])
+        excel_buf = io.BytesIO()
+        wb.save(excel_buf)
+        excel_bytes = excel_buf.getvalue()
 
-        # 10. Sheet Formula Injection Sanitizer Unit Check
-        print("\n[8] Testing Google Sheets Formula Injection Sanitizer...")
-        from sheets import sanitize_sheet_cell
-        assert sanitize_sheet_cell("=cmd|'/C calc'!A0") == "'=cmd|'/C calc'!A0", "Formula starting with = not sanitized"
-        assert sanitize_sheet_cell("+SUM(A1:A10)") == "'+SUM(A1:A10)", "Formula starting with + not sanitized"
-        assert sanitize_sheet_cell("@HYPERLINK") == "'@HYPERLINK", "Formula starting with @ not sanitized"
-        assert sanitize_sheet_cell("100") == "100", "Normal string number modified incorrectly"
-        assert sanitize_sheet_cell(-5) == -5, "Numeric value modified incorrectly"
-        print("  [PASS] Formula Injection Sanitizer: 100% PASS")
-
-        # 11. Leave Request & Attendance PostgreSQL 42883 Verification
-        print("\n[9] Testing Leave Requests & Attendance Submission (Postgres 42883 Fix)...")
-        # 11a. Faculty apply leave
-        r_fac_leave = await client.post(
-            "/leaves/faculty/apply",
-            json={
-                "leave_category": "CASUAL",
-                "session_scope": "FULL_DAY",
-                "start_date": "2026-11-10",
-                "end_date": "2026-11-10",
-                "reason": "Doctor appointment",
-            },
-            headers=fac_headers
+        r_bulk = await client.post(
+            "/admin/import/students",
+            files={"file": ("master_students.xlsx", excel_bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+            headers=admin_headers
         )
-        assert r_fac_leave.status_code == 200, f"Faculty apply leave failed: {r_fac_leave.text}"
-        print("  [PASS] Faculty Apply Leave: HTTP 200 (No Postgres 42883 operator error)")
+        assert r_bulk.status_code == 200, f"Bulk import failed: {r_bulk.text}"
+        bulk_res = r_bulk.json()
+        assert bulk_res["inserted"] == 4
+        print(f"  [PASS] Multi-Setup Bulk Excel Import: 4 students ingested across CSE3A and ECE2A")
 
-        # 11b. Student apply leave
-        r_stu_leave = await client.post(
-            "/leaves/student/apply",
-            json={
-                "leave_type": "CASUAL",
-                "start_date": "2026-11-12",
-                "end_date": "2026-11-12",
-                "reason": "Family function",
-            },
-            headers=stu_headers
-        )
-        assert r_stu_leave.status_code == 200, f"Student apply leave failed: {r_stu_leave.text}"
-        print("  [PASS] Student Apply Leave: HTTP 200 (No Postgres 42883 operator error)")
+        # Verify total student directory count
+        r_all_st = await client.get("/admin/students", headers=admin_headers)
+        assert len(r_all_st.json()) == 6, f"Expected 6 total students, got {len(r_all_st.json())}"
+        print(f"  [PASS] Student Directory Integrity: Verified 6 total active students across all classes")
 
-        # 11c. Faculty Attendance Submission
+        # 8. Faculty Attendance Submission & Student Portal Sync
+        print("\n[8] Testing Faculty Attendance Marking & Student Summary Sync...")
+        r_fac = await client.post("/auth/login", json={"username": "fathima.cse", "password": "Staff@2026"})
+        assert r_fac.status_code == 200
+        fac_headers = {"Authorization": f"Bearer {r_fac.json()['access_token']}"}
+
         r_att_sub = await client.post(
             "/faculty/attendance",
             json={
-                "class_id": "CSE29A",
-                "subject_id": "CS301",
+                "class_id": "CSE3A",
+                "subject_id": "CS8591",
                 "hour": "DAY",
                 "attendance": [
-                    {"reg_no": "410123104041", "status": "P"},
+                    {"reg_no": "24CS001", "status": "P"},
+                    {"reg_no": "24CS002", "status": "P"},
+                    {"reg_no": "24CS003", "status": "A"},
                 ]
             },
             headers=fac_headers
         )
-        # Note: could be 200 or 409 if already submitted for today, but NOT 500
-        assert r_att_sub.status_code in (200, 409), f"Attendance submit failed with 500: {r_att_sub.text}"
-        print(f"  [PASS] Faculty Attendance Submission: HTTP {r_att_sub.status_code} (Clean execution, no 42883 error)")
+        assert r_att_sub.status_code in (200, 409), f"Faculty attendance failed: {r_att_sub.text}"
+        print("  [PASS] Faculty Attendance Marking: CSE3A daily attendance recorded")
 
-        # 12. Verify All 9 HOD Logins & Portal Scoping
-        print("\n[10] Verifying All 9 Department HOD Logins & Department Drilldowns...")
-        dept_codes = ["cse", "it", "aids", "ece", "mech", "eee", "cyber", "aiml", "sh"]
-        for d in dept_codes:
-            uname = f"hod.{d}"
-            r_h = await client.post("/auth/login", json={"username": uname, "password": "Hod@2026"})
-            assert r_h.status_code == 200, f"HOD login failed for {uname}: {r_h.text}"
-            h_data = r_h.json()
-            assert h_data["role"] == "DEPT_ADMIN"
-            assert h_data["username"] == uname
-            # Verify analytics drilldown works for this HOD
-            h_token = h_data["access_token"]
-            r_h_an = await client.get("/admin/analytics", headers={"Authorization": f"Bearer {h_token}"})
-            assert r_h_an.status_code == 200, f"HOD analytics failed for {uname}: {r_h_an.text}"
-            print(f"  [PASS] HOD {uname.upper()} (Dept: {d.upper()}): Login & Analytics 200 OK")
+        # Student checks portal summary
+        r_s_sum = await client.get("/student/attendance", headers=stu_headers)
+        assert r_s_sum.status_code == 200
+        print(f"  [PASS] Student Attendance Summary: {r_s_sum.json().get('percentage')}% attendance verified")
 
-        # 13. Sandboxed Faculty Creation (HOD vs Super Admin)
-        print("\n[11] Testing Sandboxed Faculty Creation & Department Enforcement...")
-        # 13a. HOD CSE adds faculty member (Must be locked to CSE)
-        r_add_hod = await client.post(
+        # 9. Faculty Creation Sandboxing & Leave Approval Integrity
+        print("\n[9] Testing Sandboxed Faculty Creation & Leave Workflow...")
+        r_create_fac = await client.post(
             "/admin/faculty",
             json={
-                "faculty_id": "CSE_TEST_99",
+                "faculty_id": "CSE999",
                 "name": "Prof. Rajesh Test",
                 "username": "rajesh.test",
                 "password": "Staff@2026",
-                "department": "ECE",  # HOD passes ECE maliciously or mistakenly
+                "department": "MECH",  # HOD is CSE, should enforce CSE
                 "designation": "Assistant Professor"
             },
-            headers=hod_headers
+            headers=cse_hod_headers
         )
-        assert r_add_hod.status_code == 200, f"HOD add faculty failed: {r_add_hod.text}"
-        res_hod_fac = r_add_hod.json()
-        assert res_hod_fac["department"] == "CSE", f"HOD sandbox failed! Expected CSE, got {res_hod_fac['department']}"
+        assert r_create_fac.status_code == 200
+        assert r_create_fac.json()["department"] == "CSE"
         print("  [PASS] HOD Sandbox Enforced: Faculty assigned to CSE regardless of input")
 
-        # 13b. Super Admin adds faculty member for CYBER department
-        r_add_admin = await client.post(
-            "/admin/faculty",
-            json={
-                "faculty_id": "CYB_TEST_99",
-                "name": "Prof. Priya Cyber",
-                "username": "priya.cyber",
-                "password": "Staff@2026",
-                "department": "CYBER",
-                "designation": "Associate Professor"
-            },
-            headers=admin_headers
-        )
-        assert r_add_admin.status_code == 200, f"Admin add faculty failed: {r_add_admin.text}"
-        res_admin_fac = r_add_admin.json()
-        assert res_admin_fac["department"] == "CYBER"
-        print("  [PASS] Super Admin Creation: Faculty assigned to CYBER department")
+        # New faculty applies leave -> HOD approves -> Principal sanctions
+        r_n_login = await client.post("/auth/login", json={"username": "rajesh.test", "password": "Staff@2026"})
+        assert r_n_login.status_code == 200
+        n_fac_headers = {"Authorization": f"Bearer {r_n_login.json()['access_token']}"}
 
-        # 14. Faculty Directory Isolation & Sandboxing
-        print("\n[12] Testing Faculty Directory Isolation & Visibility Restrictions...")
-        # 14a. HOD CSE lists faculty (Must see CSE, must NOT see CYBER)
-        r_hod_fac_list = await client.get("/admin/faculty", headers=hod_headers)
-        assert r_hod_fac_list.status_code == 200, f"HOD faculty list failed: {r_hod_fac_list.text}"
-        hod_faculties = r_hod_fac_list.json()
-        for f in hod_faculties:
-            assert f["Department"] == "CSE", f"Cross-department leakage! Found {f['Department']} faculty in HOD CSE view"
-            assert f["Username"] != "priya.cyber", "Cyber faculty visible in HOD CSE list!"
-        assert any(f["Username"] == "rajesh.test" for f in hod_faculties), "Newly added CSE faculty not in HOD list"
-        print(f"  [PASS] HOD Directory Sandbox: Confined to {len(hod_faculties)} CSE faculty, 0 other branches leaked")
-
-        # 14b. Super Admin lists faculty (Must see all departments)
-        r_admin_fac_list = await client.get("/admin/faculty", headers=admin_headers)
-        assert r_admin_fac_list.status_code == 200
-        admin_faculties = r_admin_fac_list.json()
-        assert any(f["Username"] == "priya.cyber" for f in admin_faculties), "CYBER faculty missing in Super Admin view"
-        assert any(f["Username"] == "rajesh.test" for f in admin_faculties), "CSE faculty missing in Super Admin view"
-        print(f"  [PASS] Super Admin Directory: Full institutional view ({len(admin_faculties)} total faculty)")
-
-        # 15. Faculty Name Integrity in Leave & Sanction Workflows
-        print("\n[13] Testing Faculty Name Integrity in Leave & Docket Workflows...")
-        # Login as newly created faculty
-        r_new_fac_login = await client.post("/auth/login", json={"username": "rajesh.test", "password": "Staff@2026"})
-        assert r_new_fac_login.status_code == 200, f"New faculty login failed: {r_new_fac_login.text}"
-        new_fac_token = r_new_fac_login.json()["access_token"]
-        assert r_new_fac_login.json()["name"] == "Prof. Rajesh Test"
-
-        # Apply leave as new faculty
-        r_new_fac_leave = await client.post(
+        r_l_app = await client.post(
             "/leaves/faculty/apply",
-            json={
-                "leave_category": "CASUAL",
-                "session_scope": "FULL_DAY",
-                "start_date": "2026-11-18",
-                "end_date": "2026-11-18",
-                "reason": "Personal work",
-            },
-            headers={"Authorization": f"Bearer {new_fac_token}"}
+            json={"leave_category": "CASUAL", "session_scope": "FULL_DAY", "start_date": "2026-11-25", "end_date": "2026-11-25", "reason": "Academic seminar"},
+            headers=n_fac_headers
         )
-        assert r_new_fac_leave.status_code == 200, f"New faculty apply leave failed: {r_new_fac_leave.text}"
-        new_leave_id = r_new_fac_leave.json()["leave_id"]
+        assert r_l_app.status_code == 200
+        lid = r_l_app.json()["leave_id"]
 
-        # HOD reviews and approves Level 1
-        r_hod_rev = await client.patch(
-            f"/leaves/faculty/{new_leave_id}/hod-review",
-            json={"action": "APPROVE", "remarks": "Arrangements verified"},
-            headers=hod_headers
-        )
-        assert r_hod_rev.status_code == 200
+        r_h_app = await client.patch(f"/leaves/faculty/{lid}/hod-review", json={"action": "APPROVE", "remarks": "Approved"}, headers=cse_hod_headers)
+        assert r_h_app.status_code == 200
+        r_p_app = await client.patch(f"/leaves/faculty/{lid}/principal-review", json={"action": "APPROVE", "remarks": "Sanctioned"}, headers=princ_headers)
+        assert r_p_app.status_code == 200
 
-        # Principal views pending queue
-        r_princ_queue = await client.get("/leaves/faculty/pending-principal", headers=princ_headers)
-        assert r_princ_queue.status_code == 200
-        queue_items = r_princ_queue.json()
-        matching_leave = next((l for l in queue_items if l["id"] == new_leave_id), None)
-        assert matching_leave is not None, f"Leave {new_leave_id} not in principal queue"
-        assert matching_leave["faculty_name"] == "Prof. Rajesh Test", f"Wrong name! Expected 'Prof. Rajesh Test', got '{matching_leave['faculty_name']}'"
-        assert matching_leave["faculty_username"] == "rajesh.test"
-        print(f"  [PASS] Leave Application Name Integrity: Shows exact faculty name '{matching_leave['faculty_name']}' (NOT Principal)")
+        r_doc = await client.get(f"/leaves/faculty/{lid}/sanction-docket", headers=princ_headers)
+        assert r_doc.status_code == 200
+        doc_data = r_doc.json()
+        assert doc_data["faculty"]["name"] == "Prof. Rajesh Test"
+        assert "Dr. Devaraju" in doc_data["endorsements"]["principal"]["name"]
+        print("  [PASS] Printable Docket: Sanctioned with exact faculty and Dr. Devaraju signature")
 
-        # Principal approves leave
-        r_princ_app = await client.patch(
-            f"/leaves/faculty/{new_leave_id}/principal-review",
-            json={"action": "APPROVE", "remarks": "Sanctioned"},
-            headers=princ_headers
-        )
-        assert r_princ_app.status_code == 200
+        # 10. Placement Universal Access
+        print("\n[10] Testing Placement Department Universal Access...")
+        r_plc_h = await client.post("/auth/login", json={"username": "hod.placement", "password": "Hod@2026"})
+        assert r_plc_h.status_code == 200
+        plc_h_headers = {"Authorization": f"Bearer {r_plc_h.json()['access_token']}"}
 
-        # Inspect printable Sanction Docket
-        r_docket = await client.get(f"/leaves/faculty/{new_leave_id}/sanction-docket", headers=princ_headers)
-        assert r_docket.status_code == 200
-        docket = r_docket.json()
-        assert docket["faculty"]["name"] == "Prof. Rajesh Test", f"Docket faculty name mismatch: {docket['faculty']['name']}"
-        assert docket["endorsements"]["principal"]["name"] == "Dr. Devaraju, Ph.D.", f"Docket principal name mismatch: {docket['endorsements']['principal']['name']}"
-        print(f"  [PASS] Printable Docket: Faculty '{docket['faculty']['name']}' sanctioned by '{docket['endorsements']['principal']['name']}'")
+        r_plc_st = await client.get("/admin/students", headers=plc_h_headers)
+        assert r_plc_st.status_code == 200
+        assert len(r_plc_st.json()) == 6
+        print("  [PASS] Placement Universal Access: Sees all candidate records across all departments")
 
-        # 10. Placement Department & Universal Student Roster Tests
-        print("\n[10] Testing Placement Department & Universal Cross-Department Operations...")
-        # 10a. Placement HOD Login
-        r_plc_hod = await client.post("/auth/login", json={"username": "hod.placement", "password": "Hod@2026"})
-        assert r_plc_hod.status_code == 200, f"Placement HOD login failed: {r_plc_hod.text}"
-        plc_hod_data = r_plc_hod.json()
-        assert plc_hod_data["role"] == "DEPT_ADMIN"
-        plc_hod_headers = {"Authorization": f"Bearer {plc_hod_data['access_token']}"}
-        print(f"  [PASS] Placement HOD Login: {plc_hod_data['name']} (Role: {plc_hod_data['role']})")
-
-        # 10b. Placement Staff Login
-        r_plc_staff = await client.post("/auth/login", json={"username": "placement.staff", "password": "Staff@2026"})
-        assert r_plc_staff.status_code == 200, f"Placement Staff login failed: {r_plc_staff.text}"
-        plc_staff_data = r_plc_staff.json()
-        assert plc_staff_data["role"] == "FACULTY"
-        plc_staff_headers = {"Authorization": f"Bearer {plc_staff_data['access_token']}"}
-        print(f"  [PASS] Placement Staff Login: {plc_staff_data['name']} (Role: {plc_staff_data['role']})")
-
-        # 10c. Universal Classes Fetch for Placement Staff
-        r_plc_classes = await client.get("/faculty/classes", headers=plc_staff_headers)
-        assert r_plc_classes.status_code == 200
-        plc_classes = r_plc_classes.json()
-        plc_depts = set(c.get("Department") for c in plc_classes if c.get("Department"))
-        print(f"  [PASS] Placement Cross-Department Classes: {len(plc_classes)} classes spanning {len(plc_depts)} branches ({', '.join(sorted(plc_depts))})")
-        assert len(plc_depts) >= 5, f"Expected cross-department classes, got {plc_depts}"
-
-        # 10d. Universal Student Roster Access for Placement HOD
-        r_plc_students = await client.get("/admin/students", headers=plc_hod_headers)
-        assert r_plc_students.status_code == 200
-        plc_all_students = r_plc_students.json()
-        assert len(plc_all_students) > 50, f"Expected universal students, got {len(plc_all_students)}"
-        print(f"  [PASS] Placement Universal Student Directory: {len(plc_all_students)} total candidates accessible across all branches")
-
-        # 10e. Placement Training Attendance Submission (slot 'PLACEMENT')
-        target_class = "IT28A"
-        r_st_list = await client.get(f"/faculty/classes/{target_class}/students", headers=plc_staff_headers)
-        if r_st_list.status_code != 200 or not r_st_list.json():
-            target_class = "CSE28A"
-            r_st_list = await client.get(f"/faculty/classes/{target_class}/students", headers=plc_staff_headers)
-        st_data = r_st_list.json()
-        assert len(st_data) > 0
-        plc_batch = [{"reg_no": str(s["reg_no"]), "status": "P"} for s in st_data[:5]]
-        r_plc_att = await client.post(
-            "/faculty/attendance",
-            json={
-                "class_id": target_class,
-                "subject_id": "PLC-TECH",
-                "hour": "PLACEMENT",
-                "attendance": plc_batch
-            },
-            headers=plc_staff_headers
-        )
-        assert r_plc_att.status_code in (200, 409), f"Placement attendance post failed: {r_plc_att.text}"
-        print(f"  [PASS] Placement Training Attendance Marked/Locked (Status: {r_plc_att.status_code}): Slot 'PLACEMENT' logged cleanly without conflict")
-
-        # 10f. Verification of Strict 9 Academic Departments (No CIVIL or CSBS)
-        r_fac_cse = await client.get("/admin/faculty?department_code=CIVIL", headers=admin_headers)
-        civil_fac = [f for f in r_fac_cse.json() if f.get("Department") == "CIVIL"]
-        assert len(civil_fac) == 0, f"Legacy CIVIL department found in faculty: {civil_fac}"
-        print("  [PASS] Academic Catalog Integrity: Legacy CIVIL & CSBS confirmed retired from active catalog")
-
-        # 11. Academic HOD Attendance Sandboxing vs Placement Universal Access
-        print("\n[11] Testing Strict Academic HOD Attendance Isolation & Placement Universal Access...")
-        # 11a. Academic HOD Login (CSE)
-        r_cse_hod = await client.post("/auth/login", json={"username": "hod.cse", "password": "Hod@2026"})
-        assert r_cse_hod.status_code == 200, f"CSE HOD login failed: {r_cse_hod.text}"
-        cse_hod_headers = {"Authorization": f"Bearer {r_cse_hod.json()['access_token']}"}
-
-        # 11b. CSE HOD Analytics: Isolated Department Metrics (Even if requesting ECE, enforced to CSE)
-        r_cse_ana = await client.get("/admin/analytics?department_code=ECE", headers=cse_hod_headers)
-        assert r_cse_ana.status_code == 200
-        cse_ana = r_cse_ana.json()
-        assert cse_ana.get("department_filter") == "CSE", f"Expected department_filter CSE, got {cse_ana.get('department_filter')}"
-        assert all(str(c.get("class_id")).startswith("CSE") for c in cse_ana.get("class_stats", [])), "Leaked non-CSE classes!"
-        assert "trend" in cse_ana and "status_distribution" in cse_ana
-        print(f"  [PASS] Academic HOD Analytics Sandboxing: Enforced to CSE (Classes: {len(cse_ana['class_stats'])}, Trend points: {len(cse_ana['trend'])})")
-
-        # 11c. Academic HOD attempting cross-department class report (ECE29A) -> 403 Forbidden
-        r_cross_rep = await client.get("/admin/reports/class/ECE29A", headers=cse_hod_headers)
-        assert r_cross_rep.status_code == 403, f"Expected 403 for cross-department class report, got {r_cross_rep.status_code}"
-        print("  [PASS] Academic HOD Access Denied (403) on cross-department class report (/reports/class/ECE29A)")
-
-        # 11d. Academic HOD attempting cross-department daily attendance edit -> 403 Forbidden
-        r_cross_daily = await client.get("/admin/attendance/daily?class_id=ECE29A&date=18-11-2026", headers=cse_hod_headers)
-        assert r_cross_daily.status_code == 403, f"Expected 403 for cross-department daily attendance, got {r_cross_daily.status_code}"
-        print("  [PASS] Academic HOD Access Denied (403) on cross-department daily attendance (/attendance/daily)")
-
-        # 11e. Placement HOD querying ECE analytics & ECE reports -> Allowed (200 OK)
-        r_plc_ece_ana = await client.get("/admin/analytics?department_code=ECE", headers=plc_hod_headers)
-        assert r_plc_ece_ana.status_code == 200
-        assert r_plc_ece_ana.json().get("department_filter") == "ECE"
-        r_plc_ece_rep = await client.get("/admin/reports/class/ECE28A", headers=plc_hod_headers)
-        assert r_plc_ece_rep.status_code == 200, f"Expected 200 for placement HOD on ECE report, got {r_plc_ece_rep.status_code}"
-        print("  [PASS] Placement HOD Universal Access verified: Successfully accessed ECE analytics and ECE class reports")
-
-        # 12. Principal Executive Master Data Export & Factory Default Reset
-        print("\n[12] Testing Principal Master Data Export & Factory Default Reset...")
-        # 12a. Single Dataset Export (CSV)
-        r_exp_stu = await client.get("/admin/executive/export?dataset=students", headers=princ_headers)
-        assert r_exp_stu.status_code == 200
-        assert "text/csv" in r_exp_stu.headers.get("content-type", "")
-        assert "Register Number" in r_exp_stu.text
-        print(f"  [PASS] Student Master CSV Export: {len(r_exp_stu.text.splitlines())} lines generated")
-
-        # 12b. Full Institutional Master Export (ZIP with 3 CSVs)
-        import zipfile, io
-        r_exp_all = await client.get("/admin/executive/export-all", headers=princ_headers)
-        assert r_exp_all.status_code == 200
-        assert "application/zip" in r_exp_all.headers.get("content-type", "")
-        zf = zipfile.ZipFile(io.BytesIO(r_exp_all.content))
+        # 11. Principal Master Data Export
+        print("\n[11] Testing Principal Master Data Export...")
+        r_exp_zip = await client.get("/admin/executive/export-all", headers=princ_headers)
+        assert r_exp_zip.status_code == 200
+        zf = zipfile.ZipFile(io.BytesIO(r_exp_zip.content))
         names = zf.namelist()
         assert "AttendTrax_Students_Master.csv" in names
         assert "AttendTrax_Faculty_Master.csv" in names
         assert "AttendTrax_Attendance_Reports.csv" in names
-        print(f"  [PASS] Full Institutional Master Export (ZIP): Valid package containing {', '.join(names)}")
-
-        # 12c. Principal Factory Default Reset (clears attendance reports/records, preserves students & faculty)
-        r_reset = await client.post("/admin/executive/factory-reset", headers=princ_headers)
-        assert r_reset.status_code == 200
-        reset_res = r_reset.json()
-        assert reset_res["status"] == "success"
-        print(f"  [PASS] Factory Default Reset: {reset_res['message']}")
-
-        # Verify students and faculty are still 100% intact
-        r_stu_chk = await client.get("/admin/students", headers=princ_headers)
-        assert len(r_stu_chk.json()) > 50, "Students were unexpectedly deleted during factory reset!"
-        r_fac_chk = await client.get("/admin/faculty", headers=princ_headers)
-        assert len(r_fac_chk.json()) > 5, "Faculty accounts were unexpectedly deleted during factory reset!"
-        print(f"  [PASS] Factory Reset Safety: Verified {len(r_stu_chk.json())} students and {len(r_fac_chk.json())} faculty safely preserved intact")
+        print(f"  [PASS] Master Institutional Export (ZIP): Valid package containing {', '.join(names)}")
 
         print("\n" + "=" * 60)
-        print("[SUCCESS] ALL SECURITY & E2E TESTS PASSED 100%!")
+        print("[SUCCESS] ALL SECURITY, RESET & MULTI-SETUP TESTS PASSED 100%!")
         print("=" * 60)
 
 

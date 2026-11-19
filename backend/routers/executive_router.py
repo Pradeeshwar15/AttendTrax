@@ -11,7 +11,7 @@ from typing import Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import Response
 from pydantic import BaseModel
-from sqlalchemy import select, func, and_, or_, desc, case, delete
+from sqlalchemy import select, func, and_, or_, desc, case, delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import sheets
@@ -19,7 +19,8 @@ from database import get_db
 from dependencies import require_role
 from models import (
     Department, User, ClassRoom, Student, Faculty, Subject,
-    AttendanceSession, AttendanceRecord, FacultyLeave, AuditLog
+    AttendanceSession, AttendanceRecord, FacultyLeave, AuditLog,
+    StudentLeave, FacultyAllocation, HostelGatePass, Notification
 )
 from routers.admin_router import _ADMIN_ANALYTICS_CACHE
 
@@ -922,6 +923,68 @@ async def executive_factory_default_reset(
         "status": "success",
         "message": "Factory reset complete: All student attendance records and sessions under attendance reports have been cleared.",
         "cleared_entities": ["attendance_records", "attendance_sessions", "attendance_reports"]
+    }
+
+
+@router.post("/purge-academic-cohorts")
+async def executive_purge_academic_cohorts(
+    current_user: dict = _exec_dep,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Principal Executive Action: Complete Institutional Reset.
+    Removes all student profiles, student user accounts, past attendance sessions & records,
+    student leave applications, faculty class allocations, and class records.
+    Departments, faculty accounts, HOD accounts, and leadership remain intact.
+    """
+    # 1. Foreign key deletion sequence
+    await db.execute(delete(AttendanceRecord))
+    await db.execute(delete(AttendanceSession))
+    await db.execute(delete(HostelGatePass))
+    await db.execute(delete(StudentLeave))
+    await db.execute(delete(FacultyAllocation))
+
+    subq_stu_uids = select(User.id).where(User.role == "STUDENT")
+    await db.execute(update(AuditLog).where(AuditLog.user_id.in_(subq_stu_uids)).values(user_id=None))
+    await db.execute(delete(Notification).where(Notification.user_id.in_(subq_stu_uids)))
+
+    await db.execute(delete(Student))
+    await db.execute(delete(User).where(User.role == "STUDENT"))
+    await db.execute(delete(ClassRoom))
+
+    # 2. Reset Google Sheets
+    sheets.clear_attendance_logs()
+    sheets.clear_all_students_sheet()
+    sheets.clear_all_classes_sheet()
+
+    # 3. Invalidate executive and admin caches
+    _DASHBOARD_CACHE.clear()
+    _RADAR_CACHE.clear()
+    _ADMIN_ANALYTICS_CACHE.clear()
+
+    # 4. Record audit log
+    uid = current_user.get("UserID") or current_user.get("id")
+    uname = current_user.get("Username") or current_user.get("sub") or "Principal"
+    audit = AuditLog(
+        user_id=int(uid) if uid and str(uid).isdigit() else None,
+        action="PURGE_ACADEMIC_COHORTS",
+        target_entity="STUDENTS_CLASSES_ATTENDANCE",
+        target_id=0,
+        old_values={"scope": "ALL_STUDENTS_AND_CLASSES"},
+        new_values={
+            "scope": "ALL_STUDENTS_AND_CLASSES",
+            "status": "PURGED_FOR_FRESH_ONBOARDING",
+            "performed_by": uname,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+    )
+    db.add(audit)
+    await db.commit()
+
+    return {
+        "status": "success",
+        "message": "Institutional reset complete: All students, classes, and attendance records have been cleared. System is ready for fresh departmental class creation and student onboarding.",
+        "cleared_entities": ["attendance_records", "attendance_sessions", "student_leaves", "faculty_allocations", "students", "student_users", "classes"]
     }
 
 

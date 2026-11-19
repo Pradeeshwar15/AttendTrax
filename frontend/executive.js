@@ -1055,6 +1055,34 @@ function setupExecutiveEventListeners() {
     });
   }
 
+  // Complete Institutional Cohort Purge Button (Students, Classes, Past Attendance)
+  const purgeCohortsBtn = document.getElementById('exec-purge-cohorts-btn');
+  if (purgeCohortsBtn) {
+    purgeCohortsBtn.addEventListener('click', async () => {
+      const ok = await openConfirm(
+        '🗑️ Complete Institutional Reset',
+        'CRITICAL ACTION: Are you sure you want to permanently clear ALL students, ALL classes, and ALL past attendance records across the entire institution? Departments, faculty accounts, and HOD accounts will be preserved intact. This prepares the system for fresh departmental class creation and student onboarding.'
+      );
+      if (!ok) return;
+      showLoader(true);
+      try {
+        const res = await api.post('/admin/executive/purge-academic-cohorts');
+        showToast(res.message || 'Institutional reset complete! All students, classes, and attendance records cleared.', 'success', 5000);
+        await refreshExecutiveDashboard();
+        if (typeof loadDashboardAnalytics === 'function') {
+          await loadDashboardAnalytics();
+        }
+        if (typeof loadClasses === 'function') {
+          await loadClasses();
+        }
+      } catch (err) {
+        showToast(err.message || 'Failed to execute institutional reset.', 'error');
+      } finally {
+        showLoader(false);
+      }
+    });
+  }
+
   // Dedicated Archive Page Listeners
   const pageArchRefresh = document.getElementById('page-archive-refresh-btn');
   if (pageArchRefresh) pageArchRefresh.addEventListener('click', () => loadSanctionedLeavesArchivePage());

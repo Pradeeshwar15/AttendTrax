@@ -51,32 +51,234 @@ def _parse_date_cell(val) -> str:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# DEPARTMENT NORMALIZATION & RBAC SCOPING
+# ─────────────────────────────────────────────────────────────────────────────
+DEPT_ALIAS_MAP = {
+    "AI & DS": "AIDS",
+    "AI&DS": "AIDS",
+    "AIDS": "AIDS",
+    "CYBER SECURITY": "CYBER",
+    "CYBERSECURITY": "CYBER",
+    "CYBER": "CYBER",
+    "AI & ML": "AIML",
+    "AI&ML": "AIML",
+    "AIML": "AIML",
+    "S & H": "SH",
+    "S&H": "SH",
+    "SH": "SH",
+    "CSE": "CSE",
+    "IT": "IT",
+    "ECE": "ECE",
+    "EEE": "EEE",
+    "MECH": "MECH",
+    "MECHANICAL": "MECH",
+    "PLACEMENT": "PLACEMENT",
+    "TRAINING & PLACEMENT": "PLACEMENT",
+    "T&P": "PLACEMENT",
+}
+
+def _normalize_dept_code(code: str) -> str:
+    clean = str(code or "").strip().upper()
+    return DEPT_ALIAS_MAP.get(clean, clean.replace(" ", "").replace("&", ""))
+
+
+def _resolve_hod_dept_code(current_user: dict) -> str:
+    user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
+    username = (current_user.get("Username") or current_user.get("sub") or "").lower()
+    if user_role == "DEPT_ADMIN":
+        if username.startswith("hod."):
+            dept_part = username.replace("hod.", "").upper()
+            return _normalize_dept_code(dept_part)
+        dept_id = current_user.get("department_id")
+        dept_map = {
+            1: "CSE", 2: "ECE", 3: "EEE", 4: "MECH", 6: "IT", 7: "AIDS",
+            10: "PLACEMENT", 12: "CYBER", 13: "AIML", 14: "SH"
+        }
+        if dept_id and str(dept_id).isdigit():
+            return dept_map.get(int(dept_id), "CSE")
+        if isinstance(dept_id, str):
+            return _normalize_dept_code(dept_id)
+    return ""
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # CLASSES
 # ─────────────────────────────────────────────────────────────────────────────
 class AddClassRequest(BaseModel):
     class_id: str
     class_name: str
-    year: Optional[str] = ""
-    section: Optional[str] = ""
-    semester: Optional[str] = ""
+    department_code: Optional[str] = None
+    year: Optional[str] = "1"
+    section: Optional[str] = "A"
+    semester: Optional[str] = "1"
+    academic_year: Optional[str] = "2026-2027"
 
 
 @router.get("/classes")
-async def list_all_classes(current_user: dict = _admin_dep):
-    all_classes = sheets.get_all_classes()
+async def list_all_classes(
+    current_user: dict = _admin_dep,
+    db: AsyncSession = Depends(get_db)
+):
     user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
-    username = (current_user.get("Username") or current_user.get("sub") or "").lower()
-    if user_role == "DEPT_ADMIN":
-        dept = username.replace("hod.", "").upper() if username.startswith("hod.") else "CSE"
-        if dept != "PLACEMENT":
-            return [c for c in all_classes if str(c.get("ClassID", "")).upper().startswith(dept)]
-    return all_classes
+    hod_dept = _resolve_hod_dept_code(current_user)
+
+    stmt = (
+        select(ClassRoom, Department)
+        .join(Department, ClassRoom.department_id == Department.id)
+        .where(ClassRoom.status == "ACTIVE")
+    )
+    if user_role == "DEPT_ADMIN" and hod_dept != "PLACEMENT":
+        stmt = stmt.where(Department.code == hod_dept)
+
+    res = await db.execute(stmt)
+    rows = res.all()
+
+    sql_classes = []
+    seen_codes = set()
+    for cls_obj, dept_obj in rows:
+        seen_codes.add(cls_obj.class_code.upper())
+        sql_classes.append({
+            "ClassID": cls_obj.class_code,
+            "ClassName": cls_obj.class_name,
+            "Year": str(cls_obj.year),
+            "Section": cls_obj.section,
+            "Semester": str(cls_obj.semester),
+            "Department": dept_obj.code,
+            "Status": cls_obj.status
+        })
+
+    sheet_classes = sheets.get_all_classes()
+    for sc in sheet_classes:
+        cid = str(sc.get("ClassID", "")).strip().upper()
+        if not cid or cid in seen_codes:
+            continue
+        dept_match = ""
+        for d in ["CSE", "ECE", "EEE", "MECH", "IT", "AIDS", "CYBER", "AIML", "SH", "PLACEMENT"]:
+            if cid.startswith(d):
+                dept_match = d
+                break
+        if user_role == "DEPT_ADMIN" and hod_dept != "PLACEMENT":
+            if dept_match != hod_dept and not cid.startswith(hod_dept):
+                continue
+        sql_classes.append(sc)
+        seen_codes.add(cid)
+
+    return sorted(sql_classes, key=lambda c: str(c.get("ClassID", "")))
 
 
 @router.post("/classes")
-async def add_class(body: AddClassRequest, _=_admin_dep):
-    sheets.add_class(body.model_dump())
-    return {"message": f"Class '{body.class_name}' added."}
+async def add_class(
+    body: AddClassRequest,
+    current_user: dict = _admin_dep,
+    db: AsyncSession = Depends(get_db)
+):
+    user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
+    hod_dept = _resolve_hod_dept_code(current_user)
+
+    # 1. Determine target department
+    target_dept_code = ""
+    if user_role == "DEPT_ADMIN" and hod_dept != "PLACEMENT":
+        target_dept_code = hod_dept
+    else:
+        if body.department_code and body.department_code.strip():
+            target_dept_code = _normalize_dept_code(body.department_code)
+        else:
+            cid_up = body.class_id.strip().upper()
+            for d in ["CSE", "ECE", "EEE", "MECH", "IT", "AIDS", "CYBER", "AIML", "SH", "PLACEMENT"]:
+                if cid_up.startswith(d):
+                    target_dept_code = d
+                    break
+            if not target_dept_code:
+                target_dept_code = hod_dept or "CSE"
+
+    clean_cid = body.class_id.strip().upper()
+
+    # Sandboxing validation: Academic HOD cannot create a class for another department
+    if user_role == "DEPT_ADMIN" and hod_dept != "PLACEMENT":
+        for other_dept in ["CSE", "ECE", "EEE", "MECH", "IT", "AIDS", "CYBER", "AIML", "SH"]:
+            if other_dept != hod_dept and clean_cid.startswith(other_dept):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"Access denied: HOD of {hod_dept} cannot create classes for {other_dept}."
+                )
+        if not clean_cid.startswith(hod_dept):
+            clean_cid = f"{hod_dept}{clean_cid}"
+
+    # 2. Lookup Department in SQL
+    stmt_dept = select(Department).where(Department.code == target_dept_code)
+    dept_obj = (await db.execute(stmt_dept)).scalar_one_or_none()
+    if not dept_obj:
+        stmt_any = select(Department).where(Department.is_active == True)
+        dept_obj = (await db.execute(stmt_any)).scalars().first()
+        if not dept_obj:
+            raise HTTPException(status_code=400, detail=f"Department '{target_dept_code}' not found.")
+
+    # 3. Check if class_code already exists
+    stmt_chk = select(ClassRoom).where(ClassRoom.class_code == clean_cid)
+    existing_cls = (await db.execute(stmt_chk)).scalar_one_or_none()
+    yr = int(body.year) if str(body.year).isdigit() else 1
+    sem = int(body.semester) if str(body.semester).isdigit() else 1
+    sec = str(body.section or "A").strip().upper()
+
+    if existing_cls:
+        if existing_cls.status == "ACTIVE":
+            raise HTTPException(status_code=400, detail=f"Class with ID '{clean_cid}' already exists.")
+        else:
+            existing_cls.status = "ACTIVE"
+            existing_cls.class_name = body.class_name
+            existing_cls.department_id = dept_obj.id
+            existing_cls.year = yr
+            existing_cls.section = sec
+            existing_cls.semester = sem
+            await db.commit()
+    else:
+        new_cls = ClassRoom(
+            department_id=dept_obj.id,
+            class_code=clean_cid,
+            class_name=body.class_name,
+            year=yr,
+            section=sec,
+            semester=sem,
+            academic_year=body.academic_year or "2026-2027",
+            status="ACTIVE"
+        )
+        db.add(new_cls)
+        await db.commit()
+
+    # Sync to local SQLite fallback if file exists
+    try:
+        import sqlite3
+        sqlite_p = sheets._get_fallback_db_path()
+        if os.path.exists(sqlite_p):
+            conn = sqlite3.connect(sqlite_p)
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT OR REPLACE INTO classes (department_id, class_code, class_name, year, section, semester, academic_year, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'ACTIVE')
+            """, (dept_obj.id, clean_cid, body.class_name, yr, sec, sem, body.academic_year or "2026-2027"))
+            conn.commit()
+            conn.close()
+    except Exception:
+        pass
+
+    # 4. Google Sheets append
+    sheets.add_class({
+        "class_id": clean_cid,
+        "class_name": body.class_name,
+        "year": str(yr),
+        "section": sec,
+        "semester": str(sem),
+        "department": target_dept_code,
+    })
+
+    _ADMIN_ANALYTICS_CACHE.clear()
+
+    return {
+        "status": "success",
+        "message": f"Class '{body.class_name}' ({clean_cid}) successfully created for {target_dept_code} department.",
+        "class_id": clean_cid,
+        "department": target_dept_code
+    }
 
 
 class RenameClassRequest(BaseModel):
@@ -84,15 +286,88 @@ class RenameClassRequest(BaseModel):
 
 
 @router.patch("/classes/{class_id}/rename")
-async def rename_class(class_id: str, body: RenameClassRequest, _=_admin_dep):
-    sheets.update_class_name(class_id, body.new_name)
-    return {"message": "Class renamed."}
+async def rename_class(
+    class_id: str,
+    body: RenameClassRequest,
+    current_user: dict = _admin_dep,
+    db: AsyncSession = Depends(get_db)
+):
+    user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
+    hod_dept = _resolve_hod_dept_code(current_user)
+    clean_cid = class_id.strip().upper()
+
+    stmt = (
+        select(ClassRoom, Department)
+        .join(Department, ClassRoom.department_id == Department.id)
+        .where(ClassRoom.class_code == clean_cid)
+    )
+    res = await db.execute(stmt)
+    row = res.first()
+    if row:
+        cls_obj, dept_obj = row
+        if user_role == "DEPT_ADMIN" and hod_dept != "PLACEMENT":
+            if dept_obj.code != hod_dept:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"Access denied: HOD of {hod_dept} cannot rename classes belonging to {dept_obj.code}."
+                )
+        cls_obj.class_name = body.new_name
+        await db.commit()
+
+    sheets.update_class_name(clean_cid, body.new_name)
+    _ADMIN_ANALYTICS_CACHE.clear()
+    return {"status": "success", "message": f"Class '{clean_cid}' renamed to '{body.new_name}'."}
 
 
 @router.delete("/classes/{class_id}")
-async def deactivate_class(class_id: str, _=_admin_dep):
-    sheets.deactivate_class(class_id)
-    return {"message": "Class deactivated."}
+async def deactivate_class(
+    class_id: str,
+    current_user: dict = _admin_dep,
+    db: AsyncSession = Depends(get_db)
+):
+    user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
+    hod_dept = _resolve_hod_dept_code(current_user)
+    clean_cid = class_id.strip().upper()
+
+    stmt = (
+        select(ClassRoom, Department)
+        .join(Department, ClassRoom.department_id == Department.id)
+        .where(ClassRoom.class_code == clean_cid)
+    )
+    res = await db.execute(stmt)
+    row = res.first()
+    if row:
+        cls_obj, dept_obj = row
+        if user_role == "DEPT_ADMIN" and hod_dept != "PLACEMENT":
+            if dept_obj.code != hod_dept:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"Access denied: HOD of {hod_dept} cannot delete classes belonging to {dept_obj.code}."
+                )
+        cls_obj.status = "INACTIVE"
+        await db.commit()
+    elif user_role == "DEPT_ADMIN" and hod_dept != "PLACEMENT":
+        if not clean_cid.startswith(hod_dept):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied: HOD of {hod_dept} cannot delete classes belonging to other departments."
+            )
+
+    try:
+        import sqlite3
+        sqlite_p = sheets._get_fallback_db_path()
+        if os.path.exists(sqlite_p):
+            conn = sqlite3.connect(sqlite_p)
+            cur = conn.cursor()
+            cur.execute("UPDATE classes SET status = 'INACTIVE' WHERE class_code = ?", (clean_cid,))
+            conn.commit()
+            conn.close()
+    except Exception:
+        pass
+
+    sheets.deactivate_class(clean_cid)
+    _ADMIN_ANALYTICS_CACHE.clear()
+    return {"status": "success", "message": f"Class '{clean_cid}' deactivated."}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -178,85 +453,154 @@ async def list_students(class_id: str, _=_admin_dep):
 
 
 @router.post("/students")
-async def add_student(body: AddStudentRequest, _=_admin_dep):
-    cls = sheets.get_class_by_id(body.class_id)
-    class_name = body.class_name or (cls["ClassName"] if cls else body.class_id)
+async def add_student(
+    body: AddStudentRequest,
+    current_user: dict = _admin_dep,
+    db: AsyncSession = Depends(get_db)
+):
+    user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
+    hod_dept = _resolve_hod_dept_code(current_user)
+    clean_cid = body.class_id.strip().upper()
 
+    # Sandboxing: HOD cannot add student to a class of another department
+    if user_role == "DEPT_ADMIN" and hod_dept != "PLACEMENT":
+        if not clean_cid.startswith(hod_dept):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied: HOD of {hod_dept} cannot add students to class {clean_cid}."
+            )
+
+    # 1. Lookup class in SQL
+    stmt_cls = (
+        select(ClassRoom, Department)
+        .join(Department, ClassRoom.department_id == Department.id)
+        .where(ClassRoom.class_code == clean_cid)
+    )
+    res = await db.execute(stmt_cls)
+    cls_row = res.first()
+
+    if not cls_row:
+        # If class not in SQL, resolve department and create it
+        target_dept_code = hod_dept or "CSE"
+        for d in ["CSE", "ECE", "EEE", "MECH", "IT", "AIDS", "CYBER", "AIML", "SH"]:
+            if clean_cid.startswith(d):
+                target_dept_code = d
+                break
+        stmt_d = select(Department).where(Department.code == target_dept_code)
+        dept_obj = (await db.execute(stmt_d)).scalar_one_or_none()
+        if not dept_obj:
+            dept_obj = (await db.execute(select(Department))).scalars().first()
+        new_c = ClassRoom(
+            department_id=dept_obj.id,
+            class_code=clean_cid,
+            class_name=body.class_name or clean_cid,
+            year=1,
+            section="A",
+            semester=1,
+            status="ACTIVE"
+        )
+        db.add(new_c)
+        await db.commit()
+        await db.refresh(new_c)
+        cls_id_fk = new_c.id
+        dept_id_fk = dept_obj.id
+        class_name = new_c.class_name
+    else:
+        cls_obj, dept_obj = cls_row
+        cls_id_fk = cls_obj.id
+        dept_id_fk = dept_obj.id
+        class_name = body.class_name or cls_obj.class_name
+
+    clean_regno = body.reg_no.strip()
+    username = (body.username or clean_regno).strip()
+    pwd = (body.password or f"{clean_regno}@2026").strip()
+    pwd_hash = hash_password(pwd)
+
+    # 2. Check and insert User in SQL
+    stmt_u = select(User).where(User.username == username)
+    u_obj = (await db.execute(stmt_u)).scalar_one_or_none()
+    if not u_obj:
+        u_obj = User(
+            username=username,
+            full_name=body.name.strip(),
+            password_hash=pwd_hash,
+            role="STUDENT",
+            department_id=dept_id_fk,
+            status="ACTIVE"
+        )
+        db.add(u_obj)
+        await db.flush()
+    else:
+        u_obj.password_hash = pwd_hash
+        u_obj.status = "ACTIVE"
+        u_obj.department_id = dept_id_fk
+
+    # 3. Check and insert Student in SQL
+    stmt_s = select(Student).where(Student.reg_no == clean_regno)
+    st_obj = (await db.execute(stmt_s)).scalar_one_or_none()
+    if not st_obj:
+        st_obj = Student(
+            reg_no=clean_regno,
+            user_id=u_obj.id,
+            class_id=cls_id_fk,
+            department_id=dept_id_fk,
+            name=body.name.strip(),
+            residence_type="DAY_SCHOLAR",
+            status="ACTIVE"
+        )
+        db.add(st_obj)
+    else:
+        st_obj.class_id = cls_id_fk
+        st_obj.department_id = dept_id_fk
+        st_obj.name = body.name.strip()
+        st_obj.status = "ACTIVE"
+
+    await db.commit()
+
+    # Sync to SQLite fallback if present
+    try:
+        import sqlite3
+        sqlite_p = sheets._get_fallback_db_path()
+        if os.path.exists(sqlite_p):
+            conn = sqlite3.connect(sqlite_p)
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT OR REPLACE INTO users (id, username, full_name, password_hash, role, department_id, status)
+                VALUES (?, ?, ?, ?, 'STUDENT', ?, 'ACTIVE')
+            """, (u_obj.id, username, body.name.strip(), pwd_hash, dept_id_fk))
+            cur.execute("""
+                INSERT OR REPLACE INTO students (reg_no, user_id, class_id, department_id, name, residence_type, status)
+                VALUES (?, ?, ?, ?, ?, 'DAY_SCHOLAR', 'ACTIVE')
+            """, (clean_regno, u_obj.id, cls_id_fk, dept_id_fk, body.name.strip()))
+            conn.commit()
+            conn.close()
+    except Exception:
+        pass
+
+    # 4. Sheets sync
     sheets.add_student({
-        "reg_no": body.reg_no,
-        "name": body.name,
-        "class_id": body.class_id,
+        "reg_no": clean_regno,
+        "name": body.name.strip(),
+        "class_id": clean_cid,
         "class_name": class_name,
     })
-
-    username = (body.username or body.reg_no).strip()
-    password = (body.password or f"{body.reg_no}@CSE").strip()
     sheets.create_user({
-        "user_id": body.reg_no,
-        "name": body.name,
+        "user_id": clean_regno,
+        "name": body.name.strip(),
         "username": username,
-        "password_hash": hash_password(password),
+        "password_hash": pwd_hash,
         "role": "STUDENT",
-        "class_id": body.class_id,
+        "class_id": clean_cid,
     })
-    return {"message": f"Student '{body.name}' added with login '{username}'."}
+
+    _ADMIN_ANALYTICS_CACHE.clear()
+    return {"message": f"Student '{body.name}' ({clean_regno}) added with login '{username}'."}
 
 
 @router.delete("/students/{reg_no}")
 async def deactivate_student(reg_no: str, _=_admin_dep):
     sheets.deactivate_student(reg_no)
     return {"message": "Student deactivated."}
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# DEPARTMENT NORMALIZATION & RBAC SCOPING
-# ─────────────────────────────────────────────────────────────────────────────
-DEPT_ALIAS_MAP = {
-    "AI & DS": "AIDS",
-    "AI&DS": "AIDS",
-    "AIDS": "AIDS",
-    "CYBER SECURITY": "CYBER",
-    "CYBERSECURITY": "CYBER",
-    "CYBER": "CYBER",
-    "AI & ML": "AIML",
-    "AI&ML": "AIML",
-    "AIML": "AIML",
-    "S & H": "SH",
-    "S&H": "SH",
-    "SH": "SH",
-    "CSE": "CSE",
-    "IT": "IT",
-    "ECE": "ECE",
-    "EEE": "EEE",
-    "MECH": "MECH",
-    "MECHANICAL": "MECH",
-    "PLACEMENT": "PLACEMENT",
-    "TRAINING & PLACEMENT": "PLACEMENT",
-    "T&P": "PLACEMENT",
-}
-
-def _normalize_dept_code(code: str) -> str:
-    clean = str(code or "").strip().upper()
-    return DEPT_ALIAS_MAP.get(clean, clean.replace(" ", "").replace("&", ""))
-
-
-def _resolve_hod_dept_code(current_user: dict) -> str:
-    user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
-    username = (current_user.get("Username") or current_user.get("sub") or "").lower()
-    if user_role == "DEPT_ADMIN":
-        if username.startswith("hod."):
-            dept_part = username.replace("hod.", "").upper()
-            return _normalize_dept_code(dept_part)
-        dept_id = current_user.get("department_id")
-        dept_map = {
-            1: "CSE", 2: "ECE", 3: "EEE", 4: "MECH", 6: "IT", 7: "AIDS",
-            10: "PLACEMENT", 12: "CYBER", 13: "AIML", 14: "SH"
-        }
-        if dept_id and str(dept_id).isdigit():
-            return dept_map.get(int(dept_id), "CSE")
-        if isinstance(dept_id, str):
-            return _normalize_dept_code(dept_id)
-    return ""
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1256,13 +1600,18 @@ async def download_attendance_register_template(
 async def import_students(
     file: UploadFile = File(...),
     class_id: Optional[str] = Form(None),
-    _=Depends(require_role("ADMIN")),
+    current_user: dict = _admin_dep,
+    db: AsyncSession = Depends(get_db)
 ):
     """
     Upload an .xlsx file to bulk-add students.
     Columns: RegNo | Name | ClassID (opt if selected via form) | ClassName (opt) | Username (opt) | Password (opt)
+    Synchronously updates both PostgreSQL/SQLite and Google Sheets.
     """
     import openpyxl
+
+    user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
+    hod_dept = _resolve_hod_dept_code(current_user)
 
     if not file.filename.lower().endswith(".xlsx"):
         raise HTTPException(status_code=400, detail="Only .xlsx files are supported.")
@@ -1291,23 +1640,33 @@ async def import_students(
             detail='Column "Student Name" not found. (Accepted: Name, Student Name, Full Name).',
         )
 
-    # Class name lookup map
-    all_classes = sheets.get_all_classes()
-    class_name_map = {str(c["ClassID"]).strip(): str(c["ClassName"]).strip() for c in all_classes}
+    # 1. Load active departments & classes from SQL
+    stmt_depts = select(Department).where(Department.is_active == True)
+    all_depts = (await db.execute(stmt_depts)).scalars().all()
+    dept_map = {d.code.upper(): d for d in all_depts}
+    default_dept = dept_map.get("CSE") or (all_depts[0] if all_depts else None)
 
-    # Existing reg nos and usernames
+    stmt_classes = select(ClassRoom)
+    all_sql_classes = (await db.execute(stmt_classes)).scalars().all()
+    class_map = {c.class_code.upper(): c for c in all_sql_classes}
+    class_name_map = {c.class_code.upper(): c.class_name for c in all_sql_classes}
+
+    # 2. Existing reg nos and usernames in SQL
+    stmt_existing_reg = select(Student.reg_no)
     existing_regnos = {
-        str(s.get("RegNo", "")).strip().lower()
-        for s in sheets.get_all_students()
+        str(r).strip().lower()
+        for r in (await db.execute(stmt_existing_reg)).scalars().all()
     }
-    existing_users = sheets.get_all_users()
+    stmt_existing_users = select(User.username)
     existing_usernames = {
-        str(u.get("Username", "")).strip().lower()
-        for u in existing_users
+        str(u).strip().lower()
+        for u in (await db.execute(stmt_existing_users)).scalars().all()
     }
 
     students_to_add = []
     users_to_add = []
+    sql_students_batch = []
+    sql_users_batch = []
     skipped = 0
     errors = []
 
@@ -1315,12 +1674,11 @@ async def import_students(
         reg_no = str(row[reg_col]).strip() if reg_col < len(row) and row[reg_col] is not None else ""
         name   = str(row[name_col]).strip() if name_col < len(row) and row[name_col] is not None else ""
         
-        # Class resolution: from Excel column or from Form fallback
         row_class = str(row[class_col]).strip() if class_col != -1 and class_col < len(row) and row[class_col] is not None else ""
-        target_class_id = row_class or (class_id.strip() if class_id else "")
+        target_class_id = (row_class or (class_id.strip() if class_id else "")).strip().upper()
 
         if not reg_no and not name and not target_class_id:
-            continue  # empty row
+            continue
 
         if not reg_no:
             errors.append(f"Row {row_num}: Register number is required.")
@@ -1332,20 +1690,77 @@ async def import_students(
             errors.append(f"Row {row_num} ({reg_no}): ClassID is missing. Specify in Excel or select a class.")
             continue
 
+        # Sandboxing check for Academic HODs
+        if user_role == "DEPT_ADMIN" and hod_dept != "PLACEMENT":
+            if not target_class_id.startswith(hod_dept):
+                errors.append(f"Row {row_num} ({reg_no}): Class '{target_class_id}' does not belong to your department ({hod_dept}).")
+                continue
+
         if reg_no.lower() in existing_regnos:
             skipped += 1
             continue
 
-        # Optional ClassName
         row_classname = str(row[classname_col]).strip() if classname_col != -1 and classname_col < len(row) and row[classname_col] is not None else ""
         target_class_name = row_classname or class_name_map.get(target_class_id, target_class_id)
 
-        # Username / Password
+        # Ensure target class exists in SQL
+        if target_class_id not in class_map:
+            c_dept_code = hod_dept or "CSE"
+            for d in ["CSE", "ECE", "EEE", "MECH", "IT", "AIDS", "CYBER", "AIML", "SH"]:
+                if target_class_id.startswith(d):
+                    c_dept_code = d
+                    break
+            c_dept_obj = dept_map.get(c_dept_code) or default_dept
+            new_cls = ClassRoom(
+                department_id=c_dept_obj.id,
+                class_code=target_class_id,
+                class_name=target_class_name,
+                year=1,
+                section="A",
+                semester=1,
+                status="ACTIVE"
+            )
+            db.add(new_cls)
+            await db.flush()
+            class_map[target_class_id] = new_cls
+            class_name_map[target_class_id] = target_class_name
+
+        cls_obj = class_map[target_class_id]
+
         row_username = str(row[username_col]).strip() if username_col != -1 and username_col < len(row) and row[username_col] is not None else ""
         row_password = str(row[password_col]).strip() if password_col != -1 and password_col < len(row) and row[password_col] is not None else ""
         
         final_username = row_username or reg_no
-        final_password = row_password or f"{reg_no}@CSE"
+        final_password = row_password or f"{reg_no}@2026"
+        pwd_hash = hash_password(final_password)
+
+        if final_username.lower() in existing_usernames:
+            final_username = f"{final_username}_{reg_no}"
+        existing_usernames.add(final_username.lower())
+        existing_regnos.add(reg_no.lower())
+
+        # SQL Entities
+        u_obj = User(
+            username=final_username,
+            full_name=name,
+            password_hash=pwd_hash,
+            role="STUDENT",
+            department_id=cls_obj.department_id,
+            status="ACTIVE"
+        )
+        db.add(u_obj)
+        await db.flush()
+
+        st_obj = Student(
+            reg_no=reg_no,
+            user_id=u_obj.id,
+            class_id=cls_obj.id,
+            department_id=cls_obj.department_id,
+            name=name,
+            residence_type="DAY_SCHOLAR",
+            status="ACTIVE"
+        )
+        db.add(st_obj)
 
         students_to_add.append({
             "reg_no": reg_no,
@@ -1353,18 +1768,11 @@ async def import_students(
             "class_id": target_class_id,
             "class_name": target_class_name,
         })
-        existing_regnos.add(reg_no.lower())
-
-        # If username collides, suffix with reg_no to guarantee unique login
-        if final_username.lower() in existing_usernames:
-            final_username = f"{final_username} ({reg_no})"
-        existing_usernames.add(final_username.lower())
-
         users_to_add.append({
             "user_id": reg_no,
             "name": name,
             "username": final_username,
-            "password_hash": hash_password(final_password),
+            "password_hash": pwd_hash,
             "role": "STUDENT",
             "class_id": target_class_id,
         })
@@ -1372,16 +1780,22 @@ async def import_students(
     if errors:
         raise HTTPException(
             status_code=422,
-            detail={"message": f"Errors encountered in upload:", "errors": errors[:20]},
+            detail={"message": "Errors encountered in upload:", "errors": errors[:25]},
         )
 
-    # Batch insert all at once for speed
+    # Commit SQL transactions
+    await db.commit()
+
+    # Batch insert to Google Sheets
     inserted_students = sheets.add_students_batch(students_to_add)
     sheets.create_users_batch(users_to_add)
 
+    _ADMIN_ANALYTICS_CACHE.clear()
+
     return {
-        "message": f"Import complete. {inserted_students} student(s) added successfully, {skipped} skipped (already existed).",
-        "inserted": inserted_students,
+        "status": "success",
+        "message": f"Multi-setup import complete! {len(students_to_add)} student(s) added successfully, {skipped} skipped (already existed).",
+        "inserted": len(students_to_add),
         "skipped": skipped,
         "total": len(students_to_add) + skipped,
     }

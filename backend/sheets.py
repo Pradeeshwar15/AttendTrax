@@ -139,6 +139,80 @@ def clear_attendance_logs() -> None:
         print(f"[Sheets Warning] Could not truncate Google Sheets Attendance_Log: {exc}")
 
 
+def clear_all_students_sheet() -> None:
+    """Wipes all rows in Students worksheet (keeping headers), removes student accounts from Users sheet, and purges caches."""
+    with _cache_lock:
+        _data_cache["students_raw"] = (time.time(), [])
+        _data_cache.pop("users", None)
+        _data_cache.pop("admin_analytics", None)
+    try:
+        ws = _get_worksheet(get_settings().STUDENTS_SHEET_ID, "Students")
+        if hasattr(ws, "batch_clear"):
+            ws.batch_clear(["A2:Z"])
+            try:
+                if hasattr(ws, "resize"):
+                    ws.resize(rows=2)
+            except Exception:
+                pass
+        elif hasattr(ws, "resize"):
+            try:
+                ws.resize(rows=2)
+            except Exception:
+                pass
+        elif hasattr(ws, "clear"):
+            ws.clear()
+            headers = ["RegNo", "Name", "ClassID", "ClassName", "Status"]
+            ws.append_row(headers)
+    except Exception as exc:
+        print(f"[Sheets Warning] Could not truncate Google Sheets Students: {exc}")
+
+    # Remove student rows from Users sheet (preserving SUPER_ADMIN, DEPT_ADMIN, FACULTY, WARDEN)
+    try:
+        u_ws = _get_worksheet(get_settings().USERS_SHEET_ID, "Users")
+        all_users = u_ws.get_all_records()
+        non_students = [
+            u for u in all_users
+            if str(u.get("Role", "")).upper() != "STUDENT"
+        ]
+        if all_users and len(non_students) != len(all_users):
+            headers = list(all_users[0].keys())
+            rows = [[u.get(h, "") for h in headers] for u in non_students]
+            if hasattr(u_ws, "clear"):
+                u_ws.clear()
+                u_ws.append_row(headers)
+                if rows:
+                    u_ws.append_rows(rows, value_input_option="USER_ENTERED")
+    except Exception as exc:
+        print(f"[Sheets Warning] Could not purge student accounts from Google Sheets Users: {exc}")
+
+
+def clear_all_classes_sheet() -> None:
+    """Wipes all rows in Classes worksheet (keeping headers) and purges classes cache."""
+    with _cache_lock:
+        _data_cache["classes_raw"] = (time.time(), [])
+        _data_cache.pop("admin_analytics", None)
+    try:
+        ws = _get_worksheet(get_settings().CLASSES_SHEET_ID, "Classes")
+        if hasattr(ws, "batch_clear"):
+            ws.batch_clear(["A2:Z"])
+            try:
+                if hasattr(ws, "resize"):
+                    ws.resize(rows=2)
+            except Exception:
+                pass
+        elif hasattr(ws, "resize"):
+            try:
+                ws.resize(rows=2)
+            except Exception:
+                pass
+        elif hasattr(ws, "clear"):
+            ws.clear()
+            headers = ["ClassID", "ClassName", "Year", "Section", "Semester", "Status"]
+            ws.append_row(headers)
+    except Exception as exc:
+        print(f"[Sheets Warning] Could not truncate Google Sheets Classes: {exc}")
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Date helpers
 # ─────────────────────────────────────────────────────────────────────────────

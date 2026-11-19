@@ -471,8 +471,11 @@
             <button type="button" class="btn btn-secondary btn-sm" id="exec-export-all-btn" style="background:#059669;border-color:#10b981;color:#fff;font-weight:700;">
               📥 Export All Data (CSV/ZIP)
             </button>
-            <button type="button" class="btn btn-danger btn-sm" id="exec-factory-reset-btn" style="background:#dc2626;border-color:#ef4444;color:#fff;font-weight:700;">
-              ⚠️ Factory Default Reset
+            <button type="button" class="btn btn-secondary btn-sm" id="exec-factory-reset-btn" style="background:#d97706;border-color:#f59e0b;color:#fff;font-weight:700;">
+              ⚠️ Reset Attendance Logs
+            </button>
+            <button type="button" class="btn btn-danger btn-sm" id="exec-purge-cohorts-btn" style="background:#dc2626;border-color:#ef4444;color:#fff;font-weight:700;">
+              🗑️ Reset All (Students, Classes &amp; Attendance)
             </button>
           </div>
         </div>
@@ -3474,20 +3477,57 @@ function renderClasses(classes) {
 }
 
 document.getElementById('add-class-btn').addEventListener('click', async () => {
+  const userRole = (getRole() || '').toUpperCase();
+  const curUsername = (getUsername() || '').toLowerCase();
+  const isHod = userRole === 'DEPT_ADMIN';
+  let hodDept = 'CSE';
+  if (isHod && curUsername.startsWith('hod.')) {
+    hodDept = curUsername.replace('hod.', '').toUpperCase();
+  }
+
+  const deptFieldHtml = (isHod && hodDept !== 'PLACEMENT')
+    ? `<div class="form-group" style="background:var(--brand-50,#eff6ff);border:1px solid var(--brand-100,#dbeafe);padding:0.75rem;border-radius:8px;">
+         <label class="form-label" style="font-weight:700;color:var(--brand-800,#1e40af);margin-bottom:0.25rem;">🏛️ Department Sandbox</label>
+         <div style="font-size:0.9rem;font-weight:600;color:var(--brand-900,#1e3a8a);">${hodDept} Department</div>
+         <input type="hidden" data-field="department_code" value="${hodDept}" />
+       </div>`
+    : `<div class="form-group">
+         <label class="form-label">Department</label>
+         <select data-field="department_code" class="form-control">
+           <option value="CSE">💻 CSE - Computer Science &amp; Engg</option>
+           <option value="IT">🌐 IT - Information Technology</option>
+           <option value="AIDS">🤖 AI &amp; DS - Data Science</option>
+           <option value="ECE">📡 ECE - Electronics &amp; Comm</option>
+           <option value="MECH">⚙️ MECH - Mechanical Engg</option>
+           <option value="EEE">⚡ EEE - Electrical &amp; Electronics</option>
+           <option value="CYBER">🛡️ Cyber Security</option>
+           <option value="AIML">🧠 AI &amp; ML - Machine Learning</option>
+           <option value="SH">📚 S &amp; H - Science &amp; Humanities</option>
+           <option value="PLACEMENT">🎯 PLACEMENT - Training &amp; Placement</option>
+         </select>
+       </div>`;
+
+  const placeholderId = (isHod && hodDept !== 'PLACEMENT') ? `e.g. ${hodDept}3A` : 'e.g. CSE3A';
+  const placeholderName = (isHod && hodDept !== 'PLACEMENT') ? `e.g. ${hodDept} III Year A` : 'e.g. CSE III Year A';
+
   const result = await openFormModal('➕ Add New Class', `
     <div class="form-stack" style="gap:1rem;">
-      <div class="form-group"><label class="form-label">Class ID</label><input data-field="class_id" class="form-control" placeholder="e.g. CSE3A" /></div>
-      <div class="form-group"><label class="form-label">Class Name</label><input data-field="class_name" class="form-control" placeholder="e.g. CSE III Year A" /></div>
-      <div class="form-group"><label class="form-label">Year</label><input data-field="year" class="form-control" placeholder="e.g. 3" /></div>
-      <div class="form-group"><label class="form-label">Section</label><input data-field="section" class="form-control" placeholder="e.g. A" /></div>
-      <div class="form-group"><label class="form-label">Semester</label><input data-field="semester" class="form-control" placeholder="e.g. 5" /></div>
+      ${deptFieldHtml}
+      <div class="form-group"><label class="form-label">Class ID / Code</label><input data-field="class_id" class="form-control" placeholder="${placeholderId}" required /></div>
+      <div class="form-group"><label class="form-label">Class Name</label><input data-field="class_name" class="form-control" placeholder="${placeholderName}" required /></div>
+      <div class="grid grid-3" style="gap:0.75rem;">
+        <div class="form-group"><label class="form-label">Year (1-4)</label><input data-field="year" class="form-control" placeholder="3" /></div>
+        <div class="form-group"><label class="form-label">Section</label><input data-field="section" class="form-control" placeholder="A" /></div>
+        <div class="form-group"><label class="form-label">Semester (1-8)</label><input data-field="semester" class="form-control" placeholder="5" /></div>
+      </div>
     </div>`);
   if (!result || !result.class_id || !result.class_name) return;
   showLoader(true);
   try {
-    await api.post('/admin/classes', result);
-    showToast('Class added successfully!', 'success');
+    const res = await api.post('/admin/classes', result);
+    showToast(res.message || 'Class added successfully!', 'success');
     loadClasses();
+    if (typeof populateStudentClassFilter === 'function') populateStudentClassFilter();
   } catch(e) { showToast(e.message,'error'); }
   finally { showLoader(false); }
 });
@@ -4537,15 +4577,18 @@ document.getElementById('global-dept-selector')?.addEventListener('change', (e) 
     const secExec = document.getElementById('section-executive');
     const secDash = document.getElementById('section-dashboard');
 
-    const clericalNavIds = ['nav-import', 'nav-bulk', 'nav-daily-attendance'];
+    const clericalNavIds = ['nav-import', 'nav-daily-attendance'];
     const execNavIds = ['nav-executive', 'nav-sanctioned-archive', 'nav-audit'];
 
     if (isSuperAdmin) {
-      // Principal / Super Admin: Macro Institutional Cockpit & Clean Governance (Hide clerical clutter)
+      // Principal / Super Admin: Macro Institutional Cockpit & Clean Governance
       clericalNavIds.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
       });
+      // Keep Bulk Setup accessible for Super Admin multi-setup onboarding
+      const navBulk = document.getElementById('nav-bulk');
+      if (navBulk) navBulk.style.display = 'flex';
       execNavIds.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'flex';

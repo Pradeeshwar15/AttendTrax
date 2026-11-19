@@ -1,46 +1,36 @@
 # Ralph Loop Progress Tracker
 
 ## Goal
-Establish the Placement Department (`PLACEMENT` / Training & Placement) with universal student access across all academic departments for training runs, strictly standardize institutional academic departments to 9 branches (`CSE`, `AIDS`, `AIML`, `CYBER SECURITY`, `EEE`, `ECE`, `MECH`, `S&H`, `IT`), enforce strict academic HOD attendance isolation, provide department-scoped trend & distribution charts (with clean empty states), completely remove the recent activity feed, and deliver Principal Executive data export and factory default reset capabilities.
+Execute a complete institutional reset clearing all student profiles, student user accounts, past attendance sessions & records, student leaves, and class records across PostgreSQL/SQLite and Google Sheets (while preserving departments, faculty, and administrative accounts), establish synchronous dual-write manual class creation scoped to department HODs, and enable multi-setup bulk student onboarding.
 
 ## Plan Reference
-`C:\Users\prade\OneDrive\Desktop\Cur Dev\placement_dept_and_academic_governance_plan.md`
+`C:\Users\prade\OneDrive\Desktop\Cur Dev\institutional_reset_and_cohort_onboarding_plan.md`
 
 ## Current Status
-- [x] Initialized Ralph progress tracker
-- [x] Technical requirements and design clarifications confirmed with user:
-  - Placement attendance records under independent session slot (`PLACEMENT`) without overwriting/locking daily academic attendance (`DAY`).
-  - Dual-portal attendance marking enabled (`faculty.html` class-by-class + `admin.html` cross-department cohorts).
-- [x] Final implementation plan approved by user
-- [x] **Phase 1: Database Hydration & Cleanup (`hydrate_db.py`, `database.py`, `auth.py`)**
-  - Resilient automatic fallback to SQLite when remote pooler is unreachable.
-  - Hardcoded authentication fail-safe for `principal`, `viceprincipal`, `admin`, `hod.placement`, `placement.staff`.
-  - Added `PLACEMENT` department and accounts in database seed.
-  - Deactivated legacy `CIVIL` and `CSBS` departments. Active departments: strictly 9 academic + 1 placement.
-- [x] **Phase 2: Backend API & Universal Placement Permissions (`faculty_router.py`, `admin_router.py`, `dependencies.py`)**
-  - Updated `/faculty/classes` to return all classes with `[Department]` code prefix across all 9 branches.
-  - Updated `/faculty/hours` to provide `PLACEMENT` training hour option for placement staff/HOD.
-  - Updated `/faculty/attendance` to record placement training sessions with `hour="PLACEMENT"` and `session_type="TRAINING"` without colliding with daily academic sessions.
-  - Updated `/admin/students` and `/admin/classes` to bypass single-department sandbox for `hod.placement`.
-- [x] **Phase 3: Frontend Dual-Portal Integration (`faculty.html`, `admin.html`, `executive.js`)**
-  - `faculty.html`: Added visual banner for Placement mode, cross-branch class selector, and `PLACEMENT` hour submission.
-  - `admin.html`: Added Placement Banner, branch filter, and graduation year filter in Student Directory; updated dropdowns to strictly 9 academic departments + Placement.
-  - `executive.js`: Replaced `CIVIL` and `CSBS` with `PLACEMENT` color token.
-- [x] **Phase 4: Academic HOD Attendance Isolation, Placement Universal Access & Principal Controls**
-  - **Academic HOD Isolation**: Enforced strict single-department attendance sandbox on `/admin/analytics`, `/admin/reports/class/{class_id}`, `/admin/reports/student/{reg_no}`, `/admin/attendance/daily`, and `/admin/attendance/modify`. Attempts to query cross-department data return `403 Forbidden`.
-  - **Universal Placement Access**: `hod.placement` retains unrestricted cross-department access across all active academic branches.
-  - **Department-Scoped Trend & Distribution Charts**: `📈 Daily Attendance Rate Trend` and `🍩 Overall Status Distribution` compute metrics strictly for the target branch; if null/no records exist, display an empty state placeholder.
-  - **Recent Activity Feed Removal**: Completely removed `⚡ Recent Attendance Submissions` section (`#recent-activity-list`) from all areas of the frontend.
-  - **Principal Executive Export All**: Added `GET /admin/executive/export-all` to generate a master ZIP containing `Students_Master.csv`, `Faculty_Master.csv`, and `Attendance_Reports.csv`. Added frontend button `📥 Export All Data (CSV/ZIP)` (`#exec-export-all-btn`).
-  - **Principal Factory Default Reset**: Added `POST /admin/executive/factory-reset` to safely delete all student attendance records and sessions under attendance reports, clear Google Sheets attendance logs and caches, while preserving student profiles, faculty accounts, classes, and departments. Added frontend button `⚠️ Factory Default Reset` (`#exec-factory-reset-btn`) with confirmation dialog.
-- [x] **Phase 5: Automated Verification Suite (`backend/tests/test_e2e.py`) & Git push**
-  - 100% test pass rate across all 15 test suites in `backend/tests/test_e2e.py`.
-  - All 9 academic HOD logins and drilldowns verified.
-  - Placement HOD and Staff logins, universal class/student views, and training attendance submission verified.
-  - Academic HOD cross-department blocks (403 Forbidden) verified.
-  - Principal Master Data ZIP export and Factory Default Reset safety verified.
+- [x] Initialized Ralph progress tracker for Institutional Reset & Departmental Cohort Onboarding
+- [x] Implementation plan approved by user
+- [x] **Phase 1: Sheets & Backend Reset Functions (`sheets.py`, `executive_router.py`, `scripts/reset_institutional_cohorts.py`)**
+  - Added `clear_all_students_sheet()` and `clear_all_classes_sheet()` to `backend/sheets.py`.
+  - Added `POST /admin/executive/purge-academic-cohorts` in `backend/routers/executive_router.py`.
+  - Created `backend/scripts/reset_institutional_cohorts.py` CLI utility.
+  - Executed reset and verified 0 students, 0 classes, 0 attendance records, while preserving all 10 departments, 32 faculty, 10 HODs, and leadership.
+- [x] **Phase 2: Department HOD Manual Class Creation & Dual-Write (`admin_router.py`, `admin.html`)**
+  - Updated `POST /admin/classes`: Auto-scopes to HOD's department, inserts into SQL `ClassRoom` and Google Sheets `Classes`.
+  - Updated `GET /admin/classes`: Fetches from SQL `ClassRoom` joined with `Department` and merges with Sheets.
+  - Updated `DELETE /admin/classes/{class_id}`: Enforces department sandbox, updates SQL and Sheets.
+  - Updated `frontend/admin.html` "➕ Add Class" modal: Locks department for HODs, shows dropdown for Super Admin.
+- [x] **Phase 3: Multi-Setup Student Ingestion & Dual-Write (`admin_router.py`, `admin.html`)**
+  - Updated `POST /admin/import/students` and `POST /admin/students`: Allows HODs and Super Admin.
+  - Performs synchronous batch insert into SQL (`User` role='STUDENT' and `Student` table) and Google Sheets.
+  - Made "Bulk Setup" accessible to both Super Admin and HODs in `admin.html`.
+- [x] **Phase 4: Automated Verification & Walkthrough Artifact**
+  - Ran test suite `backend/tests/test_e2e.py` validating clean reset, HOD class creation, and bulk student onboarding (100% pass rate).
+  - Cleaned test cohorts with final reset script run (0 classes, 0 students, 0 attendance records).
+  - Documented complete walkthrough in `walkthrough.md`.
 
 ## Iteration Log
-- **Iteration 1**: Implemented and verified Placement Department operations and academic department pruning.
-- **Iteration 2**: Implemented and verified Academic HOD attendance isolation, department trend & distribution empty states, removal of recent submissions feed, and Principal Factory Default Reset & Master Export.
-- **Iteration 3 (Final Verification Complete)**: Successfully ran full end-to-end test suite (`test_e2e.py`) with 100% assertions passing. All checklist criteria met.
+- **Iteration 1**: Plan approved by user.
+- **Iteration 2**: Completed Phase 1 (Sheets & Backend reset functions, CLI script).
+- **Iteration 3**: Completed Phase 2 (Department HOD manual class creation and sandboxing).
+- **Iteration 4**: Completed Phase 3 (Multi-setup bulk student onboarding and SQL/Sheets dual-write).
+- **Iteration 5**: Completed Phase 4 (End-to-end verification passing 100%, final clean-slate reset executed, walkthrough artifact generated).
