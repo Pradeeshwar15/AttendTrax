@@ -850,7 +850,20 @@
   </div>
 
 <script src="api.js"></script>
+<script src="executive.js"></script>
 <script>
+// ── Official Leave Sanction Docket Print Bridge ──────────────────────────────
+window.openFacultyLeaveDocket = async function(leaveId) {
+  try {
+    if (typeof printLeaveDocketDirect === 'function') {
+      await printLeaveDocketDirect(leaveId);
+    } else {
+      window.open(`/leaves/faculty/${leaveId}/sanction-docket`, '_blank');
+    }
+  } catch (err) {
+    showToast('Failed to open leave sanction docket: ' + (err.message || err), 'error');
+  }
+};
 // ── Auth ───────────────────────────────────────────────────────────────────
 if (!requireAuth('FACULTY')) { /* redirected */ }
 

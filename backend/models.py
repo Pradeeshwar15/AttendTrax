@@ -153,6 +153,7 @@ class AttendanceSession(Base):
 
     __table_args__ = (
         Index("idx_session_lookup", "class_id", "session_date", "slot_hour", "subject_id"),
+        Index("idx_session_date_class", "session_date", "class_id"),
     )
 
 
@@ -170,6 +171,7 @@ class AttendanceRecord(Base):
 
     __table_args__ = (
         Index("idx_record_student_status", "student_id", "status"),
+        Index("idx_record_session_status", "session_id", "status"),
     )
 
 
@@ -209,6 +211,11 @@ class FacultyLeave(Base):
     # Global State: PENDING, HOD_APPROVED, APPROVED, REJECTED
     final_status = Column(String(20), default="PENDING", index=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        Index("idx_faculty_leave_dept_hod", "department_id", "hod_status"),
+        Index("idx_faculty_leave_hod_principal", "hod_status", "principal_status"),
+    )
 
 
 class StudentLeave(Base):
@@ -252,6 +259,11 @@ class StudentLeave(Base):
 
     student = relationship("Student", back_populates="leave_applications")
     gate_pass = relationship("HostelGatePass", back_populates="leave_application", uselist=False)
+
+    __table_args__ = (
+        Index("idx_student_leave_dept_status", "department_id", "final_status"),
+        Index("idx_student_leave_class_status", "class_id", "final_status"),
+    )
 
 
 class HostelGatePass(Base):

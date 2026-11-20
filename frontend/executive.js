@@ -789,16 +789,16 @@ function renderDocketHTML(data, container) {
   container.innerHTML = `
     <div class="docket-header" style="text-align:center;border-bottom:2px solid #0f172a;padding-bottom:1rem;margin-bottom:1.25rem;">
       <div style="display:flex;align-items:center;justify-content:center;gap:1.25rem;margin-bottom:0.5rem;">
-        <div style="width:56px;height:56px;background:#1e3a8a;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:1.6rem;letter-spacing:1px;">ATX</div>
+        <div style="width:56px;height:56px;background:#1e3a8a;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:1.6rem;letter-spacing:1px;">ACET</div>
         <div>
           <h2 style="margin:0;font-size:1.35rem;font-weight:800;color:#0f172a;letter-spacing:0.02em;text-transform:uppercase;">
-            AttendTrax Autonomous College of Engineering
+            Adhi College of Engineering & Technology
           </h2>
           <p style="margin:0.15rem 0 0;font-size:0.76rem;font-weight:600;color:#475569;letter-spacing:0.03em;">
-            (An Autonomous Institution | Approved by AICTE | Affiliated to Anna University | NAAC 'A++' Accredited)
+            (Approved by AICTE, New Delhi &amp; Affiliated to Anna University, Chennai | Accredited by NAAC)
           </p>
           <p style="margin:0.15rem 0 0;font-size:0.72rem;color:#64748b;">
-            Autonomous Institutional Campus, Educational Boulevard, Chennai - 600025, Tamil Nadu
+            No. 6, Munu Adhi Nagar, Sankarapuram, Walajabad, Kanchipuram District – 631 605, Tamil Nadu
           </p>
         </div>
       </div>
@@ -811,18 +811,21 @@ function renderDocketHTML(data, container) {
 
     <div class="docket-order-title" style="text-align:center;margin-bottom:1.25rem;">
       <h3 style="margin:0;font-size:1.05rem;font-weight:800;color:#0f172a;text-decoration:underline;text-transform:uppercase;letter-spacing:0.04em;">
-        FACULTY LEAVE SANCTION PROCEEDINGS
+        PROCEEDINGS OF THE PRINCIPAL, ADHI COLLEGE OF ENGINEERING &amp; TECHNOLOGY
       </h3>
+      <p style="margin:0.35rem 0 0.5rem;font-size:0.82rem;font-weight:700;color:#1e3a8a;">
+        Present: Dr. Devaraju, M.E., Ph.D. — Principal
+      </p>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.75rem;font-size:0.8rem;border-bottom:1px dashed #94a3b8;padding-bottom:0.5rem;">
         <span><strong>Docket Ref:</strong> <code>${_esc(data.docket_id)}</code></span>
         <span><strong>Date of Issue:</strong> ${_esc(data.issue_date)}</span>
-        <span><strong>Security VRF:</strong> <code>${_esc(data.verification.reference_token)}</code></span>
+        <span><strong>Security VRF:</strong> <code>${_esc(data.verification?.reference_token || data.docket_id)}</code></span>
       </div>
     </div>
 
     <div class="docket-preamble" style="font-size:0.82rem;line-height:1.6;margin-bottom:1rem;color:#1e293b;">
       <p style="margin:0 0 0.35rem;">
-        <strong>Sub:</strong> Establishment – Faculty Academic Leave / Permission Sanction – Order Issued – Regarding.
+        <strong>Sub:</strong> Establishment – ACET, Kanchipuram – Faculty Academic Leave / Permission Sanction – Order Issued – Regarding.
       </p>
       <p style="margin:0 0 0.35rem;">
         <strong>Ref:</strong> 1. Leave Application submitted by <strong>${_esc(data.faculty.name)}</strong> (${_esc(data.faculty.faculty_code)}), ${_esc(data.faculty.designation)}, Dept. of ${_esc(data.faculty.department_code)}.<br/>
@@ -830,7 +833,7 @@ function renderDocketHTML(data, container) {
       </p>
       <div style="border-top:1px solid #e2e8f0;margin:0.5rem 0;"></div>
       <p style="margin:0;text-align:justify;">
-        <strong>ORDER:</strong> In pursuance of institutional leave statutes, sanction is hereby accorded to the undermentioned faculty member for leave/permission as detailed hereunder. Alternative class arrangement has been verified and registered in the institutional academic portal.
+        <strong>ORDER:</strong> In exercise of institutional powers vested under the Establishment Rules of Adhi College of Engineering &amp; Technology, executive sanction is hereby accorded to the undermentioned faculty member for leave/permission as detailed hereunder. Alternative lecture/laboratory class arrangements have been verified and confirmed in the institutional academic portal.
       </p>
     </div>
 
@@ -897,7 +900,7 @@ function renderDocketHTML(data, container) {
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.5rem;margin-top:2rem;padding-top:1.5rem;text-align:center;font-size:0.78rem;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.5rem;margin-top:1.5rem;padding-top:1.25rem;text-align:center;font-size:0.78rem;">
       <div>
         <div style="height:44px;"></div>
         <div style="border-top:1px solid #475569;padding-top:4px;">
@@ -925,9 +928,17 @@ function renderDocketHTML(data, container) {
       </div>
     </div>
 
-    <div style="margin-top:1.75rem;padding-top:0.5rem;border-top:1px solid #e2e8f0;font-size:0.68rem;color:#94a3b8;display:flex;justify-content:space-between;">
-      <span>Generated by AttendTrax Autonomous Academic ERP Platform</span>
-      <span>Official Record Copy for Physical Archival · Anna University / AICTE / NAAC</span>
+    <div style="margin-top:1.25rem;padding:0.6rem 0.8rem;background:#f8fafc;border-left:3px solid #1e3a8a;font-size:0.75rem;color:#334155;">
+      <strong>Copy To:</strong><br/>
+      1. The Faculty Member Concerned (${_esc(data.faculty.name)}).<br/>
+      2. The Head of the Department (Dept. of ${_esc(data.faculty.department_code)}).<br/>
+      3. The Establishment Section / Service Register File.<br/>
+      4. Office of the Principal &amp; Accounts Section.
+    </div>
+
+    <div style="margin-top:1.25rem;padding-top:0.5rem;border-top:1px solid #e2e8f0;font-size:0.68rem;color:#94a3b8;display:flex;justify-content:space-between;">
+      <span>Official Proceedings Order · Adhi College of Engineering &amp; Technology, Walajabad</span>
+      <span>Accredited by NAAC | Approved by AICTE | Affiliated to Anna University</span>
     </div>
   `;
 }
@@ -1342,32 +1353,35 @@ function generateDocketPrintableHTML(data) {
       <table class="header-table" style="border:none;">
         <tr>
           <td style="width:65px;vertical-align:middle;">
-            <div class="crest">ATX</div>
+            <div class="crest">ACET</div>
           </td>
           <td style="text-align:center;vertical-align:middle;padding:0 10px;">
-            <h2 class="college-name">AttendTrax Autonomous College of Engineering</h2>
-            <p class="college-sub">(An Autonomous Institution | Approved by AICTE | Affiliated to Anna University | NAAC 'A++' Accredited)</p>
-            <p class="college-addr">Autonomous Institutional Campus, Educational Boulevard, Chennai - 600025, Tamil Nadu</p>
+            <h2 class="college-name">Adhi College of Engineering & Technology</h2>
+            <p class="college-sub">(Approved by AICTE, New Delhi &amp; Affiliated to Anna University, Chennai | Accredited by NAAC)</p>
+            <p class="college-addr">No. 6, Munu Adhi Nagar, Sankarapuram, Walajabad, Kanchipuram District – 631 605, Tamil Nadu</p>
             <div class="order-banner">OFFICE OF THE PRINCIPAL &amp; HEAD OF THE INSTITUTION</div>
           </td>
         </tr>
       </table>
 
       <div class="title-sec">
-        <h3>FACULTY LEAVE SANCTION PROCEEDINGS</h3>
+        <h3>PROCEEDINGS OF THE PRINCIPAL, ADHI COLLEGE OF ENGINEERING &amp; TECHNOLOGY</h3>
+        <div style="font-size:0.8rem;font-weight:700;color:#1e3a8a;margin-top:2px;">
+          Present: Dr. Devaraju, M.E., Ph.D. — Principal
+        </div>
         <div class="meta-bar">
           <span><strong>Docket Ref:</strong> <code>${_esc(data.docket_id)}</code></span>
           <span><strong>Date of Issue:</strong> ${_esc(data.issue_date)}</span>
-          <span><strong>Security Token:</strong> <code>${_esc(data.verification?.reference_token || 'VRF-LEAVE')}</code></span>
+          <span><strong>Security Token:</strong> <code>${_esc(data.verification?.reference_token || data.docket_id)}</code></span>
         </div>
       </div>
 
       <div class="preamble">
-        <p style="margin:0 0 3px;"><strong>Sub:</strong> Establishment – Faculty Academic Leave / Permission Sanction – Order Issued – Regarding.</p>
+        <p style="margin:0 0 3px;"><strong>Sub:</strong> Establishment – ACET, Kanchipuram – Faculty Academic Leave / Permission Sanction – Order Issued – Regarding.</p>
         <p style="margin:0 0 3px;"><strong>Ref:</strong> 1. Leave Application submitted by <strong>${_esc(data.faculty?.name)}</strong> (${_esc(data.faculty?.faculty_code)}), ${_esc(data.faculty?.designation)}, Dept. of ${_esc(data.faculty?.department_code)}.<br/>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2. Level-1 Recommendation and clearance recorded by Head of the Department (${_esc(data.faculty?.department_code)}).</p>
         <div style="border-top:1px solid #e2e8f0;margin:4px 0;"></div>
-        <p style="margin:0;"><strong>ORDER:</strong> In pursuance of institutional leave statutes, sanction is hereby accorded to the undermentioned faculty member for leave/permission as detailed hereunder. Alternative class arrangements have been verified and registered in the institutional academic portal.</p>
+        <p style="margin:0;"><strong>ORDER:</strong> In exercise of institutional powers vested under the Establishment Rules of Adhi College of Engineering &amp; Technology, executive sanction is hereby accorded to the undermentioned faculty member for leave/permission as detailed hereunder. Alternative lecture/laboratory class arrangements have been verified and confirmed in the institutional academic portal.</p>
       </div>
 
       <table class="data-table">
@@ -1451,15 +1465,19 @@ function generateDocketPrintableHTML(data) {
             <span class="seal-box">INSTITUTIONAL SEAL</span>
           </div>
           <div class="sig-line">
-            <strong>Principal &amp; Executive Authority</strong><br/>
-            <span style="font-size:0.68rem;color:#64748b;">AttendTrax College of Engineering</span>
+            <strong>Dr. Devaraju, Ph.D.</strong><br/>
+            <span style="font-size:0.68rem;color:#64748b;">Principal &amp; Head of Institution</span>
           </div>
         </div>
       </div>
 
-      <div style="margin-top:14px;border-top:1px dashed #cbd5e1;padding-top:6px;font-size:0.65rem;color:#64748b;display:flex;justify-content:space-between;">
-        <span>Official Computer-Generated Sanction Order | Record Copy for Institutional Establishment Office</span>
-        <span>AttendTrax Autonomous Enterprise Governance System</span>
+      <div style="margin-top:10px;padding:6px 10px;background:#f8fafc;border-left:3px solid #1e3a8a;font-size:0.68rem;color:#334155;">
+        <strong>Copy To:</strong> 1. Faculty Member Concerned (${_esc(data.faculty?.name)}) | 2. Head of Department (${_esc(data.faculty?.department_code)}) | 3. Establishment Section | 4. Principal's Office
+      </div>
+
+      <div style="margin-top:12px;border-top:1px dashed #cbd5e1;padding-top:6px;font-size:0.65rem;color:#64748b;display:flex;justify-content:space-between;">
+        <span>Official Computer-Generated Proceedings Order | Adhi College of Engineering &amp; Technology, Walajabad</span>
+        <span>Accredited by NAAC | Approved by AICTE | Affiliated to Anna University</span>
       </div>
     </div>
   </div>

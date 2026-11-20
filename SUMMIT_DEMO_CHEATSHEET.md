@@ -102,8 +102,8 @@ To ensure your live deployed Render backend uses your Supabase database:
 3. Click **Environment** on the left menu.
 4. Add or update the variable:
    - **Key**: `DATABASE_URL`
-   - **Value**: `postgresql+asyncpg://postgres.ubkvrgwwelrrwqtlmqcq:bY69u08s7eu0aKZo@aws-0-eu-west-1.pooler.supabase.com:5432/postgres`
-   *(Note: This uses Supabase's IPv4 session pooler so Render never throws IPv6 "Network is unreachable" errors!)*
+   - **Value**: `postgresql+asyncpg://<DB_USER>:<DB_PASSWORD>@<DB_HOST>:5432/postgres` (Copy directly from your Supabase Project Settings -> Database -> Connection String)
+   *(Note: Use Supabase's IPv4 session pooler so Render never throws IPv6 "Network is unreachable" errors!)*
 5. Click **Save Changes**.
 6. Render will automatically deploy in ~60 seconds with 100% Supabase connectivity!
 

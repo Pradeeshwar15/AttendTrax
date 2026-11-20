@@ -35,6 +35,8 @@ htmlcov/
 
 # Logs & Temporary files
 *.log
+baseline_*.json
+optimized_*.json
 # Allow SQLite database in backend for local offline fallback
 !backend/attendtrax.db
 attendtrax.db

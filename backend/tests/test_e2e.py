@@ -303,7 +303,9 @@ async def run_suite():
         doc_data = r_doc.json()
         assert doc_data["faculty"]["name"] == "Prof. Rajesh Test"
         assert "Dr. Devaraju" in doc_data["endorsements"]["principal"]["name"]
-        print("  [PASS] Printable Docket: Sanctioned with exact faculty and Dr. Devaraju signature")
+        assert doc_data["docket_id"].startswith("ACET/EST-LV/2026/")
+        assert "Adhi College of Engineering & Technology" in doc_data["verification"]["authority"]
+        print("  [PASS] Printable Docket: ACET Sanction Docket verified with Dr. Devaraju signature")
 
         # 10. Placement Universal Access
         print("\n[10] Testing Placement Department Universal Access...")
@@ -326,6 +328,61 @@ async def run_suite():
         assert "AttendTrax_Faculty_Master.csv" in names
         assert "AttendTrax_Attendance_Reports.csv" in names
         print(f"  [PASS] Master Institutional Export (ZIP): Valid package containing {', '.join(names)}")
+
+        # 12. Placement Staff Leave Workflow & Level-1 Recommendation Verification
+        print("\n[12] Testing Placement Staff Leave Workflow & HOD Level-1 Review...")
+        r_plc_staff = await client.post("/auth/login", json={"username": "placement.staff", "password": "Staff@2026"})
+        assert r_plc_staff.status_code == 200
+        plc_staff_headers = {"Authorization": f"Bearer {r_plc_staff.json()['access_token']}"}
+
+        r_plc_l = await client.post(
+            "/leaves/faculty/apply",
+            json={
+                "leave_category": "ON_DUTY",
+                "session_scope": "FULL_DAY",
+                "start_date": "2026-11-28",
+                "end_date": "2026-11-28",
+                "reason": "Campus Placement Pool Drive at Partner Institution"
+            },
+            headers=plc_staff_headers
+        )
+        assert r_plc_l.status_code == 200
+        plc_lid = r_plc_l.json()["leave_id"]
+        assert plc_lid > 0
+
+        # Placement HOD reviews pending leaves
+        r_plc_queue = await client.get("/leaves/faculty/pending-hod", headers=plc_h_headers)
+        assert r_plc_queue.status_code == 200
+        queue_items = r_plc_queue.json()
+        target_ticket = next((item for item in queue_items if item["id"] == plc_lid), None)
+        assert target_ticket is not None, f"Placement staff leave {plc_lid} not visible to hod.placement queue: {queue_items}"
+        print(f"  [PASS] Placement HOD Queue: Ticket #{plc_lid} visible with reason: '{target_ticket['reason']}'")
+
+        # Placement HOD recommends leave
+        r_plc_rec = await client.patch(
+            f"/leaves/faculty/{plc_lid}/hod-review",
+            json={"action": "APPROVE", "remarks": "Strongly recommended for pool drive representation."},
+            headers=plc_h_headers
+        )
+        assert r_plc_rec.status_code == 200
+        print("  [PASS] Placement HOD Level-1 Review: Recommended successfully without authorization or department errors")
+
+        # Principal sanctions placement staff leave
+        r_princ_plc = await client.patch(
+            f"/leaves/faculty/{plc_lid}/principal-review",
+            json={"action": "APPROVE", "remarks": "Executive leave sanctioned for campus placement."},
+            headers=princ_headers
+        )
+        assert r_princ_plc.status_code == 200
+
+        # Verify Docket
+        r_plc_doc = await client.get(f"/leaves/faculty/{plc_lid}/sanction-docket", headers=princ_headers)
+        assert r_plc_doc.status_code == 200
+        plc_doc = r_plc_doc.json()
+        assert plc_doc["docket_id"].startswith("ACET/EST-LV/2026/")
+        assert "Adhi College of Engineering & Technology" in plc_doc["verification"]["authority"]
+        assert "Campus Placement" in plc_doc["leave"]["reason"]
+        print("  [PASS] ACET Leave Docket: Placement staff docket sanctioned with ACET prefix and Dr. Devaraju seal")
 
         print("\n" + "=" * 60)
         print("[SUCCESS] ALL SECURITY, RESET & MULTI-SETUP TESTS PASSED 100%!")

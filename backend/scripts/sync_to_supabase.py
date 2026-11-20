@@ -13,7 +13,9 @@ if hasattr(sys.stdout, "reconfigure"):
 
 import asyncpg
 
-SUPABASE_URL = "postgresql://postgres:bY69u08s7eu0aKZo@db.ubkvrgwwelrrwqtlmqcq.supabase.co:5432/postgres"
+SUPABASE_URL = os.getenv("DATABASE_URL") or os.getenv("SUPABASE_URL", "")
+if SUPABASE_URL.startswith("postgresql+asyncpg://"):
+    SUPABASE_URL = SUPABASE_URL.replace("postgresql+asyncpg://", "postgresql://", 1)
 SQLITE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "attendtrax.db")
 
 # Only need to sync remaining tables: hostel_gate_passes & audit_logs

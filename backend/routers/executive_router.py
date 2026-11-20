@@ -564,7 +564,7 @@ async def get_executive_sanctioned_leaves(
         total_days = (r.end_date - r.start_date).days + 1 if (r.start_date and r.end_date) else 1
         sanctioned.append({
             "id": r.id,
-            "docket_ref": f"ATX/EST-LV/2026/{r.id:04d}",
+            "docket_ref": f"ACET/EST-LV/2026/{r.id:04d}",
             "faculty_name": r.faculty_name,
             "faculty_username": r.faculty_username,
             "faculty_code": r.faculty_code,
@@ -639,7 +639,7 @@ async def get_leave_sanction_docket(
 
     return {
         "status": "success",
-        "docket_id": f"ATX/EST-LV/2026/{r.id:04d}",
+        "docket_id": f"ACET/EST-LV/2026/{r.id:04d}",
         "leave_id": r.id,
         "issue_date": issue_date_str,
         "faculty": {
@@ -748,7 +748,7 @@ async def principal_leave_sign_off(
         "status": "success",
         "leave_id": leave_id,
         "final_status": leave.final_status,
-        "docket_ref": f"ATX/EST-LV/2026/{leave.id:04d}",
+        "docket_ref": f"ACET/EST-LV/2026/{leave.id:04d}",
         "message": f"Faculty leave application {act.lower()}d by Principal successfully."
     }
 

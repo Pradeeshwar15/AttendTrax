@@ -107,22 +107,22 @@ def get_hardcoded_user(username: str) -> Optional[dict]:
         }
     if u == "hod.placement":
         return {
-            "user_id": 99,
-            "name": "Dr. K. Sridhar (Head - Training & Placement)",
+            "user_id": 481,
+            "name": "Krishnamoorthy (Head - Training & Placement)",
             "username": "hod.placement",
             "role": "DEPT_ADMIN",
-            "department_id": 10,
+            "department_id": 15,
             "department_code": "PLACEMENT",
             "class_id": "",
             "password_hash": _ENTERPRISE_HASHES["hod"],
         }
     if u in ("placement.staff", "placement.officer"):
         return {
-            "user_id": 100,
+            "user_id": 482 if u == "placement.staff" else 483,
             "name": "Prof. Rajesh M (Placement Trainer)",
             "username": u,
             "role": "FACULTY",
-            "department_id": 10,
+            "department_id": 15,
             "department_code": "PLACEMENT",
             "class_id": "",
             "password_hash": _ENTERPRISE_HASHES["staff"],

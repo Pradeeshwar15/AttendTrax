@@ -17,6 +17,7 @@ from auth import hash_password, hash_passwords_bulk
 from database import get_db
 from dependencies import require_role
 from models import User, Faculty, Department, ClassRoom, Student, AttendanceSession, AttendanceRecord, Subject
+from services.cache_service import cache
 from services.sql_analytics import (
     compute_sql_admin_analytics,
     get_sql_class_attendance_report,
@@ -105,7 +106,7 @@ def _resolve_hod_dept_code(current_user: dict) -> str:
         dept_id = current_user.get("department_id")
         dept_map = {
             1: "CSE", 2: "ECE", 3: "EEE", 4: "MECH", 6: "IT", 7: "AIDS",
-            10: "PLACEMENT", 12: "CYBER", 13: "AIML", 14: "SH"
+            10: "PLACEMENT", 15: "PLACEMENT", 12: "CYBER", 13: "AIML", 14: "SH"
         }
         if dept_id and str(dept_id).isdigit():
             return dept_map.get(int(dept_id), "CSE")
@@ -135,6 +136,11 @@ async def list_all_classes(
     user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
     hod_dept = _resolve_hod_dept_code(current_user)
 
+    cache_key = f"classes_{user_role}_{hod_dept}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     stmt = (
         select(ClassRoom, Department)
         .join(Department, ClassRoom.department_id == Department.id)
@@ -158,7 +164,9 @@ async def list_all_classes(
         }
         for cls_obj, dept_obj in rows
     ]
-    return sorted(sql_classes, key=lambda c: str(c.get("ClassID", "")))
+    res_sorted = sorted(sql_classes, key=lambda c: str(c.get("ClassID", "")))
+    cache.set(cache_key, res_sorted, ttl_seconds=30)
+    return res_sorted
 
 
 @router.post("/classes")
@@ -240,6 +248,7 @@ async def add_class(
         db.add(new_cls)
         await db.commit()
 
+    cache.invalidate("classes_")
     _ADMIN_ANALYTICS_CACHE.clear()
 
     return {
@@ -283,6 +292,7 @@ async def rename_class(
         cls_obj.class_name = body.new_name
         await db.commit()
 
+    cache.invalidate("classes_")
     _ADMIN_ANALYTICS_CACHE.clear()
     return {"status": "success", "message": f"Class '{clean_cid}' renamed to '{body.new_name}'."}
 
@@ -321,6 +331,7 @@ async def deactivate_class(
                 detail=f"Access denied: HOD of {hod_dept} cannot delete classes belonging to other departments."
             )
 
+    cache.invalidate("classes_")
     _ADMIN_ANALYTICS_CACHE.clear()
     return {"status": "success", "message": f"Class '{clean_cid}' deactivated."}
 

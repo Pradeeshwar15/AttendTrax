@@ -103,21 +103,46 @@ async def _resolve_int_user_id(db: AsyncSession, current_user: dict) -> Optional
     return None
 
 async def _resolve_int_dept_id(db: AsyncSession, current_user: dict) -> Optional[int]:
-    raw_did = current_user.get("department_id")
-    if raw_did is not None and str(raw_did).isdigit():
-        return int(raw_did)
-    if isinstance(raw_did, str) and raw_did.strip():
-        # Code match (e.g. "CSE", "IT", etc.)
-        d_res = await db.execute(select(Department.id).where(Department.code == raw_did.strip().upper()))
-        did = d_res.scalar_one_or_none()
-        if did:
-            return did
-    sub = current_user.get("sub")
+    # 1. Authoritative lookup in User table by username
+    sub = current_user.get("sub") or current_user.get("Username")
     if sub:
-        u_res = await db.execute(select(User.department_id).where(User.username == str(sub)))
+        u_res = await db.execute(select(User.department_id).where(User.username == str(sub).strip().lower()))
         did = u_res.scalar_one_or_none()
         if did:
             return did
+
+    # 2. Check department_code in token or user dict
+    dept_code = current_user.get("department_code") or current_user.get("dept")
+    if dept_code and isinstance(dept_code, str):
+        norm = dept_code.strip().upper()
+        d_res = await db.execute(select(Department.id).where(Department.code == norm))
+        did = d_res.scalar_one_or_none()
+        if did:
+            return did
+
+    # 3. If username starts with "hod.", infer dept code (e.g. hod.placement -> PLACEMENT)
+    if sub and str(sub).lower().startswith("hod."):
+        dept_slug = str(sub).lower().replace("hod.", "").strip().upper()
+        from routers.admin_router import _normalize_dept_code
+        norm_code = _normalize_dept_code(dept_slug)
+        d_res = await db.execute(select(Department.id).where(Department.code == norm_code))
+        did = d_res.scalar_one_or_none()
+        if did:
+            return did
+
+    # 4. Check candidate integer ID in departments table
+    raw_did = current_user.get("department_id")
+    if raw_did is not None and str(raw_did).isdigit():
+        cand = int(raw_did)
+        chk = await db.execute(select(Department.id).where(Department.id == cand))
+        if chk.scalar_one_or_none():
+            return cand
+        if cand == 10:
+            plc_chk = await db.execute(select(Department.id).where(Department.code == "PLACEMENT"))
+            p_id = plc_chk.scalar_one_or_none()
+            if p_id:
+                return p_id
+
     return None
 
 
@@ -163,6 +188,21 @@ async def faculty_apply_leave(
         new_values={"category": body.leave_category, "scope": body.session_scope, "start": str(body.start_date)},
     )
     db.add(audit)
+
+    # Automatically notify department HOD of pending leave ticket
+    try:
+        hod_stmt = select(User.id).where(User.department_id == int_dept_id, User.role == "DEPT_ADMIN")
+        hod_ids = (await db.execute(hod_stmt)).scalars().all()
+        for hid in hod_ids:
+            db.add(Notification(
+                user_id=hid,
+                title=f"Faculty Leave Application ({body.session_scope})",
+                message=f"Leave application submitted by faculty member awaiting Level-1 review.",
+                action_url="/admin.html#leaves"
+            ))
+    except Exception as n_err:
+        pass
+
     await db.commit()
 
     return {
@@ -433,7 +473,7 @@ async def get_faculty_leave_sanction_docket(
 
     return {
         "status": "success",
-        "docket_id": f"ATX/EST-LV/2026/{r.id:04d}",
+        "docket_id": f"ACET/EST-LV/2026/{r.id:04d}",
         "leave_id": r.id,
         "issue_date": issue_date_str,
         "faculty": {
@@ -472,8 +512,8 @@ async def get_faculty_leave_sanction_docket(
         },
         "final_status": r.final_status,
         "verification": {
-            "reference_token": f"ATX-SEC-{r.id:04d}-{r.faculty_id:03d}-VRF",
-            "authority": "Office of the Principal, AttendTrax Autonomous Engineering College",
+            "reference_token": f"ACET-SEC-{r.id:04d}-{r.faculty_id:03d}-VRF",
+            "authority": "Office of the Principal, Adhi College of Engineering & Technology",
         }
     }
 
@@ -547,7 +587,7 @@ async def get_faculty_active_on_date(
         total_days = (r.end_date - r.start_date).days + 1 if (r.start_date and r.end_date) else 1
         active_leaves.append({
             "id": r.id,
-            "docket_ref": f"ATX/EST-LV/2026/{r.id:04d}",
+            "docket_ref": f"ACET/EST-LV/2026/{r.id:04d}",
             "faculty_name": r.faculty_name,
             "faculty_username": r.faculty_username,
             "faculty_code": r.faculty_code or f"FAC-{r.id:03d}",
