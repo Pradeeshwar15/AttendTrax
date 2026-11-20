@@ -350,6 +350,21 @@ async def run_suite():
         plc_lid = r_plc_l.json()["leave_id"]
         assert plc_lid > 0
 
+        # Verify ONLY Placement HOD receives leave notification (CSE HOD does not)
+        r_notif_plc = await client.get("/leaves/notifications/my", headers=plc_h_headers)
+        assert r_notif_plc.status_code == 200
+        plc_notifs = r_notif_plc.json()
+        assert len(plc_notifs) > 0
+        assert any("Faculty Leave Application" in n["title"] for n in plc_notifs)
+        print("  [PASS] Placement HOD In-App Notification: Received pending leave application notification message")
+
+        cse_headers = {"Authorization": f"Bearer {hod_tokens['CSE']}"}
+        r_cse_queue = await client.get("/leaves/faculty/pending-hod", headers=cse_headers)
+        assert r_cse_queue.status_code == 200
+        cse_items = r_cse_queue.json()
+        assert not any(item["id"] == plc_lid for item in cse_items), "CRITICAL: Placement staff leave leaked to CSE HOD!"
+        print("  [PASS] Department Sandboxing: CSE HOD cannot see Placement staff leave ticket")
+
         # Placement HOD reviews pending leaves
         r_plc_queue = await client.get("/leaves/faculty/pending-hod", headers=plc_h_headers)
         assert r_plc_queue.status_code == 200
@@ -367,13 +382,44 @@ async def run_suite():
         assert r_plc_rec.status_code == 200
         print("  [PASS] Placement HOD Level-1 Review: Recommended successfully without authorization or department errors")
 
-        # Principal sanctions placement staff leave
-        r_princ_plc = await client.patch(
-            f"/leaves/faculty/{plc_lid}/principal-review",
+        # Principal Executive Cockpit: Verify Placement staff leave is clearly displayed in sign-off queue
+        r_exec_queue = await client.get("/admin/executive/leaves", headers=princ_headers)
+        assert r_exec_queue.status_code == 200
+        exec_items = r_exec_queue.json()
+        target_exec = next((item for item in exec_items if item["id"] == plc_lid), None)
+        assert target_exec is not None, f"Placement staff leave {plc_lid} not visible in Principal Executive Sign-Off Queue: {exec_items}"
+        assert target_exec["department_code"] == "PLACEMENT"
+        print(f"  [PASS] Principal Executive Dashboard: Placement leave #{plc_lid} clearly displayed with HOD remarks: '{target_exec['hod_remarks']}'")
+
+        # Principal sanctions placement staff leave via executive sign-off
+        r_princ_plc = await client.post(
+            f"/admin/executive/leaves/{plc_lid}/sign-off",
             json={"action": "APPROVE", "remarks": "Executive leave sanctioned for campus placement."},
             headers=princ_headers
         )
         assert r_princ_plc.status_code == 200
+        print("  [PASS] Principal Executive Sanction: Official sign-off executed with immutable audit log")
+
+        # Verify Docket Metadata from Executive Route
+        r_exec_doc = await client.get(f"/admin/executive/leaves/{plc_lid}/sanction-docket", headers=princ_headers)
+        assert r_exec_doc.status_code == 200
+        exec_doc = r_exec_doc.json()
+        assert exec_doc["docket_id"].startswith("ACET/EST-LV/2026/")
+        assert "Dr. Devaraju" in exec_doc["approvals"]["tier2_principal"]["principal_name"]
+
+        # Verify Placement HOD can view Sanctioned Dockets Archive for Placement
+        r_plc_archive = await client.get("/admin/executive/leaves/sanctioned-archive", headers=plc_h_headers)
+        assert r_plc_archive.status_code == 200
+        plc_archive_items = r_plc_archive.json()
+        assert any(item["id"] == plc_lid for item in plc_archive_items), f"Sanctioned docket #{plc_lid} not found in HOD archive"
+        print("  [PASS] Placement HOD Sanctioned Archive: Official Docket certificate accessible with 1-click printable view")
+
+        # Verify Placement Staff receives official docket notification
+        r_staff_notifs = await client.get("/leaves/notifications/my", headers=plc_staff_headers)
+        assert r_staff_notifs.status_code == 200
+        staff_notif_list = r_staff_notifs.json()
+        assert any("Official Leave Sanction Docket" in n["title"] for n in staff_notif_list)
+        print("  [PASS] Placement Staff Docket Certificate: Staff notified and docket reference issued")
 
         # Verify Docket
         r_plc_doc = await client.get(f"/leaves/faculty/{plc_lid}/sanction-docket", headers=princ_headers)

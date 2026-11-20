@@ -466,7 +466,7 @@ async def get_executive_pending_leaves(
         )
         .join(User, FacultyLeave.faculty_id == User.id)
         .join(Department, FacultyLeave.department_id == Department.id)
-        .join(Faculty, Faculty.user_id == User.id)
+        .outerjoin(Faculty, Faculty.user_id == User.id)
         .where(
             and_(
                 FacultyLeave.hod_status == "APPROVED",
@@ -513,13 +513,29 @@ async def get_executive_pending_leaves(
 @router.get("/leaves/sanctioned-archive")
 async def get_executive_sanctioned_leaves(
     department_code: Optional[str] = None,
-    current_user: dict = _exec_dep,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "DEPT_ADMIN")),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Returns official archive of all sanctioned/approved faculty leaves for hard-copy record maintenance & reprinting.
+    Accessible to Principal (all departments) and Department HODs (filtered to their department).
     """
+    user_role = (current_user.get("role") or "").upper()
     dept_code = (department_code or "ALL").strip().upper()
+
+    # If Department HOD, lock to their department code
+    if user_role == "DEPT_ADMIN":
+        username = (current_user.get("sub") or current_user.get("Username") or "").lower()
+        if username.startswith("hod."):
+            d_raw = username.replace("hod.", "").upper()
+            from routers.admin_router import _normalize_dept_code
+            dept_code = _normalize_dept_code(d_raw)
+        else:
+            from routers.leave_router import _resolve_int_dept_id
+            int_dept_id = await _resolve_int_dept_id(db, current_user)
+            if int_dept_id:
+                d_row = await db.execute(select(Department.code).where(Department.id == int_dept_id))
+                dept_code = d_row.scalar_one_or_none() or "CSE"
 
     stmt = (
         select(
@@ -592,7 +608,7 @@ async def get_executive_sanctioned_leaves(
 @router.get("/leaves/{leave_id}/sanction-docket")
 async def get_leave_sanction_docket(
     leave_id: int,
-    current_user: dict = _exec_dep,
+    current_user: dict = Depends(require_role("SUPER_ADMIN", "ADMIN", "DEPT_ADMIN", "FACULTY", "CLASS_INCHARGE")),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -601,6 +617,8 @@ async def get_leave_sanction_docket(
     stmt = (
         select(
             FacultyLeave.id,
+            FacultyLeave.faculty_id,
+            FacultyLeave.department_id,
             FacultyLeave.leave_category,
             FacultyLeave.session_scope,
             FacultyLeave.start_date,
@@ -633,6 +651,18 @@ async def get_leave_sanction_docket(
     r = res.one_or_none()
     if not r:
         raise HTTPException(status_code=404, detail="Leave record not found.")
+
+    role = (current_user.get("role") or "").upper()
+    if role in ("FACULTY", "CLASS_INCHARGE"):
+        from routers.leave_router import _resolve_int_user_id
+        int_uid = await _resolve_int_user_id(db, current_user)
+        if r.faculty_id != int_uid:
+            raise HTTPException(status_code=403, detail="Unauthorized to access this sanction docket.")
+    elif role == "DEPT_ADMIN":
+        from routers.leave_router import _resolve_int_dept_id
+        int_did = await _resolve_int_dept_id(db, current_user)
+        if int_did and r.department_id != int_did:
+            raise HTTPException(status_code=403, detail="Unauthorized to access sanction dockets outside your department.")
 
     total_days = (r.end_date - r.start_date).days + 1 if (r.start_date and r.end_date) else 1
     issue_date_str = r.principal_action_at.strftime("%d-%m-%Y") if r.principal_action_at else date.today().strftime("%d-%m-%Y")
@@ -739,6 +769,30 @@ async def principal_leave_sign_off(
     )
     db.add(audit)
 
+    # ── Dispatch Notifications to Faculty & HOD ─────────────────────────────
+    try:
+        # 1. Notify Faculty Applicant
+        docket_no = f"ACET/EST-LV/2026/{leave.id:04d}"
+        db.add(Notification(
+            user_id=leave.faculty_id,
+            title=f"Official Leave Sanction Docket Issued",
+            message=f"Principal has {act.lower()}ed your leave request ({leave.session_scope}). Docket Ref: {docket_no}.",
+            action_url="/faculty.html#leave"
+        ))
+
+        # 2. Notify Department HOD
+        hod_stmt = select(User.id).where(User.department_id == leave.department_id, User.role == "DEPT_ADMIN")
+        hod_ids = (await db.execute(hod_stmt)).scalars().all()
+        for hid in hod_ids:
+            db.add(Notification(
+                user_id=hid,
+                title=f"Faculty Leave Sanctioned ({docket_no})",
+                message=f"Principal has granted executive leave sanction for staff member. Official docket issued.",
+                action_url="/admin.html#sanctioned-archive"
+            ))
+    except Exception as n_err:
+        print(f"[Notification Error] {n_err}")
+
     # Invalidate dashboard caches on sign-off
     _DASHBOARD_CACHE.clear()
 
@@ -813,6 +867,27 @@ async def principal_batch_sign_off(
             }
         )
         db.add(audit)
+
+        # Dispatch Notifications
+        try:
+            docket_no = f"ACET/EST-LV/2026/{l.id:04d}"
+            db.add(Notification(
+                user_id=l.faculty_id,
+                title=f"Official Leave Sanction Docket Issued",
+                message=f"Principal has {act.lower()}ed your leave request ({l.session_scope}). Docket Ref: {docket_no}.",
+                action_url="/faculty.html#leave"
+            ))
+            hod_stmt = select(User.id).where(User.department_id == l.department_id, User.role == "DEPT_ADMIN")
+            hod_ids = (await db.execute(hod_stmt)).scalars().all()
+            for hid in hod_ids:
+                db.add(Notification(
+                    user_id=hid,
+                    title=f"Faculty Leave Sanctioned ({docket_no})",
+                    message=f"Principal has granted executive leave sanction for staff member. Official docket issued.",
+                    action_url="/admin.html#sanctioned-archive"
+                ))
+        except Exception:
+            pass
 
     _DASHBOARD_CACHE.clear()
     await db.commit()

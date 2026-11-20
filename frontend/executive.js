@@ -43,8 +43,109 @@ const DEPT_COLORS = {
   PLACEMENT: '#10b981', // Emerald Teal
 };
 
+// ── In-App Notifications & Approval Messages Manager ─────────────────────────
+async function fetchInAppNotifications() {
+  const bellBtn = document.getElementById('notif-bell-btn');
+  const badge = document.getElementById('notif-badge');
+  const notifList = document.getElementById('notif-list');
+  if (!bellBtn || !badge) return;
+
+  try {
+    const notifs = await api.get('/leaves/notifications/my');
+    if (!Array.isArray(notifs)) return;
+
+    const unread = notifs.filter(n => !n.is_read);
+    if (unread.length > 0) {
+      badge.textContent = unread.length;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+
+    if (notifList) {
+      if (!notifs.length) {
+        notifList.innerHTML = '<div style="padding:1.5rem 1rem;text-align:center;color:#64748b;font-size:0.8rem;">No notifications or messages.</div>';
+      } else {
+        notifList.innerHTML = notifs.map(n => {
+          const bg = n.is_read ? '#ffffff' : '#f0fdf4';
+          const dot = n.is_read ? '' : '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#10b981;margin-right:6px;"></span>';
+          return `
+            <div style="padding:0.65rem 0.85rem;background:${bg};border-bottom:1px solid #f1f5f9;cursor:pointer;transition:background 0.2s;" onclick="handleNotificationClick(${n.id}, '${_esc(n.action_url || '')}')">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;">
+                <strong style="font-size:0.8rem;color:#0f172a;">${dot}${_esc(n.title)}</strong>
+                <span class="text-xs text-muted" style="font-size:0.7rem;white-space:nowrap;">${_esc(n.created_at)}</span>
+              </div>
+              <p style="margin:0.25rem 0 0;font-size:0.75rem;color:#334155;line-height:1.35;">${_esc(n.message)}</p>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+  } catch (err) {
+    // Non-intrusive
+  }
+}
+
+async function handleNotificationClick(notifId, actionUrl) {
+  try {
+    await api.post(`/leaves/notifications/${notifId}/read`);
+    fetchInAppNotifications();
+    if (actionUrl) {
+      const hash = actionUrl.includes('#') ? actionUrl.split('#')[1] : null;
+      if (hash && typeof switchSection === 'function') {
+        switchSection(hash);
+      } else if (actionUrl) {
+        window.location.href = actionUrl;
+      }
+    }
+    const dd = document.getElementById('notif-dropdown');
+    if (dd) dd.style.display = 'none';
+  } catch (e) {}
+}
+
+async function markAllInAppNotificationsRead() {
+  try {
+    await api.post('/leaves/notifications/read-all');
+    if (typeof showToast === 'function') showToast('All notifications marked as read', 'info', 1500);
+    fetchInAppNotifications();
+  } catch (e) {}
+}
+
+function initNotificationsUI() {
+  const bellBtn = document.getElementById('notif-bell-btn');
+  const dropdown = document.getElementById('notif-dropdown');
+  const markAllBtn = document.getElementById('notif-mark-all-btn');
+
+  if (bellBtn && dropdown) {
+    bellBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isHidden = dropdown.style.display === 'none' || dropdown.classList.contains('hidden');
+      dropdown.style.display = isHidden ? 'flex' : 'none';
+      if (isHidden) fetchInAppNotifications();
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!dropdown.contains(e.target) && !bellBtn.contains(e.target)) {
+        dropdown.style.display = 'none';
+      }
+    });
+  }
+
+  if (markAllBtn) {
+    markAllBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      markAllInAppNotificationsRead();
+    });
+  }
+
+  fetchInAppNotifications();
+  setInterval(fetchInAppNotifications, 30000);
+}
+
 // ── Initialize Executive View ──────────────────────────────────────────────
 async function initExecutivePortal() {
+  initNotificationsUI();
+
   const role = (getRole() || '').toUpperCase();
   const isExec = role === 'SUPER_ADMIN' || role === 'ADMIN';
 
@@ -1865,6 +1966,8 @@ if (typeof window !== 'undefined') {
   window.closeLeaveDocketModal = closeLeaveDocketModal;
   window.printLeaveDocket = printLeaveDocket;
   window.nudgeDepartmentHOD = nudgeDepartmentHOD;
+  window.fetchInAppNotifications = fetchInAppNotifications;
+  window.initNotificationsUI = initNotificationsUI;
 
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
     setTimeout(initExecutivePortal, 50);

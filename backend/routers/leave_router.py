@@ -404,13 +404,29 @@ async def principal_review_faculty_leave(
     db.add(audit)
 
     # Send Notification to Faculty
+    docket_no = f"ACET/EST-LV/2026/{leave.id:04d}"
     notif = Notification(
         user_id=leave.faculty_id,
         title=f"Official Leave Decision: {leave.final_status}",
-        message=f"Principal has {act.lower()}ed your leave request ({leave.session_scope}). {leave.principal_remarks}",
+        message=f"Principal has {act.lower()}d your leave request ({leave.session_scope}). Docket Ref: {docket_no}. {leave.principal_remarks}",
         action_url="/faculty.html#leave",
     )
     db.add(notif)
+
+    # Send Notification to Department HOD
+    try:
+        hod_stmt = select(User.id).where(User.department_id == leave.department_id, User.role == "DEPT_ADMIN")
+        hod_ids = (await db.execute(hod_stmt)).scalars().all()
+        for hid in hod_ids:
+            db.add(Notification(
+                user_id=hid,
+                title=f"Faculty Leave Sanctioned ({docket_no})",
+                message=f"Principal has granted executive leave sanction for staff member. Official docket issued.",
+                action_url="/admin.html#sanctioned-archive"
+            ))
+    except Exception:
+        pass
+
     await db.commit()
     return {"message": msg, "leave_id": leave_id, "status": leave.final_status}
 
@@ -429,6 +445,7 @@ async def get_faculty_leave_sanction_docket(
         select(
             FacultyLeave.id,
             FacultyLeave.faculty_id,
+            FacultyLeave.department_id,
             FacultyLeave.leave_category,
             FacultyLeave.session_scope,
             FacultyLeave.start_date,
@@ -462,11 +479,15 @@ async def get_faculty_leave_sanction_docket(
     if not r:
         raise HTTPException(status_code=404, detail="Faculty leave record not found.")
 
-    role = current_user.get("role")
-    user_id = current_user.get("user_id")
+    role = (current_user.get("role") or "").upper()
+    int_uid = await _resolve_int_user_id(db, current_user)
 
-    if role in ("FACULTY", "CLASS_INCHARGE") and r.faculty_id != user_id:
+    if role in ("FACULTY", "CLASS_INCHARGE") and r.faculty_id != int_uid:
         raise HTTPException(status_code=403, detail="Unauthorized to access this sanction docket.")
+    elif role == "DEPT_ADMIN":
+        int_did = await _resolve_int_dept_id(db, current_user)
+        if int_did and r.department_id != int_did:
+            raise HTTPException(status_code=403, detail="Unauthorized to access sanction dockets outside your department.")
 
     total_days = (r.end_date - r.start_date).days + 1 if (r.start_date and r.end_date) else 1
     issue_date_str = r.principal_action_at.strftime("%d-%m-%Y") if r.principal_action_at else date.today().strftime("%d-%m-%Y")
@@ -1056,3 +1077,70 @@ async def verify_gate_outpass(
         "pass_status": gp.pass_status,
         "timestamp": now.strftime("%Y-%m-%d %H:%M:%S"),
     }
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 7. IN-APP NOTIFICATIONS & MESSAGES ENDPOINTS
+# ═════════════════════════════════════════════════════════════════════════════
+
+@router.get("/notifications/my")
+@router.get("/notifications/unread")
+async def get_my_notifications(
+    current_user: dict = Depends(require_role("FACULTY", "CLASS_INCHARGE", "DEPT_ADMIN", "SUPER_ADMIN", "ADMIN")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Retrieve in-app notifications and approval messages for logged-in user."""
+    int_uid = await _resolve_int_user_id(db, current_user)
+    if not int_uid:
+        return []
+    stmt = (
+        select(Notification)
+        .where(Notification.user_id == int_uid)
+        .order_by(desc(Notification.created_at))
+        .limit(20)
+    )
+    rows = (await db.execute(stmt)).scalars().all()
+    return [
+        {
+            "id": n.id,
+            "title": n.title,
+            "message": n.message,
+            "action_url": n.action_url,
+            "is_read": n.is_read,
+            "created_at": n.created_at.strftime("%d-%m-%Y %I:%M %p") if n.created_at else "",
+        }
+        for n in rows
+    ]
+
+
+@router.post("/notifications/{notif_id}/read")
+async def mark_notification_read(
+    notif_id: int,
+    current_user: dict = Depends(require_role("FACULTY", "CLASS_INCHARGE", "DEPT_ADMIN", "SUPER_ADMIN", "ADMIN")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Mark a single notification as read."""
+    int_uid = await _resolve_int_user_id(db, current_user)
+    if int_uid:
+        stmt = select(Notification).where(and_(Notification.id == notif_id, Notification.user_id == int_uid))
+        n = (await db.execute(stmt)).scalar_one_or_none()
+        if n:
+            n.is_read = True
+            await db.commit()
+    return {"status": "success"}
+
+
+@router.post("/notifications/read-all")
+async def mark_all_notifications_read(
+    current_user: dict = Depends(require_role("FACULTY", "CLASS_INCHARGE", "DEPT_ADMIN", "SUPER_ADMIN", "ADMIN")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Mark all notifications as read for current user."""
+    from sqlalchemy import update
+    int_uid = await _resolve_int_user_id(db, current_user)
+    if int_uid:
+        stmt = update(Notification).where(Notification.user_id == int_uid).values(is_read=True)
+        await db.execute(stmt)
+        await db.commit()
+    return {"status": "success"}
+
