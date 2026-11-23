@@ -34,7 +34,7 @@ Under **Environment Variables**, configure the following keys:
 
 | Variable | Description / Sample Value |
 |---|---|
-| `DATABASE_URL` | Supabase PostgreSQL URI: `postgresql://postgres:[PASSWORD]@db.[REF].supabase.co:5432/postgres` |
+| `DATABASE_URL` | Supabase IPv4 Pooler URI: `postgresql://postgres.[REF]:[PASSWORD]@aws-1-[REGION].pooler.supabase.com:5432/postgres` (Render requires IPv4 connection pooler) |
 | `ADMIN_USERNAME` | `admin` |
 | `ADMIN_PASSWORD_HASH` | Bcrypt hash for your production admin password. |
 | `SECRET_KEY` | Strong random string (e.g. `openssl rand -hex 32`). |

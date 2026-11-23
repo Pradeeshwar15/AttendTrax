@@ -3,6 +3,7 @@
 # config.py  –  Settings loaded from environment variables / .env file
 # =============================================================================
 import os
+import re
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
@@ -34,6 +35,16 @@ class Settings(BaseSettings):
         url = self.DATABASE_URL.strip()
         if not url:
             raise RuntimeError("DATABASE_URL is not configured. Live Supabase PostgreSQL connection is required.")
+
+        # Transparently convert IPv6-only direct Supabase host to IPv4 pooler for cloud platforms like Render.
+        # Direct db.<ref>.supabase.co:5432 resolves strictly to IPv6, causing 'Errno 101 Network is unreachable' on IPv4 clouds.
+        m = re.search(r"@db\.([a-z0-9]+)\.supabase\.co(?::\d+)?", url)
+        if m:
+            ref = m.group(1)
+            if "://postgres:" in url:
+                url = url.replace("://postgres:", f"://postgres.{ref}:", 1)
+            url = re.sub(r"@db\.[a-z0-9]+\.supabase\.co(?::\d+)?", "@aws-1-ap-southeast-1.pooler.supabase.com:5432", url)
+
         if url.startswith("postgres://"):
             return url.replace("postgres://", "postgresql+asyncpg://", 1)
         if url.startswith("postgresql://") and not url.startswith("postgresql+asyncpg://"):
