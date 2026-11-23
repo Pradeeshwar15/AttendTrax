@@ -25,6 +25,7 @@ from services.sql_analytics import (
     get_sql_daily_attendance_for_edit,
     update_sql_daily_attendance,
     get_sql_date_attendance_overview,
+    get_sql_daily_status_students,
     get_ist_today_str,
     parse_date_str,
     ALL_HOURS,
@@ -355,55 +356,113 @@ async def deactivate_class(
 # ─────────────────────────────────────────────────────────────────────────────
 class AddSubjectRequest(BaseModel):
     subject_id: str
-    class_id: str
     subject_name: str
+    class_id: Optional[str] = ""
     faculty_id: Optional[str] = ""
+    department_code: Optional[str] = ""
+    semester: Optional[int] = 1
+    subject_type: Optional[str] = "THEORY"
 
 
 @router.get("/subjects")
 async def list_all_subjects(
     class_id: Optional[str] = None,
-    _=_admin_dep,
+    department_code: Optional[str] = None,
+    current_user: dict = _admin_dep,
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = select(Subject).where(Subject.status == "ACTIVE").order_by(Subject.subject_code)
-    subjs = (await db.execute(stmt)).scalars().all()
-    return [{"SubjectID": s.subject_code, "SubjectName": s.name} for s in subjs]
+    user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
+    hod_dept = _resolve_hod_dept_code(current_user) if user_role == "DEPT_ADMIN" else ""
+
+    stmt = select(Subject, Department).join(Department, Subject.department_id == Department.id).where(Subject.is_active == True)
+    if user_role == "DEPT_ADMIN" and hod_dept and hod_dept != "PLACEMENT":
+        stmt = stmt.where(Department.code == hod_dept)
+    elif department_code and department_code.strip().upper() != "ALL":
+        clean_dept = _normalize_dept_code(department_code)
+        stmt = stmt.where(Department.code == clean_dept)
+
+    stmt = stmt.order_by(Department.code, Subject.subject_code)
+    rows = (await db.execute(stmt)).all()
+    return [
+        {
+            "SubjectID": s.subject_code,
+            "subject_id": s.subject_code,
+            "SubjectName": s.subject_name,
+            "subject_name": s.subject_name,
+            "Department": d.code,
+            "department": d.code,
+            "Semester": s.semester,
+            "SubjectType": s.subject_type,
+            "ClassID": class_id or d.code,
+        }
+        for s, d in rows
+    ]
 
 
 @router.get("/classes/{class_id}/subjects")
 async def list_subjects_for_class(
     class_id: str,
-    _=_admin_dep,
+    current_user: dict = _admin_dep,
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = select(Subject).where(Subject.status == "ACTIVE").order_by(Subject.subject_code)
-    subjs = (await db.execute(stmt)).scalars().all()
-    return [{"SubjectID": s.subject_code, "SubjectName": s.name} for s in subjs]
+    clean_cid = str(class_id or "").strip().upper()
+    cls_stmt = select(ClassRoom).where(ClassRoom.class_code == clean_cid)
+    cls_obj = (await db.execute(cls_stmt)).scalar_one_or_none()
+
+    stmt = select(Subject, Department).join(Department, Subject.department_id == Department.id).where(Subject.is_active == True)
+    if cls_obj:
+        stmt = stmt.where(Subject.department_id == cls_obj.department_id)
+
+    rows = (await db.execute(stmt)).all()
+    return [
+        {
+            "SubjectID": s.subject_code,
+            "subject_id": s.subject_code,
+            "SubjectName": s.subject_name,
+            "subject_name": s.subject_name,
+            "Department": d.code,
+            "ClassID": clean_cid,
+        }
+        for s, d in rows
+    ]
 
 
 @router.post("/subjects")
 async def add_subject(
     body: AddSubjectRequest,
-    _=_admin_dep,
+    current_user: dict = _admin_dep,
     db: AsyncSession = Depends(get_db),
 ):
+    user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
+    hod_dept = _resolve_hod_dept_code(current_user) if user_role == "DEPT_ADMIN" else ""
+    
+    target_dept_code = hod_dept if (user_role == "DEPT_ADMIN" and hod_dept) else (body.department_code or "CSE").strip().upper()
+    
+    d_stmt = select(Department).where(Department.code == target_dept_code)
+    dept_obj = (await db.execute(d_stmt)).scalar_one_or_none()
+    dept_id = dept_obj.id if dept_obj else 1
+
     clean_code = body.subject_id.strip().upper()
     stmt = select(Subject).where(Subject.subject_code == clean_code)
     existing = (await db.execute(stmt)).scalar_one_or_none()
     if existing:
-        existing.name = body.subject_name.strip()
-        existing.status = "ACTIVE"
+        existing.subject_name = body.subject_name.strip()
+        existing.department_id = dept_id
+        existing.semester = body.semester or existing.semester or 1
+        existing.subject_type = (body.subject_type or existing.subject_type or "THEORY").upper()
+        existing.is_active = True
     else:
         new_sub = Subject(
             subject_code=clean_code,
-            name=body.subject_name.strip(),
-            department_id=1,
-            status="ACTIVE"
+            subject_name=body.subject_name.strip(),
+            department_id=dept_id,
+            semester=body.semester or 1,
+            subject_type=(body.subject_type or "THEORY").upper(),
+            is_active=True
         )
         db.add(new_sub)
     await db.commit()
-    return {"message": f"Subject '{body.subject_name}' added."}
+    return {"message": f"Subject '{body.subject_name}' added for department '{target_dept_code}'."}
 
 
 @router.delete("/subjects/{subject_id}")
@@ -482,6 +541,7 @@ async def list_all_students(
             "Section": c.section,
             "Semester": str(c.semester),
             "Status": s.status,
+            "placement_willingness": s.placement_willingness or "active",
         }
         for s, c, d in rows
     ]
@@ -623,6 +683,100 @@ async def deactivate_student(
         s_obj.status = "INACTIVE"
         await db.commit()
     return {"message": "Student deactivated."}
+
+
+class UpdatePlacementWillingnessRequest(BaseModel):
+    placement_willingness: str  # "active" | "inactive"
+
+
+class BulkPlacementWillingnessRequest(BaseModel):
+    reg_nos: List[str]
+    placement_willingness: str  # "active" | "inactive"
+
+
+@router.patch("/students/{reg_no}/placement-willingness")
+async def update_student_placement_willingness(
+    reg_no: str,
+    body: UpdatePlacementWillingnessRequest,
+    current_user: dict = _admin_dep,
+    db: AsyncSession = Depends(get_db)
+):
+    user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
+    hod_dept = _resolve_hod_dept_code(current_user) if user_role == "DEPT_ADMIN" else ""
+    user_dept = str(current_user.get("department_code") or "").upper()
+    username = str(current_user.get("Username") or current_user.get("sub") or "").lower()
+    is_placement = (hod_dept == "PLACEMENT" or user_dept == "PLACEMENT" or "placement" in username)
+    is_super = user_role in ("ADMIN", "SUPER_ADMIN")
+
+    if not (is_placement or is_super):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only Placement Department HOD or Super Admin can modify placement willingness."
+        )
+
+    clean_rn = str(reg_no).strip()
+    clean_val = body.placement_willingness.strip().lower()
+    if clean_val not in ("active", "inactive"):
+        clean_val = "active"
+
+    stmt = select(Student).where(Student.reg_no == clean_rn)
+    student = (await db.execute(stmt)).scalar_one_or_none()
+    if not student:
+        raise HTTPException(status_code=404, detail=f"Student '{clean_rn}' not found.")
+
+    student.placement_willingness = clean_val
+    await db.commit()
+    _ADMIN_ANALYTICS_CACHE.clear()
+    return {
+        "status": "success",
+        "message": f"Student '{student.name}' ({clean_rn}) placement willingness updated to '{clean_val}'.",
+        "reg_no": clean_rn,
+        "placement_willingness": clean_val
+    }
+
+
+@router.post("/students/bulk-placement-willingness")
+async def bulk_update_placement_willingness(
+    body: BulkPlacementWillingnessRequest,
+    current_user: dict = _admin_dep,
+    db: AsyncSession = Depends(get_db)
+):
+    user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
+    hod_dept = _resolve_hod_dept_code(current_user) if user_role == "DEPT_ADMIN" else ""
+    user_dept = str(current_user.get("department_code") or "").upper()
+    username = str(current_user.get("Username") or current_user.get("sub") or "").lower()
+    is_placement = (hod_dept == "PLACEMENT" or user_dept == "PLACEMENT" or "placement" in username)
+    is_super = user_role in ("ADMIN", "SUPER_ADMIN")
+
+    if not (is_placement or is_super):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only Placement Department HOD or Super Admin can modify placement willingness."
+        )
+
+    clean_val = body.placement_willingness.strip().lower()
+    if clean_val not in ("active", "inactive"):
+        clean_val = "active"
+
+    clean_rns = [str(r).strip() for r in body.reg_nos if str(r).strip()]
+    if not clean_rns:
+        return {"status": "success", "updated_count": 0}
+
+    from sqlalchemy import update
+    stmt = (
+        update(Student)
+        .where(Student.reg_no.in_(clean_rns))
+        .values(placement_willingness=clean_val)
+    )
+    res = await db.execute(stmt)
+    await db.commit()
+    _ADMIN_ANALYTICS_CACHE.clear()
+    return {
+        "status": "success",
+        "message": f"Updated {res.rowcount} student(s) to '{clean_val}' placement standing.",
+        "updated_count": res.rowcount,
+        "placement_willingness": clean_val
+    }
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1193,6 +1347,91 @@ async def get_attendance_overview(
                 if "pending" in overview:
                     overview["pending"] = [p for p in overview["pending"] if _matches_dept(p.get("class_id") or p.get("ClassID", ""), hod_dept)]
     return overview
+
+
+@router.get("/attendance/status-students")
+async def get_daily_status_students_api(
+    date: str,
+    status: str = "A",
+    department_code: Optional[str] = None,
+    current_user: dict = _admin_dep,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Returns list of students marked with status ('A' for Absent or 'OD' for On-Duty) on given date.
+    Sandboxed to HOD department for DEPT_ADMIN.
+    """
+    user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
+    hod_dept = _resolve_hod_dept_code(current_user) if user_role == "DEPT_ADMIN" else ""
+    user_dept = str(current_user.get("department_code") or "").upper()
+    username = str(current_user.get("Username") or current_user.get("sub") or "").lower()
+    is_placement = (hod_dept == "PLACEMENT" or user_dept == "PLACEMENT" or "placement" in username)
+
+    dept_filter = department_code
+    if is_placement:
+        dept_filter = "PLACEMENT"
+    elif user_role == "DEPT_ADMIN" and hod_dept:
+        dept_filter = hod_dept
+
+    return await get_sql_daily_status_students(db, date, status, dept_filter)
+
+
+@router.get("/attendance/status-students/export")
+async def export_daily_status_students_csv(
+    date: str,
+    status: str = "A",
+    department_code: Optional[str] = None,
+    current_user: dict = _admin_dep,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Downloads CSV list of students marked with status ('A' or 'OD') on given date.
+    """
+    user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
+    hod_dept = _resolve_hod_dept_code(current_user) if user_role == "DEPT_ADMIN" else ""
+    user_dept = str(current_user.get("department_code") or "").upper()
+    username = str(current_user.get("Username") or current_user.get("sub") or "").lower()
+    is_placement = (hod_dept == "PLACEMENT" or user_dept == "PLACEMENT" or "placement" in username)
+
+    dept_filter = department_code
+    if is_placement:
+        dept_filter = "PLACEMENT"
+    elif user_role == "DEPT_ADMIN" and hod_dept:
+        dept_filter = hod_dept
+
+    data = await get_sql_daily_status_students(db, date, status, dept_filter)
+    students = data.get("students", [])
+    st_label = data.get("status_label", "Absent")
+    d_str = data.get("date", date)
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([f"ATTENDTRAX - DAILY {st_label.upper()} STUDENTS REGISTER - {d_str}"])
+    writer.writerow([f"Department Scope: {dept_filter or 'ALL'}", f"Total Records: {len(students)}"])
+    writer.writerow([])
+    writer.writerow(["S.No", "Roll No", "Student Name", "Class", "Department", "Slot/Hour", "Subject", "Faculty", "Status", "Date"])
+
+    for idx, s in enumerate(students, 1):
+        writer.writerow([
+            idx,
+            s.get("reg_no", ""),
+            s.get("name", ""),
+            s.get("class_name", s.get("class_code", "")),
+            s.get("department", ""),
+            s.get("hour", ""),
+            s.get("subject_name", s.get("subject_code", "")),
+            s.get("faculty_name", ""),
+            s.get("status", ""),
+            s.get("date", d_str),
+        ])
+
+    csv_bytes = output.getvalue().encode("utf-8")
+    filename = f"{st_label}_Students_{d_str.replace('/', '-')}.csv"
+    return Response(
+        content=csv_bytes,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
 
 
 @router.get("/attendance/daily")

@@ -216,6 +216,67 @@
   </div>
 </div>
 
+<!-- Daily Status Students Modal (Absent / OD List with CSV Export) -->
+<div id="daily-status-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+  <div class="modal-box" style="max-width:920px;width:95%;padding:1.75rem;">
+    <div class="flex items-center justify-between" style="margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid var(--gray-200);">
+      <div>
+        <h3 id="daily-status-modal-title" style="margin:0;color:var(--gray-900);display:flex;align-items:center;gap:0.5rem;">
+          <span>🔴</span> List of Absent Students
+        </h3>
+        <p class="text-xs" id="daily-status-modal-sub" style="margin-top:0.35rem;color:var(--gray-600);font-weight:600;">
+          Showing students recorded for date: —
+        </p>
+      </div>
+      <button type="button" class="btn btn-secondary btn-sm" id="daily-status-modal-close" style="font-size:1rem;padding:0.25rem 0.6rem;">✕</button>
+    </div>
+
+    <!-- Quick action bar -->
+    <div class="flex items-center justify-between" style="flex-wrap:wrap;gap:0.75rem;margin-bottom:1rem;background:var(--gray-50);padding:0.75rem 1rem;border-radius:var(--radius-md);border:1px solid var(--gray-200);">
+      <div class="flex items-center gap-2" style="flex:1;min-width:260px;">
+        <input type="text" id="daily-status-search" class="form-control" placeholder="🔍 Search by name or reg no..." style="font-size:0.82rem;padding:0.4rem 0.65rem;" />
+        <select id="daily-status-class-filter" class="form-control" style="font-size:0.82rem;padding:0.4rem 0.65rem;max-width:180px;">
+          <option value="ALL">All Classes</option>
+        </select>
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="button" class="btn btn-primary btn-sm" id="daily-status-export-btn" style="display:flex;align-items:center;gap:0.4rem;font-weight:600;padding:0.45rem 0.9rem;">
+          <span>📥</span> Export as CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- Students Table -->
+    <div class="table-wrapper" style="max-height:440px;overflow-y:auto;border:1px solid var(--gray-200);border-radius:var(--radius-md);">
+      <table>
+        <thead style="position:sticky;top:0;background:#f8fafc;z-index:2;box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+          <tr>
+            <th style="width:50px;text-align:center;">#</th>
+            <th style="width:130px;">Roll / Reg No</th>
+            <th>Student Name</th>
+            <th>Class</th>
+            <th>Department</th>
+            <th>Slot / Hour</th>
+            <th>Subject</th>
+            <th>Faculty</th>
+          </tr>
+        </thead>
+        <tbody id="daily-status-tbody">
+          <!-- Populated by JS -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="flex justify-between items-center" style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--gray-200);flex-wrap:wrap;gap:1rem;">
+      <div id="daily-status-footer-count" class="text-xs font-semibold" style="color:var(--gray-700);">
+        Total Students: 0
+      </div>
+      <button type="button" class="btn btn-secondary" id="daily-status-close-btn">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- Official Printable Leave Sanction Order / Hard Copy Docket Modal -->
 <div id="leave-docket-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="docket-heading">
   <div class="modal-box" style="max-width:850px;width:96%;max-height:92vh;overflow-y:auto;padding:1.5rem;background:#ffffff;border-radius:var(--radius-lg);box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
@@ -1097,7 +1158,15 @@
               </h3>
               <p class="text-xs text-muted" id="daily-submitted-sub">Sessions recorded for the selected date. Click "Edit Attendance" to modify student records.</p>
             </div>
-            <span id="daily-submitted-badge" class="badge badge-present">0 Submitted</span>
+            <div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;">
+              <button type="button" class="btn btn-sm btn-danger" id="daily-view-absent-btn" style="display:flex;align-items:center;gap:0.4rem;padding:0.4rem 0.85rem;font-weight:600;font-size:0.82rem;box-shadow:0 1px 3px rgba(220,38,38,0.25);" title="View students absent on this day and export CSV">
+                <span>🔴</span> List of Absent Students (<span id="daily-absent-count">0</span>)
+              </button>
+              <button type="button" class="btn btn-sm" id="daily-view-od-btn" style="display:flex;align-items:center;gap:0.4rem;padding:0.4rem 0.85rem;font-weight:600;font-size:0.82rem;background:#fef3c7;color:#b45309;border:1px solid #fde68a;box-shadow:0 1px 3px rgba(180,83,9,0.15);" title="View On-Duty students on this day and export CSV">
+                <span>🟡</span> List of OD Students (<span id="daily-od-count">0</span>)
+              </button>
+              <span id="daily-submitted-badge" class="badge badge-present">0 Submitted</span>
+            </div>
           </div>
           <div class="card-body" style="padding:0;">
             <div class="table-wrapper">
@@ -1213,6 +1282,14 @@
               <option value="1">I Year (First Year)</option>
             </select>
           </div>
+          <div class="form-group" id="student-willingness-wrap" style="flex:1;min-width:180px;margin-bottom:0;">
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;">🎯 Placement Standing</label>
+            <select id="student-willingness-filter" class="form-control" style="font-size:0.85rem;">
+              <option value="ALL">All Students</option>
+              <option value="active">🟢 Willing (Active Trainees)</option>
+              <option value="inactive">⚪ Unwilling (Excluded)</option>
+            </select>
+          </div>
           <div class="form-group" style="flex:1.2;min-width:200px;margin-bottom:0;">
             <label class="form-label" style="font-size:0.8rem;font-weight:700;">Filter by Class</label>
             <select id="student-class-filter" class="form-control" style="font-size:0.85rem;">
@@ -1223,15 +1300,39 @@
             <button class="btn btn-primary" id="add-student-btn">➕ Add Student</button>
           </div>
         </div>
+        <div id="placement-bulk-bar" class="flex items-center justify-between" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;padding:0.6rem 1rem;border-radius:var(--radius-md);margin-bottom:1rem;flex-wrap:wrap;gap:0.75rem;">
+          <div class="flex items-center gap-2">
+            <span style="font-size:1.1rem;">🎯</span>
+            <span class="text-xs font-semibold" style="color:#065f46;">
+              <span id="placement-selected-count">0</span> student(s) selected
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" class="btn btn-sm btn-success" id="bulk-mark-willing-btn" style="font-size:0.8rem;padding:0.35rem 0.75rem;background:#059669;color:#fff;">
+              ✅ Include in Placement (Willing)
+            </button>
+            <button type="button" class="btn btn-sm" id="bulk-mark-unwilling-btn" style="font-size:0.8rem;padding:0.35rem 0.75rem;background:#fff;color:#b91c1c;border:1px solid #fca5a5;">
+              ❌ Exclude from Placement (Unwilling)
+            </button>
+          </div>
+        </div>
         <div class="card">
           <div class="card-body" style="padding:0;">
             <div class="table-wrapper">
               <table>
                 <thead>
-                  <tr><th>Reg No</th><th>Name</th><th>Class</th><th>Status</th><th>Actions</th></tr>
+                  <tr>
+                    <th id="th-student-select" style="width:40px;text-align:center;"><input type="checkbox" id="student-select-all" title="Select All" /></th>
+                    <th>Reg No</th>
+                    <th>Name</th>
+                    <th>Class</th>
+                    <th>Status</th>
+                    <th>Placement Standing</th>
+                    <th>Actions</th>
+                  </tr>
                 </thead>
                 <tbody id="students-tbody-admin">
-                  <tr><td colspan="5" class="text-center text-muted" style="padding:2rem;">Select a class to view students.</td></tr>
+                  <tr><td colspan="7" class="text-center text-muted" style="padding:2rem;">Select a class to view students.</td></tr>
                 </tbody>
               </table>
             </div>
@@ -3118,6 +3219,20 @@ function renderDailyAttendanceOverview(data) {
   if (statSubmitted) statSubmitted.textContent = data.submitted_count || 0;
   if (statPending) statPending.textContent = data.pending_count || 0;
 
+  // Compute absent & OD student totals for quick action buttons
+  let totalAbsentOnDate = 0;
+  let totalOdOnDate = 0;
+  if (data.submitted && data.submitted.length) {
+    data.submitted.forEach(s => {
+      totalAbsentOnDate += (s.absent || 0);
+      totalOdOnDate += (s.on_duty || 0);
+    });
+  }
+  const absCountEl = document.getElementById('daily-absent-count');
+  if (absCountEl) absCountEl.textContent = totalAbsentOnDate;
+  const odCountEl = document.getElementById('daily-od-count');
+  if (odCountEl) odCountEl.textContent = totalOdOnDate;
+
   // 1. Submitted Attendances Card & Table
   const subCard = document.getElementById('daily-submitted-card');
   const subTbody = document.getElementById('daily-submitted-tbody');
@@ -3461,6 +3576,148 @@ document.getElementById('modal-daily-search')?.addEventListener('input', debounc
 }, 120));
 
 // ════════════════════════════════════════════════════════════════
+//  DAILY ABSENT / ON-DUTY (OD) STUDENTS LIST & CSV EXPORT
+// ════════════════════════════════════════════════════════════════
+let currentStatusModalData = [];
+let currentStatusModalFilter = 'A';
+let currentStatusModalDate = '';
+
+async function openDailyStatusModal(statusFilter) {
+  const dateInput = document.getElementById('daily-overview-date');
+  const dateRaw = dateInput ? dateInput.value : '';
+  if (!dateRaw) {
+    showToast('Please select a date first.', 'warning');
+    return;
+  }
+  const parts = dateRaw.split('-');
+  const dateStr = `${parts[2]}-${parts[1]}-${parts[0]}`; // DD-MM-YYYY
+  currentStatusModalDate = dateStr;
+  currentStatusModalFilter = statusFilter;
+
+  const modal = document.getElementById('daily-status-modal');
+  const modalTitle = document.getElementById('daily-status-modal-title');
+  const modalSub = document.getElementById('daily-status-modal-sub');
+  
+  if (statusFilter === 'A') {
+    modalTitle.innerHTML = '<span>🔴</span> List of Absent Students';
+  } else {
+    modalTitle.innerHTML = '<span>🟡</span> List of On-Duty (OD) Students';
+  }
+  modalSub.textContent = `Showing ${statusFilter === 'A' ? 'absent' : 'on-duty'} students recorded on ${dateStr}`;
+
+  modal.classList.remove('hidden');
+  document.body.classList.add('modal-open');
+
+  showLoader(true);
+  try {
+    const list = await api.get(`/admin/attendance/status-students?date=${encodeURIComponent(dateStr)}&status=${statusFilter}`);
+    currentStatusModalData = list || [];
+
+    // Populate class filter dropdown
+    const classSel = document.getElementById('daily-status-class-filter');
+    if (classSel) {
+      classSel.innerHTML = '<option value="ALL">All Classes</option>';
+      const uniqueClasses = Array.from(new Set(currentStatusModalData.map(s => s.class_code || s.class_name))).filter(Boolean).sort();
+      uniqueClasses.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c;
+        classSel.appendChild(opt);
+      });
+    }
+
+    renderDailyStatusModalTable();
+  } catch (err) {
+    showToast(err.message || 'Failed to load student status list.', 'error');
+  } finally {
+    showLoader(false);
+  }
+}
+
+function closeDailyStatusModal() {
+  const modal = document.getElementById('daily-status-modal');
+  if (modal) modal.classList.add('hidden');
+  document.body.classList.remove('modal-open');
+}
+
+function renderDailyStatusModalTable() {
+  const tbody = document.getElementById('daily-status-tbody');
+  const countEl = document.getElementById('daily-status-footer-count');
+  if (!tbody) return;
+
+  const searchQ = (document.getElementById('daily-status-search')?.value || '').trim().toLowerCase();
+  const classFilter = document.getElementById('daily-status-class-filter')?.value || 'ALL';
+
+  const filtered = currentStatusModalData.filter(s => {
+    if (classFilter !== 'ALL' && (s.class_code !== classFilter && s.class_name !== classFilter)) return false;
+    if (searchQ) {
+      const match = (s.name || '').toLowerCase().includes(searchQ) ||
+                    String(s.reg_no || '').toLowerCase().includes(searchQ) ||
+                    (s.department || '').toLowerCase().includes(searchQ);
+      if (!match) return false;
+    }
+    return true;
+  });
+
+  tbody.innerHTML = '';
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted" style="padding:2.5rem 1rem;">No students found matching criteria.</td></tr>`;
+    if (countEl) countEl.textContent = 'Total Students: 0';
+    return;
+  }
+
+  filtered.forEach((st, idx) => {
+    tbody.innerHTML += `
+      <tr>
+        <td style="text-align:center;color:var(--gray-500);font-size:0.8rem;">#${idx + 1}</td>
+        <td><span class="tag font-mono" style="font-weight:700;">${escapeHtml(st.reg_no)}</span></td>
+        <td class="font-semibold" style="color:var(--gray-900);">${escapeHtml(st.name)}</td>
+        <td><span class="badge badge-info" style="font-size:0.75rem;">${escapeHtml(st.class_code || st.class_name)}</span></td>
+        <td><span class="tag" style="font-size:0.75rem;">${escapeHtml(st.department || '—')}</span></td>
+        <td><span class="text-xs font-mono">${escapeHtml(st.hour || 'DAY')}</span></td>
+        <td><span class="text-xs text-muted">${escapeHtml(st.subject_name || st.subject_code || '—')}</span></td>
+        <td><span class="text-xs" style="color:var(--indigo-700);">${escapeHtml(st.faculty_name || 'Staff')}</span></td>
+      </tr>`;
+  });
+
+  if (countEl) countEl.textContent = `Total Students: ${filtered.length}`;
+}
+
+document.getElementById('daily-view-absent-btn')?.addEventListener('click', () => openDailyStatusModal('A'));
+document.getElementById('daily-view-od-btn')?.addEventListener('click', () => openDailyStatusModal('OD'));
+document.getElementById('daily-status-modal-close')?.addEventListener('click', closeDailyStatusModal);
+document.getElementById('daily-status-close-btn')?.addEventListener('click', closeDailyStatusModal);
+document.getElementById('daily-status-search')?.addEventListener('input', debounce(renderDailyStatusModalTable, 120));
+document.getElementById('daily-status-class-filter')?.addEventListener('change', renderDailyStatusModalTable);
+
+document.getElementById('daily-status-export-btn')?.addEventListener('click', async () => {
+  const dateStr = currentStatusModalDate;
+  const status = currentStatusModalFilter;
+  const token = getToken();
+  const url = `${API_BASE}/admin/attendance/status-students/export?date=${encodeURIComponent(dateStr)}&status=${status}`;
+
+  try {
+    showLoader(true);
+    const resp = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!resp.ok) throw new Error('CSV download failed');
+    const blob = await resp.blob();
+    const a = document.createElement('a');
+    a.href = window.URL.createObjectURL(blob);
+    a.download = `AttendTrax_${status === 'A' ? 'Absent' : 'OD'}_Students_${dateStr}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    showToast(`CSV Export downloaded successfully!`, 'success');
+  } catch (err) {
+    showToast('Failed to export CSV: ' + err.message, 'error');
+  } finally {
+    showLoader(false);
+  }
+});
+
+// ════════════════════════════════════════════════════════════════
 //  CLASSES
 // ════════════════════════════════════════════════════════════════
 let allClasses = [];
@@ -3607,6 +3864,8 @@ async function populateStudentClassFilter() {
     if (deptWrap) deptWrap.style.display = 'block';
     const yearWrap = document.getElementById('student-year-wrap');
     if (yearWrap) yearWrap.style.display = 'block';
+    const bulkBar = document.getElementById('placement-bulk-bar');
+    if (bulkBar) bulkBar.style.display = 'flex';
   }
 
   const sel = document.getElementById('student-class-filter');
@@ -3623,10 +3882,19 @@ async function populateStudentClassFilter() {
 }
 
 async function loadStudentsAdmin() {
+  const curUsername = (getUsername() || '').toLowerCase();
+  const userRole = (getRole() || '').toUpperCase();
+  const isPlacement = curUsername.includes('placement');
+  const isExec = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
+
   const classId = document.getElementById('student-class-filter')?.value || 'ALL';
   const deptCode = document.getElementById('student-dept-filter')?.value || 'ALL';
   const yearVal = document.getElementById('student-year-filter')?.value || 'ALL';
+  const willFilter = document.getElementById('student-willingness-filter')?.value || 'ALL';
   const tbody = document.getElementById('students-tbody-admin');
+  const selectAllBox = document.getElementById('student-select-all');
+  if (selectAllBox) selectAllBox.checked = false;
+
   showLoader(true);
   try {
     let endpoint = '/admin/students';
@@ -3642,30 +3910,120 @@ async function loadStudentsAdmin() {
     const students = await api.get(endpoint);
     tbody.innerHTML = '';
     if (!students || !students.length) {
-      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:2rem;">No students found for this selection.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:2rem;">No students found for this selection.</td></tr>';
     } else {
-      const sortedStudents = [...students].sort((a, b) => String(a.RegNo || a.reg_no || '').localeCompare(String(b.RegNo || b.reg_no || ''), undefined, { numeric: true, sensitivity: 'base' }));
-      sortedStudents.forEach(s => {
-        tbody.innerHTML += `
-          <tr>
-            <td><span class="tag">${s.RegNo}</span></td>
-            <td class="font-semibold">${s.Name}</td>
-            <td>${s.ClassName || s.ClassID}</td>
-            <td><span class="badge ${s.Status==='ACTIVE'?'badge-info':'badge-absent'}">${s.Status}</span></td>
-            <td>
-              <button class="btn btn-sm btn-danger deactivate-student-btn" data-reg="${s.RegNo}" data-name="${s.Name}">🗑️ Remove</button>
-            </td>
-          </tr>`;
-      });
-      document.querySelectorAll('.deactivate-student-btn').forEach(btn => btn.addEventListener('click', deactivateStudent));
+      let filteredStudents = [...students];
+      if (willFilter && willFilter !== 'ALL') {
+        filteredStudents = filteredStudents.filter(s => (s.PlacementWillingness || 'active').toLowerCase() === willFilter.toLowerCase());
+      }
+
+      const sortedStudents = filteredStudents.sort((a, b) => String(a.RegNo || a.reg_no || '').localeCompare(String(b.RegNo || b.reg_no || ''), undefined, { numeric: true, sensitivity: 'base' }));
+
+      if (!sortedStudents.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:2rem;">No students matching placement willingness filter.</td></tr>';
+      } else {
+        sortedStudents.forEach(s => {
+          const isWilling = (s.PlacementWillingness || 'active').toLowerCase() === 'active';
+          const standingBadge = isWilling
+            ? '<span class="badge" style="background:#ecfdf5;color:#065f46;font-weight:700;font-size:0.75rem;">🟢 Willing</span>'
+            : '<span class="badge" style="background:#fef2f2;color:#991b1b;font-weight:700;font-size:0.75rem;">⚪ Unwilling</span>';
+
+          let toggleBtn = '';
+          if (isPlacement || isExec) {
+            if (isWilling) {
+              toggleBtn = `<button class="btn btn-sm btn-outline toggle-willingness-btn" data-reg="${s.RegNo}" data-target="inactive" style="font-size:0.75rem;padding:0.2rem 0.5rem;color:#b91c1c;border:1px solid #fca5a5;background:#fff;" title="Exclude student from placement classes">Exclude</button>`;
+            } else {
+              toggleBtn = `<button class="btn btn-sm btn-outline toggle-willingness-btn" data-reg="${s.RegNo}" data-target="active" style="font-size:0.75rem;padding:0.2rem 0.5rem;color:#059669;border:1px solid #6ee7b7;background:#fff;" title="Include student in placement classes">Include</button>`;
+            }
+          }
+
+          tbody.innerHTML += `
+            <tr>
+              <td style="text-align:center;">
+                <input type="checkbox" class="student-select-check" data-reg="${escapeHtml(s.RegNo)}" />
+              </td>
+              <td><span class="tag font-mono" style="font-weight:700;">${escapeHtml(s.RegNo)}</span></td>
+              <td class="font-semibold">${escapeHtml(s.Name)}</td>
+              <td>${escapeHtml(s.ClassName || s.ClassID)}</td>
+              <td><span class="badge ${s.Status==='ACTIVE'?'badge-info':'badge-absent'}">${s.Status}</span></td>
+              <td>${standingBadge}</td>
+              <td>
+                <div class="flex items-center gap-1">
+                  ${toggleBtn}
+                  <button class="btn btn-sm btn-danger deactivate-student-btn" data-reg="${s.RegNo}" data-name="${s.Name}" style="font-size:0.75rem;padding:0.2rem 0.5rem;">🗑️</button>
+                </div>
+              </td>
+            </tr>`;
+        });
+
+        document.querySelectorAll('.deactivate-student-btn').forEach(btn => btn.addEventListener('click', deactivateStudent));
+        document.querySelectorAll('.toggle-willingness-btn').forEach(btn => btn.addEventListener('click', async (e) => {
+          const reg = e.currentTarget.dataset.reg;
+          const target = e.currentTarget.dataset.target;
+          showLoader(true);
+          try {
+            await api.patch(`/admin/students/${encodeURIComponent(reg)}/placement-willingness`, { placement_willingness: target });
+            showToast(`Student ${reg} ${target === 'active' ? 'included in' : 'excluded from'} placement roster!`, 'success');
+            await loadStudentsAdmin();
+          } catch(err) {
+            showToast(err.message || 'Failed to update placement willingness', 'error');
+          } finally {
+            showLoader(false);
+          }
+        }));
+
+        document.querySelectorAll('.student-select-check').forEach(ck => {
+          ck.addEventListener('change', () => {
+            const checkedCount = document.querySelectorAll('.student-select-check:checked').length;
+            const cntEl = document.getElementById('placement-selected-count');
+            if (cntEl) cntEl.textContent = checkedCount;
+          });
+        });
+      }
     }
   } catch(e) { showToast(e.message,'error'); }
   finally { showLoader(false); }
 }
 
+document.getElementById('student-select-all')?.addEventListener('change', function() {
+  const checked = this.checked;
+  document.querySelectorAll('.student-select-check').forEach(ck => ck.checked = checked);
+  const cntEl = document.getElementById('placement-selected-count');
+  if (cntEl) cntEl.textContent = checked ? document.querySelectorAll('.student-select-check').length : 0;
+});
+
+document.getElementById('bulk-mark-willing-btn')?.addEventListener('click', () => bulkSetPlacementWillingness('active'));
+document.getElementById('bulk-mark-unwilling-btn')?.addEventListener('click', () => bulkSetPlacementWillingness('inactive'));
+
+async function bulkSetPlacementWillingness(target) {
+  const checks = Array.from(document.querySelectorAll('.student-select-check:checked'));
+  const regNos = checks.map(c => c.dataset.reg).filter(Boolean);
+  if (!regNos.length) {
+    showToast('Please select at least one student using the checkboxes.', 'warning');
+    return;
+  }
+  const ok = await openConfirm('Bulk Placement Willingness', `Set ${regNos.length} selected student(s) to ${target === 'active' ? 'Willing (Active Placement Candidate)' : 'Unwilling (Excluded from Placement)'}?`);
+  if (!ok) return;
+
+  showLoader(true);
+  try {
+    const res = await api.post('/admin/students/bulk-placement-willingness', {
+      reg_nos: regNos,
+      placement_willingness: target
+    });
+    showToast(res.message || 'Updated successfully!', 'success');
+    await loadStudentsAdmin();
+  } catch(err) {
+    showToast(err.message || 'Bulk update failed.', 'error');
+  } finally {
+    showLoader(false);
+  }
+}
+
 document.getElementById('student-class-filter')?.addEventListener('change', loadStudentsAdmin);
 document.getElementById('student-dept-filter')?.addEventListener('change', loadStudentsAdmin);
 document.getElementById('student-year-filter')?.addEventListener('change', loadStudentsAdmin);
+document.getElementById('student-willingness-filter')?.addEventListener('change', loadStudentsAdmin);
 
 document.getElementById('add-student-btn').addEventListener('click', async () => {
   const classId = document.getElementById('student-class-filter').value;
@@ -3915,17 +4273,52 @@ document.getElementById('subject-class-filter').addEventListener('change', async
 
 document.getElementById('add-subject-btn').addEventListener('click', async () => {
   const classId = document.getElementById('subject-class-filter').value;
-  if (!classId) { showToast('Select a class first.','warning'); return; }
+  const userRole = (getRole() || '').toUpperCase();
+  const curUsername = (getUsername() || '').toLowerCase();
+  const isDeptAdmin = userRole === 'DEPT_ADMIN';
+
+  let hodDept = 'CSE';
+  if (curUsername.startsWith('hod.')) {
+    hodDept = curUsername.replace('hod.', '').toUpperCase();
+  }
+
+  const deptHtml = isDeptAdmin
+    ? `<div class="form-group">
+         <label class="form-label" style="font-weight:700;">Department (Locked to HOD Sandbox)</label>
+         <input data-field="department_code" class="form-control" value="${hodDept}" disabled style="background:#f1f5f9;font-weight:700;color:#0f172a;" />
+         <small class="text-muted" style="font-size:0.75rem;margin-top:0.25rem;display:block;">🔒 Automatically assigned to your department (${hodDept})</small>
+       </div>`
+    : `<div class="form-group">
+         <label class="form-label" style="font-weight:700;">Department</label>
+         <select data-field="department_code" class="form-control" style="font-weight:600;">
+           <option value="CSE" selected>💻 CSE - Computer Science &amp; Engineering</option>
+           <option value="IT">🌐 IT - Information Technology</option>
+           <option value="AIDS">🤖 AIDS - Artificial Intelligence &amp; Data Science</option>
+           <option value="ECE">📡 ECE - Electronics &amp; Communication</option>
+           <option value="MECH">⚙️ MECH - Mechanical Engineering</option>
+           <option value="EEE">⚡ EEE - Electrical &amp; Electronics</option>
+           <option value="CYBER">🛡️ CYBER - Cyber Security</option>
+           <option value="AIML">🧠 AIML - AI &amp; Machine Learning</option>
+           <option value="SH">📚 SH - Science &amp; Humanities</option>
+         </select>
+       </div>`;
+
   const result = await openFormModal('➕ Add Subject', `
     <div class="form-stack" style="gap:1rem;">
-      <div class="form-group"><label class="form-label">Subject ID</label><input data-field="subject_id" class="form-control" placeholder="e.g. CS301" /></div>
-      <div class="form-group"><label class="form-label">Subject Name</label><input data-field="subject_name" class="form-control" placeholder="e.g. Data Structures" /></div>
+      ${deptHtml}
+      <div class="form-group"><label class="form-label" style="font-weight:700;">Subject Code / ID</label><input data-field="subject_id" class="form-control" placeholder="e.g. CS301" required /></div>
+      <div class="form-group"><label class="form-label" style="font-weight:700;">Subject Name</label><input data-field="subject_name" class="form-control" placeholder="e.g. Data Structures" required /></div>
       <div class="form-group"><label class="form-label">Faculty ID (optional)</label><input data-field="faculty_id" class="form-control" placeholder="e.g. FAC001" /></div>
     </div>`);
   if (!result?.subject_id || !result?.subject_name) return;
   showLoader(true);
   try {
-    await api.post('/admin/subjects', { ...result, class_id: classId === 'ALL' ? (allClasses[0]?.ClassID || '') : classId });
+    const payload = {
+      ...result,
+      department_code: isDeptAdmin ? hodDept : (result.department_code || 'CSE'),
+      class_id: (!classId || classId === 'ALL') ? (allClasses[0]?.ClassID || '') : classId
+    };
+    await api.post('/admin/subjects', payload);
     showToast(`Subject '${result.subject_name}' added!`,'success');
     document.getElementById('subject-class-filter').dispatchEvent(new Event('change'));
   } catch(e) { showToast(e.message,'error'); }

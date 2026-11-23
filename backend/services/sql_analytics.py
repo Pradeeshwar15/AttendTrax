@@ -717,10 +717,15 @@ async def compute_placement_admin_analytics(db: AsyncSession) -> Dict[str, Any]:
     class_map = {c.class_code: c for c, _ in cls_rows}
     class_id_to_code = {c.id: c.class_code for c, _ in cls_rows}
 
-    # 2. Active students
+    # 2. Active students (Only placement willing students for Placement analytics)
     stmt_stu = (
         select(Student.id, Student.reg_no, Student.name, Student.class_id, Student.department_id)
-        .where(Student.status == "ACTIVE")
+        .where(
+            and_(
+                Student.status == "ACTIVE",
+                func.lower(Student.placement_willingness) == "active"
+            )
+        )
     )
     stu_rows = (await db.execute(stmt_stu)).all()
     total_students = len(stu_rows)
@@ -1248,5 +1253,121 @@ async def get_placement_class_matrix(
         "date_cols": date_cols,
         "matrix_rows": matrix_rows,
         "is_placement": True
+    }
+
+
+async def get_sql_daily_status_students(
+    db: AsyncSession,
+    date_str: str,
+    status_filter: str = "A",
+    dept_code: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Returns student-level details (RegNo, Name, Class, Department, Hour, Subject, Faculty)
+    for all students marked with `status_filter` (typically 'A' for Absent, 'OD' for On-Duty)
+    on a specific date.
+    Strictly enforces HOD departmental boundaries.
+    """
+    target_date = parse_date_str(date_str) or date.today()
+    norm_status = status_filter.strip().upper()
+    norm_dept = str(dept_code or "").strip().upper()
+
+    records = []
+
+    if norm_dept == "PLACEMENT":
+        # Query strictly from placement_attendance
+        stmt = (
+            select(
+                PlacementAttendance,
+                Student.reg_no,
+                Student.name.label("student_name"),
+                ClassRoom.class_code,
+                ClassRoom.class_name,
+                Department.code.label("department_code"),
+                User.full_name.label("faculty_name")
+            )
+            .join(Student, PlacementAttendance.student_id == Student.id)
+            .join(ClassRoom, PlacementAttendance.class_id == ClassRoom.id)
+            .join(Department, ClassRoom.department_id == Department.id)
+            .outerjoin(User, PlacementAttendance.faculty_id == User.id)
+            .where(
+                and_(
+                    PlacementAttendance.attendance_date == target_date,
+                    PlacementAttendance.status == norm_status
+                )
+            )
+            .order_by(ClassRoom.class_code, Student.reg_no)
+        )
+        res = await db.execute(stmt)
+        for p, rn, sname, ccode, cname, dcode, fname in res.all():
+            records.append({
+                "reg_no": rn,
+                "name": sname,
+                "class_code": ccode,
+                "class_name": cname,
+                "department": dcode,
+                "hour": p.slot_type,
+                "subject_code": "PLACEMENT",
+                "subject_name": p.training_topic or p.slot_type,
+                "faculty_name": fname or "Placement Trainer",
+                "status": p.status,
+                "date": target_date.strftime("%d-%m-%Y")
+            })
+    else:
+        # Query academic attendance records
+        stmt = (
+            select(
+                AttendanceRecord.status,
+                Student.reg_no,
+                Student.name.label("student_name"),
+                ClassRoom.class_code,
+                ClassRoom.class_name,
+                Department.code.label("department_code"),
+                AttendanceSession.slot_hour,
+                Subject.subject_code,
+                Subject.subject_name,
+                User.full_name.label("faculty_name")
+            )
+            .join(AttendanceSession, AttendanceRecord.session_id == AttendanceSession.id)
+            .join(Student, AttendanceRecord.student_id == Student.id)
+            .join(ClassRoom, AttendanceSession.class_id == ClassRoom.id)
+            .join(Department, ClassRoom.department_id == Department.id)
+            .outerjoin(Subject, AttendanceSession.subject_id == Subject.id)
+            .outerjoin(User, AttendanceSession.faculty_id == User.id)
+            .where(
+                and_(
+                    AttendanceSession.session_date == target_date,
+                    AttendanceRecord.status == norm_status
+                )
+            )
+        )
+        if norm_dept and norm_dept != "ALL":
+            stmt = stmt.where(Department.code == norm_dept)
+
+        stmt = stmt.order_by(ClassRoom.class_code, Student.reg_no)
+        res = await db.execute(stmt)
+        for st_val, rn, sname, ccode, cname, dcode, shour, scode, s_name, fname in res.all():
+            records.append({
+                "reg_no": rn,
+                "name": sname,
+                "class_code": ccode,
+                "class_name": cname,
+                "department": dcode,
+                "hour": shour or "DAY",
+                "subject_code": scode or "",
+                "subject_name": s_name or "",
+                "faculty_name": fname or "Faculty",
+                "status": st_val,
+                "date": target_date.strftime("%d-%m-%Y")
+            })
+
+    status_label = "Absent" if norm_status == "A" else ("On-Duty" if norm_status == "OD" else norm_status)
+    return {
+        "date": target_date.strftime("%d-%m-%Y"),
+        "status": norm_status,
+        "status_label": status_label,
+        "department": norm_dept or "ALL",
+        "count": len(records),
+        "students": records
     }
 

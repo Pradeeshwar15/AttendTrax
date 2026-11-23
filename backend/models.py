@@ -84,6 +84,7 @@ class Student(Base):
     class_incharge_faculty_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     warden_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     hostel_block_room = Column(String(50), nullable=True)
+    placement_willingness = Column(String(20), default="active", nullable=False, index=True) # "active" | "inactive"
     status = Column(String(20), default="ACTIVE", nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
@@ -117,6 +118,22 @@ class Subject(Base):
     semester = Column(Integer, default=1, nullable=False)
     subject_type = Column(String(20), default="THEORY", nullable=False) # THEORY, LAB, ELECTIVE
     is_active = Column(Boolean, default=True, nullable=False)
+
+    @property
+    def name(self):
+        return self.subject_name
+
+    @name.setter
+    def name(self, val):
+        self.subject_name = val
+
+    @property
+    def status(self):
+        return "ACTIVE" if self.is_active else "INACTIVE"
+
+    @status.setter
+    def status(self, val):
+        self.is_active = (str(val or "").upper() == "ACTIVE")
 
     department = relationship("Department", back_populates="subjects")
 

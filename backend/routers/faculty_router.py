@@ -109,11 +109,31 @@ async def list_subjects(
     current_user: dict = _faculty_dep,
     db: AsyncSession = Depends(get_db),
 ):
-    """Return subjects assigned to a class (Fast SQL query)."""
+    """Return subjects assigned to a class or department (Fast SQL query)."""
     try:
-        stmt = select(Subject).where(Subject.status == "ACTIVE").order_by(Subject.subject_code)
+        # 1. Resolve Class to find its department
+        if str(class_id).isdigit():
+            cls_stmt = select(ClassRoom).where(or_(ClassRoom.class_code == str(class_id), ClassRoom.id == int(class_id)))
+        else:
+            cls_stmt = select(ClassRoom).where(ClassRoom.class_code == str(class_id))
+        cls_obj = (await db.execute(cls_stmt)).scalar_one_or_none()
+
+        dept_id = cls_obj.department_id if cls_obj else None
+
+        # 2. Fallback to user's department if class department could not be resolved
+        if not dept_id:
+            dept_code = current_user.get("department", "") or current_user.get("department_code", "")
+            if dept_code:
+                d_stmt = select(Department.id).where(Department.code == dept_code.upper())
+                dept_id = (await db.execute(d_stmt)).scalar_one_or_none()
+
+        stmt = select(Subject).where(Subject.is_active == True)
+        if dept_id:
+            stmt = stmt.where(Subject.department_id == dept_id)
+        stmt = stmt.order_by(Subject.subject_code)
+
         subjs = (await db.execute(stmt)).scalars().all()
-        return [{"SubjectID": s.subject_code, "SubjectName": s.name} for s in subjs]
+        return [{"SubjectID": s.subject_code, "SubjectName": s.subject_name or s.name} for s in subjs]
     except Exception as exc:
         print(f"[Faculty Router Notice] SQL query error: {exc}")
         return []
@@ -130,10 +150,13 @@ def list_hours(current_user: dict = _faculty_dep):
 @router.get("/classes/{class_id}/students")
 async def list_students(
     class_id: str,
-    _=_faculty_dep,
+    current_user: dict = _faculty_dep,
     db: AsyncSession = Depends(get_db),
 ):
-    """Return students for attendance marking (SQL-accelerated sub-5ms)."""
+    """Return students for attendance marking (SQL-accelerated sub-5ms).
+    Placement faculties ONLY see willing trainees (placement_willingness == 'active').
+    Academic faculties see 100% full student roster.
+    """
     try:
         if str(class_id).isdigit():
             cls_stmt = select(ClassRoom.id).where(or_(ClassRoom.class_code == str(class_id), ClassRoom.id == int(class_id)))
@@ -141,9 +164,11 @@ async def list_students(
             cls_stmt = select(ClassRoom.id).where(ClassRoom.class_code == str(class_id))
         cid = (await db.execute(cls_stmt)).scalar_one_or_none()
         if cid:
-            st_stmt = select(Student).where(
-                and_(Student.class_id == cid, Student.status == "ACTIVE")
-            ).order_by(Student.reg_no)
+            conditions = [Student.class_id == cid, Student.status == "ACTIVE"]
+            if is_placement_user(current_user):
+                conditions.append(func.lower(Student.placement_willingness) == "active")
+
+            st_stmt = select(Student).where(and_(*conditions)).order_by(Student.reg_no)
             students = (await db.execute(st_stmt)).scalars().all()
             return [{"reg_no": s.reg_no, "name": s.name} for s in students]
     except Exception as exc:
@@ -282,8 +307,17 @@ async def submit_attendance(
                 detail=f"Attendance for {body.class_id} on {today_str} ({hour_val}) has already been submitted and is locked.",
             )
 
+        sub_id_int = None
+        if body.subject_id:
+            if str(body.subject_id).isdigit():
+                s_stmt = select(Subject.id).where(or_(Subject.id == int(body.subject_id), Subject.subject_code == str(body.subject_id)))
+            else:
+                s_stmt = select(Subject.id).where(Subject.subject_code == str(body.subject_id))
+            sub_id_int = (await db.execute(s_stmt)).scalar_one_or_none()
+
         new_session = AttendanceSession(
             class_id=cid,
+            subject_id=sub_id_int,
             session_date=today_date,
             slot_hour=hour_val,
             session_type="DAILY" if hour_val in ("DAILY", "DAY") else "HOURLY",
@@ -373,9 +407,11 @@ async def get_class_report(
             cls_stmt = select(ClassRoom.id).where(ClassRoom.class_code == str(class_id))
         cid = (await db.execute(cls_stmt)).scalar_one_or_none()
         if cid:
-            st_stmt = select(Student).where(
-                and_(Student.class_id == cid, Student.status == "ACTIVE")
-            ).order_by(Student.reg_no)
+            conditions = [Student.class_id == cid, Student.status == "ACTIVE"]
+            if is_placement_user(current_user):
+                conditions.append(func.lower(Student.placement_willingness) == "active")
+
+            st_stmt = select(Student).where(and_(*conditions)).order_by(Student.reg_no)
             students = (await db.execute(st_stmt)).scalars().all()
             if students:
                 stu_ids = [s.id for s in students]

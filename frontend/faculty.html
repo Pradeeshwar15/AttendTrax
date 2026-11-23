@@ -214,6 +214,12 @@
                   <option value="">— Select Class —</option>
                 </select>
               </div>
+              <div class="form-group" id="academic-subject-group">
+                <label class="form-label" for="sel-subject">Subject (Department Specific)</label>
+                <select id="sel-subject" class="form-control">
+                  <option value="">— Select Subject —</option>
+                </select>
+              </div>
               <div class="form-group hidden" id="placement-slot-group">
                 <label class="form-label" for="sel-placement-slot" style="font-weight:700;color:#065f46;display:flex;align-items:center;gap:0.4rem;">
                   <span>🎯</span> Training Activity / Slot
@@ -1005,6 +1011,8 @@ function initPlacementMode() {
     if (banner) banner.classList.remove('hidden');
     const slotGroup = document.getElementById('placement-slot-group');
     if (slotGroup) slotGroup.classList.remove('hidden');
+    const subjGroup = document.getElementById('academic-subject-group');
+    if (subjGroup) subjGroup.classList.add('hidden');
     const tb = document.getElementById('today-badge');
     if (tb) {
       tb.textContent = 'Placement Session';
@@ -1014,6 +1022,11 @@ function initPlacementMode() {
     }
     const entryTitle = document.querySelector('#section-mark h3');
     if (entryTitle) entryTitle.textContent = 'Placement & Training Attendance Entry';
+  } else {
+    const slotGroup = document.getElementById('placement-slot-group');
+    if (slotGroup) slotGroup.classList.add('hidden');
+    const subjGroup = document.getElementById('academic-subject-group');
+    if (subjGroup) subjGroup.classList.remove('hidden');
   }
 }
 initPlacementMode();
@@ -1039,14 +1052,50 @@ async function loadClasses() {
 }
 loadClasses();
 
+async function loadSubjectsForClass(classId) {
+  const selSubj = document.getElementById('sel-subject');
+  if (!selSubj) return;
+  if (!classId || isPlacementUser()) {
+    selSubj.innerHTML = '<option value="">— Select Subject —</option>';
+    return;
+  }
+  try {
+    const subs = await api.get(`/faculty/classes/${classId}/subjects`);
+    selSubj.innerHTML = '<option value="">— Select Subject (Department Specific) —</option>';
+    if (subs && subs.length) {
+      subs.forEach(s => {
+        const o = document.createElement('option');
+        o.value = s.SubjectID;
+        o.textContent = `${s.SubjectID} - ${s.SubjectName}`;
+        selSubj.appendChild(o);
+      });
+      selSubj.selectedIndex = 1; // Default to first available subject
+    } else {
+      const o = document.createElement('option');
+      o.value = '';
+      o.textContent = '— General / No Subject Assigned —';
+      selSubj.appendChild(o);
+    }
+  } catch(err) {
+    console.error('Error fetching class subjects:', err);
+  }
+}
+
 document.getElementById('sel-class').addEventListener('change', async function() {
   const classId   = this.value;
   const loadBtn    = document.getElementById('load-students-btn');
   loadBtn.disabled    = !classId;
   resetMarkSection();
+  if (classId && !isPlacementUser()) {
+    await loadSubjectsForClass(classId);
+  }
 });
 
 document.getElementById('sel-placement-slot')?.addEventListener('change', () => {
+  resetMarkSection();
+});
+
+document.getElementById('sel-subject')?.addEventListener('change', () => {
   resetMarkSection();
 });
 
@@ -1057,9 +1106,10 @@ document.getElementById('selection-form').addEventListener('submit', async (e) =
   const slotSel   = document.getElementById('sel-placement-slot');
   const slotVal   = isPlacementUser() ? (slotSel?.value || 'training_classes') : 'DAY';
   const slotLabel = isPlacementUser() ? (slotSel?.selectedOptions[0]?.text || 'Training Slot') : 'Class';
+  const subjVal   = isPlacementUser() ? '' : (document.getElementById('sel-subject')?.value || '');
   showLoader(true);
   try {
-    const check = await api.get(`/faculty/attendance/check?class_id=${classId}&subject_id=&hour=${slotVal}`);
+    const check = await api.get(`/faculty/attendance/check?class_id=${classId}&subject_id=${encodeURIComponent(subjVal)}&hour=${slotVal}`);
     const alertEl = document.getElementById('already-submitted-alert');
     if (alertEl) {
       alertEl.textContent = isPlacementUser()
@@ -1163,6 +1213,8 @@ document.getElementById('submit-attendance-btn').addEventListener('click', async
   const slotVal = isPlacementUser() ? (slotSel?.value || 'training_classes') : 'DAY';
   const slotLabel = isPlacementUser() ? (slotSel?.selectedOptions[0]?.text || 'Training Classes') : '';
 
+  const subjVal = isPlacementUser() ? slotLabel : (document.getElementById('sel-subject')?.value || '');
+
   const attendanceRows = [];
   document.querySelectorAll('#students-tbody .attendance-chip-group').forEach(group => {
     const regNo  = group.dataset.reg;
@@ -1177,7 +1229,7 @@ document.getElementById('submit-attendance-btn').addEventListener('click', async
   try {
     const res = await api.post('/faculty/attendance', {
       class_id: classId,
-      subject_id: isPlacementUser() ? slotLabel : '',
+      subject_id: subjVal,
       hour: slotVal,
       attendance: attendanceRows,
     });
