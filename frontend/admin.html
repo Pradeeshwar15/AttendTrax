@@ -3914,7 +3914,10 @@ async function loadStudentsAdmin() {
     } else {
       let filteredStudents = [...students];
       if (willFilter && willFilter !== 'ALL') {
-        filteredStudents = filteredStudents.filter(s => (s.PlacementWillingness || 'active').toLowerCase() === willFilter.toLowerCase());
+        filteredStudents = filteredStudents.filter(s => {
+          const w = ((s.placement_willingness || s.PlacementWillingness || 'active') + '').toLowerCase();
+          return w === willFilter.toLowerCase();
+        });
       }
 
       const sortedStudents = filteredStudents.sort((a, b) => String(a.RegNo || a.reg_no || '').localeCompare(String(b.RegNo || b.reg_no || ''), undefined, { numeric: true, sensitivity: 'base' }));
@@ -3923,22 +3926,23 @@ async function loadStudentsAdmin() {
         tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:2rem;">No students matching placement willingness filter.</td></tr>';
       } else {
         sortedStudents.forEach(s => {
-          const isWilling = (s.PlacementWillingness || 'active').toLowerCase() === 'active';
+          const willVal = ((s.placement_willingness || s.PlacementWillingness || 'active') + '').toLowerCase();
+          const isWilling = willVal === 'active';
           const standingBadge = isWilling
-            ? '<span class="badge" style="background:#ecfdf5;color:#065f46;font-weight:700;font-size:0.75rem;">🟢 Willing</span>'
-            : '<span class="badge" style="background:#fef2f2;color:#991b1b;font-weight:700;font-size:0.75rem;">⚪ Unwilling</span>';
+            ? '<span class="badge placement-standing-badge" style="background:#ecfdf5;color:#065f46;font-weight:700;font-size:0.75rem;">🟢 Willing</span>'
+            : '<span class="badge placement-standing-badge" style="background:#fef2f2;color:#991b1b;font-weight:700;font-size:0.75rem;">⚪ Unwilling</span>';
 
           let toggleBtn = '';
           if (isPlacement || isExec) {
             if (isWilling) {
-              toggleBtn = `<button class="btn btn-sm btn-outline toggle-willingness-btn" data-reg="${s.RegNo}" data-target="inactive" style="font-size:0.75rem;padding:0.2rem 0.5rem;color:#b91c1c;border:1px solid #fca5a5;background:#fff;" title="Exclude student from placement classes">Exclude</button>`;
+              toggleBtn = `<button class="btn btn-sm btn-outline toggle-willingness-btn" data-reg="${escapeHtml(s.RegNo)}" data-target="inactive" style="font-size:0.75rem;padding:0.2rem 0.5rem;color:#b91c1c;border:1px solid #fca5a5;background:#fff;" title="Exclude student from placement classes">Exclude</button>`;
             } else {
-              toggleBtn = `<button class="btn btn-sm btn-outline toggle-willingness-btn" data-reg="${s.RegNo}" data-target="active" style="font-size:0.75rem;padding:0.2rem 0.5rem;color:#059669;border:1px solid #6ee7b7;background:#fff;" title="Include student in placement classes">Include</button>`;
+              toggleBtn = `<button class="btn btn-sm btn-outline toggle-willingness-btn" data-reg="${escapeHtml(s.RegNo)}" data-target="active" style="font-size:0.75rem;padding:0.2rem 0.5rem;color:#059669;border:1px solid #6ee7b7;background:#fff;" title="Include student in placement classes">Include</button>`;
             }
           }
 
           tbody.innerHTML += `
-            <tr>
+            <tr id="student-row-${escapeHtml(s.RegNo)}">
               <td style="text-align:center;">
                 <input type="checkbox" class="student-select-check" data-reg="${escapeHtml(s.RegNo)}" />
               </td>
@@ -3946,7 +3950,7 @@ async function loadStudentsAdmin() {
               <td class="font-semibold">${escapeHtml(s.Name)}</td>
               <td>${escapeHtml(s.ClassName || s.ClassID)}</td>
               <td><span class="badge ${s.Status==='ACTIVE'?'badge-info':'badge-absent'}">${s.Status}</span></td>
-              <td>${standingBadge}</td>
+              <td class="placement-standing-cell">${standingBadge}</td>
               <td>
                 <div class="flex items-center gap-1">
                   ${toggleBtn}
@@ -3958,17 +3962,58 @@ async function loadStudentsAdmin() {
 
         document.querySelectorAll('.deactivate-student-btn').forEach(btn => btn.addEventListener('click', deactivateStudent));
         document.querySelectorAll('.toggle-willingness-btn').forEach(btn => btn.addEventListener('click', async (e) => {
-          const reg = e.currentTarget.dataset.reg;
-          const target = e.currentTarget.dataset.target;
-          showLoader(true);
+          const btnEl = e.currentTarget;
+          const reg = btnEl.dataset.reg;
+          const target = btnEl.dataset.target; // 'inactive' or 'active'
+          const row = document.getElementById(`student-row-${reg}`) || btnEl.closest('tr');
+          const standingCell = row ? row.querySelector('.placement-standing-cell') : null;
+
+          // ── Zero-Latency Optimistic UI Update (0ms perceptible delay) ──
+          const willBeWilling = target === 'active';
+          const prevTarget = willBeWilling ? 'inactive' : 'active';
+
+          // 1. Instantly flip button styling & label
+          btnEl.dataset.target = willBeWilling ? 'inactive' : 'active';
+          btnEl.textContent = willBeWilling ? 'Exclude' : 'Include';
+          btnEl.style.color = willBeWilling ? '#b91c1c' : '#059669';
+          btnEl.style.border = willBeWilling ? '1px solid #fca5a5' : '1px solid #6ee7b7';
+          btnEl.title = willBeWilling ? 'Exclude student from placement classes' : 'Include student in placement classes';
+
+          // 2. Instantly flip standing badge
+          if (standingCell) {
+            standingCell.innerHTML = willBeWilling
+              ? '<span class="badge placement-standing-badge" style="background:#ecfdf5;color:#065f46;font-weight:700;font-size:0.75rem;">🟢 Willing</span>'
+              : '<span class="badge placement-standing-badge" style="background:#fef2f2;color:#991b1b;font-weight:700;font-size:0.75rem;">⚪ Unwilling</span>';
+          }
+
+          // 3. Update in-memory record if exists
+          const found = students.find(st => (st.RegNo || st.reg_no) === reg);
+          if (found) {
+            found.placement_willingness = target;
+            found.PlacementWillingness = target;
+          }
+
+          showToast(`Student ${reg} ${willBeWilling ? 'included in' : 'excluded from'} placement!`, 'info', 2000);
+
+          // 4. Non-blocking asynchronous sync to Supabase
           try {
             await api.patch(`/admin/students/${encodeURIComponent(reg)}/placement-willingness`, { placement_willingness: target });
-            showToast(`Student ${reg} ${target === 'active' ? 'included in' : 'excluded from'} placement roster!`, 'success');
-            await loadStudentsAdmin();
           } catch(err) {
+            // Revert state on failure
+            btnEl.dataset.target = prevTarget;
+            btnEl.textContent = prevTarget === 'inactive' ? 'Exclude' : 'Include';
+            btnEl.style.color = prevTarget === 'inactive' ? '#b91c1c' : '#059669';
+            btnEl.style.border = prevTarget === 'inactive' ? '1px solid #fca5a5' : '1px solid #6ee7b7';
+            if (standingCell) {
+              standingCell.innerHTML = !willBeWilling
+                ? '<span class="badge placement-standing-badge" style="background:#ecfdf5;color:#065f46;font-weight:700;font-size:0.75rem;">🟢 Willing</span>'
+                : '<span class="badge placement-standing-badge" style="background:#fef2f2;color:#991b1b;font-weight:700;font-size:0.75rem;">⚪ Unwilling</span>';
+            }
+            if (found) {
+              found.placement_willingness = prevTarget;
+              found.PlacementWillingness = prevTarget;
+            }
             showToast(err.message || 'Failed to update placement willingness', 'error');
-          } finally {
-            showLoader(false);
           }
         }));
 
@@ -4005,18 +4050,45 @@ async function bulkSetPlacementWillingness(target) {
   const ok = await openConfirm('Bulk Placement Willingness', `Set ${regNos.length} selected student(s) to ${target === 'active' ? 'Willing (Active Placement Candidate)' : 'Unwilling (Excluded from Placement)'}?`);
   if (!ok) return;
 
-  showLoader(true);
+  // ── Zero-Latency Optimistic UI Update for all checked students in 0ms ──
+  const willBeWilling = target === 'active';
+  regNos.forEach(reg => {
+    const row = document.getElementById(`student-row-${reg}`) || document.querySelector(`input[data-reg="${reg}"]`)?.closest('tr');
+    if (row) {
+      const standingCell = row.querySelector('.placement-standing-cell');
+      if (standingCell) {
+        standingCell.innerHTML = willBeWilling
+          ? '<span class="badge placement-standing-badge" style="background:#ecfdf5;color:#065f46;font-weight:700;font-size:0.75rem;">🟢 Willing</span>'
+          : '<span class="badge placement-standing-badge" style="background:#fef2f2;color:#991b1b;font-weight:700;font-size:0.75rem;">⚪ Unwilling</span>';
+      }
+      const btnEl = row.querySelector('.toggle-willingness-btn');
+      if (btnEl) {
+        btnEl.dataset.target = willBeWilling ? 'inactive' : 'active';
+        btnEl.textContent = willBeWilling ? 'Exclude' : 'Include';
+        btnEl.style.color = willBeWilling ? '#b91c1c' : '#059669';
+        btnEl.style.border = willBeWilling ? '1px solid #fca5a5' : '1px solid #6ee7b7';
+        btnEl.title = willBeWilling ? 'Exclude student from placement classes' : 'Include student in placement classes';
+      }
+    }
+  });
+
+  // Uncheck selections
+  document.querySelectorAll('.student-select-check').forEach(ck => ck.checked = false);
+  const selectAll = document.getElementById('student-select-all');
+  if (selectAll) selectAll.checked = false;
+  const cntEl = document.getElementById('placement-selected-count');
+  if (cntEl) cntEl.textContent = '0';
+
+  showToast(`Updated ${regNos.length} student(s) to ${willBeWilling ? 'Willing' : 'Unwilling'}!`, 'success');
+
   try {
-    const res = await api.post('/admin/students/bulk-placement-willingness', {
+    await api.post('/admin/students/bulk-placement-willingness', {
       reg_nos: regNos,
       placement_willingness: target
     });
-    showToast(res.message || 'Updated successfully!', 'success');
-    await loadStudentsAdmin();
   } catch(err) {
     showToast(err.message || 'Bulk update failed.', 'error');
-  } finally {
-    showLoader(false);
+    await loadStudentsAdmin();
   }
 }
 

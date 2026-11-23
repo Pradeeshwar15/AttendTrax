@@ -542,6 +542,7 @@ async def list_all_students(
             "Semester": str(c.semester),
             "Status": s.status,
             "placement_willingness": s.placement_willingness or "active",
+            "PlacementWillingness": s.placement_willingness or "active",
         }
         for s, c, d in rows
     ]
@@ -561,7 +562,20 @@ async def list_students(
         .order_by(Student.reg_no)
     )
     students = (await db.execute(stmt)).scalars().all()
-    return [{"RegNo": s.reg_no, "reg_no": s.reg_no, "Name": s.name, "name": s.name, "ClassID": clean_cid} for s in students]
+    return [
+        {
+            "RegNo": s.reg_no,
+            "reg_no": s.reg_no,
+            "Name": s.name,
+            "name": s.name,
+            "ClassID": clean_cid,
+            "class_id": clean_cid,
+            "Status": s.status,
+            "placement_willingness": s.placement_willingness or "active",
+            "PlacementWillingness": s.placement_willingness or "active",
+        }
+        for s in students
+    ]
 
 
 @router.post("/students")

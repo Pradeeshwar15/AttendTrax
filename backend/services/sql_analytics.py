@@ -507,8 +507,8 @@ async def update_sql_daily_attendance(
     attendance_map: Dict[str, str]
 ) -> Dict[str, Any]:
     """
-    Admin modify & resubmit daily attendance in SQL.
-    Replaces sheets.admin_update_attendance().
+    Admin modify & resubmit daily attendance in SQL via atomic batch execution.
+    Replaces slow row-by-row Python loops.
     """
     clean_cid = str(class_id or "").strip().upper()
     cls_stmt = select(ClassRoom.id).where(ClassRoom.class_code == clean_cid)
@@ -519,57 +519,97 @@ async def update_sql_daily_attendance(
     target_date = parse_date_str(date_str) or date.today()
     hour_val = (hour or "DAY").strip().upper()
 
-    # Lookup or create session
-    sess_stmt = select(AttendanceSession).where(
-        and_(
-            AttendanceSession.class_id == c_pk,
-            AttendanceSession.session_date == target_date,
-            AttendanceSession.slot_hour == hour_val
+    if not attendance_map:
+        return {"status": "error", "message": "Attendance map cannot be empty."}
+
+    # Build multi-row VALUES
+    vals_clauses = []
+    params = {
+        "class_id": c_pk,
+        "target_date": target_date,
+    }
+    for idx, (rn, st_val) in enumerate(attendance_map.items()):
+        r_k = f"r_{idx}"
+        s_k = f"s_{idx}"
+        vals_clauses.append(f"(:{r_k}, :{s_k})")
+        params[r_k] = str(rn).strip()
+        params[s_k] = str(st_val).strip().upper()
+
+    values_sql = ", ".join(vals_clauses)
+
+    from models import PLACEMENT_SLOT_KEYS, PLACEMENT_SLOT_ALIASES
+    is_placement = hour_val in PLACEMENT_SLOT_KEYS or hour_val.lower() in PLACEMENT_SLOT_ALIASES
+
+    if is_placement:
+        slot_key = hour_val.lower()
+        topic = subject_id if (subject_id and subject_id != "PLC-TECH") else PLACEMENT_SLOT_KEYS.get(slot_key, "Training Classes")
+        params.update({
+            "slot_type": slot_key,
+            "topic": topic,
+        })
+        sql = f"""
+        DELETE FROM placement_attendance 
+        WHERE class_id = :class_id AND attendance_date = :target_date AND slot_type = :slot_type;
+
+        INSERT INTO placement_attendance (
+            student_id, class_id, faculty_id, attendance_date, slot_type, training_topic, status, created_at
         )
-    )
-    sess_obj = (await db.execute(sess_stmt)).scalar_one_or_none()
-    if not sess_obj:
-        sess_obj = AttendanceSession(
-            class_id=c_pk,
-            session_date=target_date,
-            slot_hour=hour_val,
-            session_type="TRAINING" if hour_val in ("PLACEMENT", "TRAINING") else "DAILY",
-            faculty_id=None,
-            lock_status="LOCKED"
+        SELECT 
+            s.id,
+            :class_id,
+            NULL,
+            :target_date,
+            :slot_type,
+            :topic,
+            v.status,
+            NOW()
+        FROM (VALUES {values_sql}) AS v(reg_no, status)
+        JOIN students s ON s.reg_no = v.reg_no AND s.class_id = :class_id;
+        """
+        await db.execute(text(sql), params)
+        await db.commit()
+    else:
+        # Lookup or create session
+        sess_stmt = select(AttendanceSession.id).where(
+            and_(
+                AttendanceSession.class_id == c_pk,
+                AttendanceSession.session_date == target_date,
+                AttendanceSession.slot_hour == hour_val
+            )
         )
-        db.add(sess_obj)
-        await db.flush()
+        sess_id = (await db.execute(sess_stmt)).scalar_one_or_none()
+        if not sess_id:
+            new_sess = AttendanceSession(
+                class_id=c_pk,
+                session_date=target_date,
+                slot_hour=hour_val,
+                session_type="DAILY" if hour_val in ("DAILY", "DAY") else "HOURLY",
+                faculty_id=None,
+                lock_status="LOCKED"
+            )
+            db.add(new_sess)
+            await db.flush()
+            sess_id = new_sess.id
 
-    # Fetch students
-    st_stmt = select(Student).where(Student.class_id == c_pk)
-    students = (await db.execute(st_stmt)).scalars().all()
-    st_map = {s.reg_no.strip(): s.id for s in students}
+        params["session_id"] = sess_id
+        sql = f"""
+        DELETE FROM attendance_records WHERE session_id = :session_id;
 
-    # Fetch existing records
-    rec_stmt = select(AttendanceRecord).where(AttendanceRecord.session_id == sess_obj.id)
-    existing_recs = {r.student_id: r for r in (await db.execute(rec_stmt)).scalars().all()}
+        INSERT INTO attendance_records (session_id, student_id, status)
+        SELECT 
+            :session_id,
+            s.id,
+            v.status
+        FROM (VALUES {values_sql}) AS v(reg_no, status)
+        JOIN students s ON s.reg_no = v.reg_no AND s.class_id = :class_id;
+        """
+        await db.execute(text(sql), params)
+        await db.commit()
 
-    updated_count = 0
-    for rn, st_val in attendance_map.items():
-        rn_clean = str(rn).strip()
-        if rn_clean in st_map:
-            s_id = st_map[rn_clean]
-            clean_st = str(st_val).strip().upper()
-            if s_id in existing_recs:
-                existing_recs[s_id].status = clean_st
-            else:
-                db.add(AttendanceRecord(
-                    session_id=sess_obj.id,
-                    student_id=s_id,
-                    status=clean_st
-                ))
-            updated_count += 1
-
-    await db.commit()
     return {
         "status": "success",
-        "message": f"Updated attendance for {updated_count} student(s) on {date_str} ({hour_val}).",
-        "updated": updated_count
+        "message": f"Updated attendance for {len(attendance_map)} student(s) on {date_str} ({hour_val}).",
+        "updated": len(attendance_map)
     }
 
 

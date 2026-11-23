@@ -21,16 +21,22 @@ def get_engine():
     global _engine
     if _engine is None:
         db_url = get_settings().get_database_url()
-        connect_args = {}
+        connect_args = {
+            "command_timeout": 15,
+            "server_settings": {
+                "application_name": "AttendTrax-FastAPI",
+            }
+        }
         # PostgreSQL / Supabase pool settings
         if ":6543" in db_url or "pooler.supabase.com" in db_url:
             connect_args["statement_cache_size"] = 0
         _engine = create_async_engine(
             db_url,
             echo=False,
-            pool_size=10,
-            max_overflow=5,
-            pool_recycle=300,
+            pool_size=15,
+            max_overflow=10,
+            pool_recycle=600,
+            pool_timeout=20,
             pool_pre_ping=True,
             connect_args=connect_args,
         )
