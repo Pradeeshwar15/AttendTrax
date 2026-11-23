@@ -7,11 +7,11 @@ from typing import Dict, List
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel
 
-from auth import verify_password, create_access_token, hash_password, get_hardcoded_user
+from auth import verify_password, create_access_token, hash_password
 from config import get_settings
 from database import get_session_factory
 from dependencies import get_current_user
-from models import User, Student, ClassRoom
+from models import User, Student, ClassRoom, Department
 from sqlalchemy import select, or_
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -109,47 +109,21 @@ async def login(body: LoginRequest, request: Request):
     # Rate limit check before verification
     login_rate_limiter.check(client_ip, uname)
 
-    # ── 1. Check institutional hardcoded credentials first ────────────────
-    hardcoded = get_hardcoded_user(uname)
-    if hardcoded and hardcoded.get("password_hash"):
-        if verify_password(body.password, hardcoded["password_hash"]):
-            login_rate_limiter.record_success(client_ip, uname)
-            token = create_access_token({
-                "sub": hardcoded["username"],
-                "role": hardcoded["role"],
-                "user_id": hardcoded["user_id"],
-                "department_id": hardcoded.get("department_id"),
-                "department_code": hardcoded.get("department_code", ""),
-            })
-            return LoginResponse(
-                access_token=token,
-                role=hardcoded["role"],
-                name=hardcoded["name"],
-                user_id=str(hardcoded["user_id"]),
-                username=hardcoded["username"],
-                class_id=hardcoded.get("class_id", ""),
-            )
-        else:
-            login_rate_limiter.record_failure(client_ip, uname)
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid username or password.",
-            )
-
-    # ── 2. Primary: Look up in Relational SQL Database (Supabase / SQLite) ──
+    # ── Database Lookup: Supabase PostgreSQL ─────────────────────────────────
     try:
         session_factory = get_session_factory()
         async with session_factory() as session:
             stmt = (
-                select(User, Student, ClassRoom.class_code)
+                select(User, Student, ClassRoom.class_code, Department.code)
                 .outerjoin(Student, Student.user_id == User.id)
                 .outerjoin(ClassRoom, Student.class_id == ClassRoom.id)
+                .outerjoin(Department, User.department_id == Department.id)
                 .where(or_(User.username == uname, Student.reg_no == uname))
             )
             res = await session.execute(stmt)
             match_row = res.first()
             if match_row:
-                u_obj, st_obj, cls_code = match_row
+                u_obj, st_obj, cls_code, dept_code = match_row
                 pwd_ok = verify_password(body.password, u_obj.password_hash)
                 
                 # Institutional default fallbacks for students: <RegNo>@2026 or <RegNo>@CSE
@@ -176,6 +150,7 @@ async def login(body: LoginRequest, request: Request):
                         "role": u_obj.role,
                         "user_id": u_obj.id,
                         "department_id": u_obj.department_id,
+                        "department_code": dept_code or "",
                     })
 
                     return LoginResponse(

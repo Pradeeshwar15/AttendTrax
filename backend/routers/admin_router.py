@@ -103,13 +103,18 @@ def _resolve_hod_dept_code(current_user: dict) -> str:
         if username.startswith("hod."):
             dept_part = username.replace("hod.", "").upper()
             return _normalize_dept_code(dept_part)
+        if "placement" in username or "tp" in username:
+            return "PLACEMENT"
+        dept_code = current_user.get("department_code") or current_user.get("dept") or current_user.get("department")
+        if dept_code and isinstance(dept_code, str):
+            return _normalize_dept_code(dept_code)
         dept_id = current_user.get("department_id")
         dept_map = {
             1: "CSE", 2: "ECE", 3: "EEE", 4: "MECH", 6: "IT", 7: "AIDS",
-            10: "PLACEMENT", 15: "PLACEMENT", 12: "CYBER", 13: "AIML", 14: "SH"
+            8: "CYBER", 9: "AIML", 10: "PLACEMENT", 11: "SH", 12: "CYBER", 13: "AIML", 14: "SH", 15: "PLACEMENT"
         }
         if dept_id and str(dept_id).isdigit():
-            return dept_map.get(int(dept_id), "CSE")
+            return dept_map.get(int(dept_id), "")
         if isinstance(dept_id, str):
             return _normalize_dept_code(dept_id)
     return ""
@@ -224,16 +229,21 @@ async def add_class(
     sec = str(body.section or "A").strip().upper()
 
     if existing_cls:
-        if existing_cls.status == "ACTIVE":
-            raise HTTPException(status_code=400, detail=f"Class with ID '{clean_cid}' already exists.")
-        else:
-            existing_cls.status = "ACTIVE"
-            existing_cls.class_name = body.class_name
-            existing_cls.department_id = dept_obj.id
-            existing_cls.year = yr
-            existing_cls.section = sec
-            existing_cls.semester = sem
-            await db.commit()
+        existing_cls.status = "ACTIVE"
+        existing_cls.class_name = body.class_name
+        existing_cls.department_id = dept_obj.id
+        existing_cls.year = yr
+        existing_cls.section = sec
+        existing_cls.semester = sem
+        await db.commit()
+        cache.invalidate("classes_")
+        _ADMIN_ANALYTICS_CACHE.clear()
+        return {
+            "status": "success",
+            "message": f"Class '{body.class_name}' ({clean_cid}) updated successfully in {target_dept_code} department.",
+            "class_id": clean_cid,
+            "department": target_dept_code
+        }
     else:
         new_cls = ClassRoom(
             department_id=dept_obj.id,

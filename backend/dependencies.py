@@ -6,10 +6,10 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 
-from auth import decode_token, get_hardcoded_user
+from auth import decode_token
 from config import get_settings
 from database import get_session_factory
-from models import User, Student, ClassRoom
+from models import User, Student, ClassRoom, Department
 
 bearer_scheme = HTTPBearer()
 
@@ -28,35 +28,19 @@ async def get_current_user(
     if not username:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Bad token payload.")
 
-    cfg = get_settings()
-
-    # ── 1. Hardcoded Enterprise Accounts (Principal, VP, HODs, Admin) ────────
-    hardcoded = get_hardcoded_user(username)
-    if hardcoded:
-        return {
-            "UserID": str(hardcoded["user_id"]),
-            "user_id": hardcoded["user_id"],
-            "Name": hardcoded["name"],
-            "full_name": hardcoded["name"],
-            "Username": hardcoded["username"],
-            "sub": hardcoded["username"],
-            "PasswordHash": "",
-            "Role": hardcoded["role"],
-            "role": hardcoded["role"],
-            "department_id": hardcoded["department_id"],
-            "department_code": hardcoded.get("department_code", ""),
-            "ClassID": hardcoded.get("class_id", ""),
-            "class_id": hardcoded.get("class_id", ""),
-        }
-
-    # ── 2. Primary: Look up in Relational SQL Database ───────────────────────
+    # ── Relational SQL Database (Supabase PostgreSQL) ────────────────────────
     try:
         session_factory = get_session_factory()
         async with session_factory() as session:
-            stmt = select(User).where(User.username == username)
+            stmt = (
+                select(User, Department.code)
+                .outerjoin(Department, User.department_id == Department.id)
+                .where(User.username == username)
+            )
             res = await session.execute(stmt)
-            user_obj = res.scalar_one_or_none()
-            if user_obj:
+            row = res.first()
+            if row:
+                user_obj, dept_code = row
                 cls_id = ""
                 reg_no = user_obj.username
                 if user_obj.role == "STUDENT":
@@ -81,6 +65,7 @@ async def get_current_user(
                     "Role": user_obj.role.upper(),
                     "role": user_obj.role.upper(),
                     "department_id": user_obj.department_id,
+                    "department_code": dept_code or "",
                     "ClassID": cls_id,
                     "class_id": cls_id,
                     "RegNo": reg_no,

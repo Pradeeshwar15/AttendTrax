@@ -6,11 +6,11 @@ This guide provides step-by-step instructions to deploy **AttendTrax** (FastAPI 
 
 ## 1. Architecture Overview
 
-- **Backend**: FastAPI (Python 3.11) with Google Sheets API integration and in-memory rate limiting / sliding-window cache.
+- **Backend**: FastAPI (Python 3.11) with pure Async SQLAlchemy 2.0 and in-memory rate limiting / sliding-window cache.
   - Recommended Host: [Render](https://render.com) (Free Tier available) or [Railway](https://railway.app) / [Fly.io](https://fly.io) / Docker.
 - **Frontend**: Vanilla HTML5/CSS3/JavaScript SPA with real-time Chart.js dashboards.
   - Recommended Host: [Vercel](https://vercel.com) (Free Tier) or [Netlify](https://netlify.com) / GitHub Pages.
-- **Database**: Google Sheets (Enterprise Cloud Spreadsheet storage with per-class tabs and master audit log).
+- **Database**: Supabase Cloud PostgreSQL (High-speed relational storage with connection pooling).
 
 ---
 
@@ -34,13 +34,7 @@ Under **Environment Variables**, configure the following keys:
 
 | Variable | Description / Sample Value |
 |---|---|
-| `GOOGLE_SERVICE_ACCOUNT_JSON` | Full JSON credentials string of your Google Cloud service account. |
-| `SPREADSHEET_FOLDER_ID` | Google Drive folder ID where class spreadsheets reside. |
-| `USERS_SHEET_ID` | Google Sheet ID for Users master table. |
-| `CLASSES_SHEET_ID` | Google Sheet ID for Classes master table. |
-| `STUDENTS_SHEET_ID` | Google Sheet ID for Students master table. |
-| `SUBJECTS_SHEET_ID` | Google Sheet ID for Subjects master table. |
-| `ATTENDANCE_LOG_SHEET_ID` | Google Sheet ID for Attendance_Log table. |
+| `DATABASE_URL` | Supabase PostgreSQL URI: `postgresql://postgres:[PASSWORD]@db.[REF].supabase.co:5432/postgres` |
 | `ADMIN_USERNAME` | `admin` |
 | `ADMIN_PASSWORD_HASH` | Bcrypt hash for your production admin password. |
 | `SECRET_KEY` | Strong random string (e.g. `openssl rand -hex 32`). |

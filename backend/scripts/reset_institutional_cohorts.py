@@ -22,7 +22,6 @@ from models import (
     AttendanceSession, AttendanceRecord, StudentLeave, FacultyAllocation, AuditLog,
     HostelGatePass, Notification
 )
-import sheets
 
 
 async def reset_cohorts():
@@ -89,34 +88,11 @@ async def reset_cohorts():
         await session.commit()
         print("  ✓ Database deletion committed successfully.")
 
-    # Reset SQLite fallback database as well if present
-    try:
-        import sqlite3
-        sqlite_path = os.path.join(backend_dir, "attendtrax.db")
-        if os.path.exists(sqlite_path):
-            conn = sqlite3.connect(sqlite_path)
-            cur = conn.cursor()
-            cur.execute("DELETE FROM attendance_records")
-            cur.execute("DELETE FROM attendance_sessions")
-            cur.execute("DELETE FROM hostel_gate_passes")
-            cur.execute("DELETE FROM student_leaves")
-            cur.execute("DELETE FROM faculty_allocations")
-            cur.execute("DELETE FROM notifications WHERE user_id IN (SELECT id FROM users WHERE role = 'STUDENT')")
-            cur.execute("UPDATE audit_logs SET user_id = NULL WHERE user_id IN (SELECT id FROM users WHERE role = 'STUDENT')")
-            cur.execute("DELETE FROM students")
-            cur.execute("DELETE FROM users WHERE role = 'STUDENT'")
-            cur.execute("DELETE FROM classes")
-            conn.commit()
-            conn.close()
-            print("  ✓ Local SQLite fallback database cleared in sync.")
-    except Exception as sqle:
-        print(f"  [Notice] SQLite local sync: {sqle}")
-
-    print("\n[4/5] Resetting Google Sheets worksheets (Attendance_Log, Students, Classes)...")
-    sheets.clear_attendance_logs()
-    sheets.clear_all_students_sheet()
-    sheets.clear_all_classes_sheet()
-    print("  ✓ Google Sheets cleared and in-memory caches purged.")
+    # Remove any stray legacy SQLite database file
+    sqlite_path = os.path.join(backend_dir, "attendtrax.db")
+    if os.path.exists(sqlite_path):
+        os.remove(sqlite_path)
+        print("  ✓ Legacy SQLite attendtrax.db purged.")
 
     print("\n[5/5] Verifying post-reset institutional integrity...")
     async with session_factory() as session:

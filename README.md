@@ -2,19 +2,18 @@
 
 AttendTrax is an institutional-grade, multi-tier attendance management and campus workflow platform engineered for colleges and universities.
 
-It operates on a **Hybrid Dual-Engine Architecture**:
-1. **Google Sheets (Primary Academic Database)**: Retains visual transparency and direct Google Drive accessibility for daily classroom attendance registers, subject registers, and student rosters.
-2. **Relational SQL Engine (PostgreSQL / SQLite)**: Powering high-concurrency 8-department administrative hierarchies, multi-tier RBAC, faculty leave workflows, and dual-track student residential outpasses with digital QR tokens.
+It operates on a **High-Performance Pure Cloud Architecture**:
+- **Primary Database**: **Supabase Cloud PostgreSQL** powering all institutional tables: student cohorts, classes, subjects, faculty allocations, attendance sessions, attendance records, leaves, outpasses, audit logs, and notifications with sub-millisecond query performance.
+- **Relational SQL Engine**: Powering high-concurrency 10-department administrative hierarchies, multi-tier RBAC, faculty leave workflows, and dual-track student residential outpasses with digital QR tokens.
 
 ---
 
 ## 🌟 Key Features
 
-### 1. Daily Classroom Attendance (Google Sheets Powered)
-- **Visual Cloud Register**: Auto-generates monthly class attendance sheets with formulas and defaulter tracking (<75%).
-- **Faculty Attendance Marking**: Fast hour-wise marking (`P` / `A` / `OD`) with lock protection to prevent unauthorized re-marking.
-- **Admin Past-Day Modification**: Authorized administrators can view past date logs and update/resubmit missing attendance directly in Google Sheets.
-- **Excel & Bulk Import**: One-click import for past attendance records, classes, subjects, and student lists.
+### 1. High-Speed Attendance & Academic Management
+- **Instant Hourly Attendance**: Fast hour-wise marking (`P` / `A` / `OD`) with lock protection to prevent unauthorized re-marking.
+- **Admin Modification & Overrides**: Authorized administrators can view past date logs, update missing attendance, and review audit trails directly in Supabase.
+- **Excel & Bulk Import**: High-speed batch insertion for past attendance records, classes, subjects, and student cohorts with zero external spreadsheet latency.
 
 ### 2. Multi-Department Hierarchy (9 Academic Departments + Placement)
 - Full college-wide scaling supporting:
@@ -50,18 +49,18 @@ It operates on a **Hybrid Dual-Engine Architecture**:
 
 | Data Category | Primary Storage | Role & Purpose |
 | :--- | :--- | :--- |
-| **Daily Attendance Logs** | **Google Sheets** | Master log (`Attendance_Log`) and monthly registers for real-time visual inspection in Google Drive. |
-| **Student Roster & Classes** | **Google Sheets + SQL** | Synced across Google Sheets and SQL database for sub-millisecond query responses. |
-| **8-Department Structure** | **SQL Database** | Relational mapping of departments, classes, subjects, and allocations. |
-| **Multi-Tier RBAC & Users** | **SQL Database (Primary)**<br/>*with Sheets Fallback* | Stores credentials for Principal, HODs, Wardens, Faculty, and Students. Falls back to Google Sheets for legacy accounts. |
-| **Faculty Leave Tickets** | **SQL Database** | Tracks leave category, session scope, dates, HOD review, and Principal sign-off. |
-| **Student Outpass & Passes** | **SQL Database** | Tracks multi-stage reviews, cryptographic 32-character gate tokens, and security timestamps. |
+| **Daily Attendance Logs** | **Supabase PostgreSQL** | `attendance_sessions` and `attendance_records` tables with sub-10ms query and index lookup. |
+| **Student Roster & Classes** | **Supabase PostgreSQL** | Normalized `students` and `classes` tables supporting instant filtering by department and semester. |
+| **10-Department Structure** | **Supabase PostgreSQL** | Relational mapping of 9 academic departments + Training & Placement with HOD assignments. |
+| **Multi-Tier RBAC & Users** | **Supabase PostgreSQL** | Stores credentials for Principal, HODs, Wardens, Faculty, and Students with bcrypt password protection. |
+| **Faculty Leave Tickets** | **Supabase PostgreSQL** | Tracks leave category, session scope, dates, HOD review, and Principal sign-off with printable sanction docket. |
+| **Student Outpass & Passes** | **Supabase PostgreSQL** | Tracks multi-stage reviews, cryptographic 32-character gate tokens, and security timestamps. |
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Backend**: Python 3.11+ / FastAPI, SQLAlchemy 2.0 (Async), `gspread` (Google Sheets API), `asyncpg` / `aiosqlite`, `python-jose` (JWT), `bcrypt`.
+- **Backend**: Python 3.11+ / FastAPI, SQLAlchemy 2.0 (Async), `asyncpg` (PostgreSQL), `python-jose` (JWT), `bcrypt`.
 - **Frontend**: Vanilla HTML5, Modern CSS3 (Variables, Flexbox/Grid, Glassmorphism), ES6 JavaScript.
 - **Security & Caching**: Redis 7, In-memory rate limiting, SHA256 / Bcrypt password hashing.
 - **Deployment**: Docker Compose (Nginx + FastAPI + PostgreSQL 16 + Redis), Render.com, Vercel.
@@ -121,7 +120,7 @@ AttendTrax/
    cp backend/.env.example backend/.env
    ```
 
-3. Configure your `backend/.env` file with your Google Sheets credentials:
+3. Configure your `backend/.env` file with your Supabase credentials:
    ```env
    # Admin Setup
    ADMIN_NAME="System Administrator"
@@ -129,12 +128,8 @@ AttendTrax/
    ADMIN_PASSWORD_HASH="<bcrypt_hash_of_your_password>"
    SECRET_KEY="<your_jwt_secret_key>"
 
-   # Google Sheets API Credentials
-   SERVICE_ACCOUNT_JSON='{"type": "service_account", "project_id": "...", ...}'
-   SPREADSHEET_ID="<your_main_google_sheets_spreadsheet_id>"
-
-   # Database (Optional for local development; defaults to SQLite if left empty)
-   DATABASE_URL="sqlite+aiosqlite:///attendtrax.db"
+   # Primary Supabase PostgreSQL Connection
+   DATABASE_URL="postgresql://postgres:[PASSWORD]@db.[PROJECT_REF].supabase.co:5432/postgres"
    ```
 
 ---

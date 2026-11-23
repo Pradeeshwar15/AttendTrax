@@ -103,24 +103,45 @@ async def _resolve_int_user_id(db: AsyncSession, current_user: dict) -> Optional
     return None
 
 async def _resolve_int_dept_id(db: AsyncSession, current_user: dict) -> Optional[int]:
-    # 1. Authoritative lookup in User table by username
     sub = current_user.get("sub") or current_user.get("Username")
+    uid = current_user.get("user_id") or current_user.get("UserID")
+
+    # 1. Authoritative lookup in User table by username or user_id
     if sub:
         u_res = await db.execute(select(User.department_id).where(User.username == str(sub).strip().lower()))
         did = u_res.scalar_one_or_none()
         if did:
             return did
+    if uid and str(uid).isdigit():
+        u_res = await db.execute(select(User.department_id).where(User.id == int(uid)))
+        did = u_res.scalar_one_or_none()
+        if did:
+            return did
 
-    # 2. Check department_code in token or user dict
-    dept_code = current_user.get("department_code") or current_user.get("dept")
-    if dept_code and isinstance(dept_code, str):
-        norm = dept_code.strip().upper()
-        d_res = await db.execute(select(Department.id).where(Department.code == norm))
+    # 2. Check Faculty table by user_id or username
+    if sub:
+        f_res = await db.execute(
+            select(Faculty.department_id)
+            .join(User, Faculty.user_id == User.id)
+            .where(User.username == str(sub).strip().lower())
+        )
+        did = f_res.scalar_one_or_none()
+        if did:
+            return did
+    if uid and str(uid).isdigit():
+        f_res = await db.execute(select(Faculty.department_id).where(Faculty.user_id == int(uid)))
+        did = f_res.scalar_one_or_none()
+        if did:
+            return did
+
+    # 3. Detect placement staff by username or designation
+    if sub and ("placement" in str(sub).lower() or "tp" in str(sub).lower()):
+        d_res = await db.execute(select(Department.id).where(Department.code == "PLACEMENT"))
         did = d_res.scalar_one_or_none()
         if did:
             return did
 
-    # 3. If username starts with "hod.", infer dept code (e.g. hod.placement -> PLACEMENT)
+    # 4. If username starts with "hod.", infer dept code (e.g. hod.placement -> PLACEMENT)
     if sub and str(sub).lower().startswith("hod."):
         dept_slug = str(sub).lower().replace("hod.", "").strip().upper()
         from routers.admin_router import _normalize_dept_code
@@ -130,18 +151,23 @@ async def _resolve_int_dept_id(db: AsyncSession, current_user: dict) -> Optional
         if did:
             return did
 
-    # 4. Check candidate integer ID in departments table
+    # 5. Check department_code in token or user dict
+    dept_code = current_user.get("department_code") or current_user.get("dept") or current_user.get("department")
+    if dept_code and isinstance(dept_code, str):
+        from routers.admin_router import _normalize_dept_code
+        norm = _normalize_dept_code(dept_code)
+        d_res = await db.execute(select(Department.id).where(Department.code == norm))
+        did = d_res.scalar_one_or_none()
+        if did:
+            return did
+
+    # 6. Check candidate integer ID in departments table
     raw_did = current_user.get("department_id")
     if raw_did is not None and str(raw_did).isdigit():
         cand = int(raw_did)
         chk = await db.execute(select(Department.id).where(Department.id == cand))
         if chk.scalar_one_or_none():
             return cand
-        if cand == 10:
-            plc_chk = await db.execute(select(Department.id).where(Department.code == "PLACEMENT"))
-            p_id = plc_chk.scalar_one_or_none()
-            if p_id:
-                return p_id
 
     return None
 
@@ -160,7 +186,17 @@ async def faculty_apply_leave(
     int_user_id = await _resolve_int_user_id(db, current_user)
     if not int_user_id:
         raise HTTPException(status_code=401, detail="Faculty account profile not found.")
-    int_dept_id = await _resolve_int_dept_id(db, current_user) or 1
+    int_dept_id = await _resolve_int_dept_id(db, current_user)
+    if not int_dept_id:
+        u_obj = await db.get(User, int_user_id)
+        if u_obj and u_obj.department_id:
+            int_dept_id = u_obj.department_id
+        else:
+            f_stmt = select(Faculty.department_id).where(Faculty.user_id == int_user_id)
+            int_dept_id = (await db.execute(f_stmt)).scalar_one_or_none()
+    if not int_dept_id:
+        d_first = (await db.execute(select(Department.id).where(Department.is_active == True).order_by(Department.id))).scalar_one_or_none()
+        int_dept_id = d_first or 1
 
     leave_app = FacultyLeave(
         faculty_id=int_user_id,
@@ -191,13 +227,20 @@ async def faculty_apply_leave(
 
     # Automatically notify department HOD of pending leave ticket
     try:
+        dept_obj = await db.get(Department, int_dept_id)
+        hod_ids = set()
+        if dept_obj and dept_obj.hod_user_id:
+            hod_ids.add(dept_obj.hod_user_id)
         hod_stmt = select(User.id).where(User.department_id == int_dept_id, User.role == "DEPT_ADMIN")
-        hod_ids = (await db.execute(hod_stmt)).scalars().all()
+        for hid in (await db.execute(hod_stmt)).scalars().all():
+            hod_ids.add(hid)
+
+        applicant_name = current_user.get("name") or current_user.get("full_name") or current_user.get("sub") or "Faculty member"
         for hid in hod_ids:
             db.add(Notification(
                 user_id=hid,
                 title=f"Faculty Leave Application ({body.session_scope})",
-                message=f"Leave application submitted by faculty member awaiting Level-1 review.",
+                message=f"Leave application submitted by {applicant_name} ({body.leave_category}) awaiting Level-1 review.",
                 action_url="/admin.html#leaves"
             ))
     except Exception as n_err:
@@ -415,8 +458,13 @@ async def principal_review_faculty_leave(
 
     # Send Notification to Department HOD
     try:
+        dept_obj = await db.get(Department, leave.department_id)
+        hod_ids = set()
+        if dept_obj and dept_obj.hod_user_id:
+            hod_ids.add(dept_obj.hod_user_id)
         hod_stmt = select(User.id).where(User.department_id == leave.department_id, User.role == "DEPT_ADMIN")
-        hod_ids = (await db.execute(hod_stmt)).scalars().all()
+        for hid in (await db.execute(hod_stmt)).scalars().all():
+            hod_ids.add(hid)
         for hid in hod_ids:
             db.add(Notification(
                 user_id=hid,

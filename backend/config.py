@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     ADMIN_PASSWORD_HASH: str = "$2b$12$7i3dcYcR4JezUB.A8tsJb.GwL2VyCJKLJ0McXZ44KiIUzUWd7n2zW"
     ADMIN_NAME: str = "System Administrator"
 
-    # ── Database (PostgreSQL / Supabase / SQLite fallback) ────────────────
+    # ── Database (PostgreSQL / Supabase) ──────────────────────────────────
     DATABASE_URL: str = ""
     REDIS_URL: str = ""
 
@@ -30,18 +30,14 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: str = "http://localhost:5500,http://127.0.0.1:5500,http://localhost:3000,http://127.0.0.1:3000,https://attendtrax.vercel.app,https://attendtrax-frontend.vercel.app"
 
     def get_database_url(self) -> str:
-        """Return standardized async connection string for SQLAlchemy."""
+        """Return standardized async connection string for PostgreSQL / Supabase."""
         url = self.DATABASE_URL.strip()
         if not url:
-            base_dir = os.path.dirname(os.path.abspath(__file__))
-            db_path = os.path.join(base_dir, "attendtrax.db").replace("\\", "/")
-            return f"sqlite+aiosqlite:///{db_path}"
+            raise RuntimeError("DATABASE_URL is not configured. Live Supabase PostgreSQL connection is required.")
         if url.startswith("postgres://"):
             return url.replace("postgres://", "postgresql+asyncpg://", 1)
         if url.startswith("postgresql://") and not url.startswith("postgresql+asyncpg://"):
             return url.replace("postgresql://", "postgresql+asyncpg://", 1)
-        if url.startswith("sqlite://") and not url.startswith("sqlite+aiosqlite://"):
-            return url.replace("sqlite://", "sqlite+aiosqlite://", 1)
         return url
 
     class Config:

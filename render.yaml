@@ -22,19 +22,7 @@ services:
         value: HS256
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
         value: 480
+      - key: DATABASE_URL
+        sync: false
       - key: ALLOWED_ORIGINS
-        sync: false
-      - key: GOOGLE_SERVICE_ACCOUNT_JSON
-        sync: false
-      - key: SPREADSHEET_FOLDER_ID
-        sync: false
-      - key: USERS_SHEET_ID
-        sync: false
-      - key: CLASSES_SHEET_ID
-        sync: false
-      - key: STUDENTS_SHEET_ID
-        sync: false
-      - key: SUBJECTS_SHEET_ID
-        sync: false
-      - key: ATTENDANCE_LOG_SHEET_ID
         sync: false
