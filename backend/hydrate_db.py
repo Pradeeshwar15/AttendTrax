@@ -19,7 +19,7 @@ from auth import hash_password
 DEPARTMENTS_DATA = [
     {"code": "CSE",   "name": "Department of Computer Science & Engineering", "hod_name": "Dr. Antony Sudha K (HOD CSE)"},
     {"code": "IT",    "name": "Department of Information Technology", "hod_name": "Dr. S.Banu Priya (HOD IT)"},
-    {"code": "AIDS",  "name": "Department of Artificial Intelligence & Data Science", "hod_name": "Dr. K. Rajesh (HOD AI&DS)"},
+    {"code": "AIDS",  "name": "Department of Artificial Intelligence & Data Science", "hod_name": "Dr. A.Tamilarasan(HOD AI&DS)"},
     {"code": "ECE",   "name": "Department of Electronics & Communication Engineering", "hod_name": "Dr. Dinesh Babu (HOD ECE)"},
     {"code": "MECH",  "name": "Department of Mechanical Engineering", "hod_name": "Dr. V. Anand (HOD MECH)"},
     {"code": "EEE",   "name": "Department of Electrical & Electronics Engineering", "hod_name": "Dr. Baskar (HOD EEE)"},

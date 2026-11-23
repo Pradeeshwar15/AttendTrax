@@ -28,6 +28,10 @@ from services.sql_analytics import (
     get_ist_today_str,
     parse_date_str,
     ALL_HOURS,
+    compute_placement_admin_analytics,
+    get_placement_attendance_overview,
+    get_placement_class_matrix,
+    get_placement_class_attendance_report,
 )
 
 def _classes_match(a: str, b: str) -> bool:
@@ -967,16 +971,24 @@ async def get_analytics(
     current_user: dict = _admin_dep,
     db: AsyncSession = Depends(get_db),
 ):
-    raw_data = await _get_cached_analytics(db, bypass=bypass)
     user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
+    hod_dept = _resolve_hod_dept_code(current_user) if user_role == "DEPT_ADMIN" else ""
+    user_dept = str(current_user.get("department_code") or "").upper()
+    username = str(current_user.get("Username") or current_user.get("sub") or "").lower()
+    is_placement = (hod_dept == "PLACEMENT" or user_dept == "PLACEMENT" or "placement" in username)
+
+    # ═════════════════════════════════════════════════════════════════════════
+    # STRICT SANDBOX: Placement HOD views ONLY placement_attendance table
+    # ═════════════════════════════════════════════════════════════════════════
+    if is_placement:
+        return await compute_placement_admin_analytics(db)
+
+    # All academic admins and HODs view ONLY academic attendance
+    raw_data = await _get_cached_analytics(db, bypass=bypass)
 
     target_dept = department_code
     if user_role == "DEPT_ADMIN":
-        hod_dept = _resolve_hod_dept_code(current_user)
-        if hod_dept == "PLACEMENT":
-            target_dept = department_code or "ALL"
-        else:
-            target_dept = hod_dept
+        target_dept = hod_dept
 
     if target_dept and target_dept.upper() != "ALL":
         return await _filter_analytics_by_dept(raw_data, target_dept, db=db)
@@ -994,8 +1006,15 @@ async def class_report(
     db: AsyncSession = Depends(get_db)
 ):
     user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
+    hod_dept = _resolve_hod_dept_code(current_user) if user_role == "DEPT_ADMIN" else ""
+    user_dept = str(current_user.get("department_code") or "").upper()
+    username = str(current_user.get("Username") or current_user.get("sub") or "").lower()
+    is_placement = (hod_dept == "PLACEMENT" or user_dept == "PLACEMENT" or "placement" in username)
+
+    if is_placement:
+        return await get_placement_class_attendance_report(db, class_id)
+
     if user_role == "DEPT_ADMIN":
-        hod_dept = _resolve_hod_dept_code(current_user)
         if hod_dept != "PLACEMENT" and not _matches_dept(class_id, hod_dept):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -1014,8 +1033,15 @@ async def class_matrix_report(
 ):
     """Generates Day 1 to Day 31 detailed attendance matrix register for class and month."""
     user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
+    hod_dept = _resolve_hod_dept_code(current_user) if user_role == "DEPT_ADMIN" else ""
+    user_dept = str(current_user.get("department_code") or "").upper()
+    username = str(current_user.get("Username") or current_user.get("sub") or "").lower()
+    is_placement = (hod_dept == "PLACEMENT" or user_dept == "PLACEMENT" or "placement" in username)
+
+    if is_placement:
+        return await get_placement_class_matrix(db, class_id, month, year)
+
     if user_role == "DEPT_ADMIN":
-        hod_dept = _resolve_hod_dept_code(current_user)
         if hod_dept != "PLACEMENT" and not _matches_dept(class_id, hod_dept):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -1149,10 +1175,17 @@ async def get_attendance_overview(
     db: AsyncSession = Depends(get_db)
 ):
     """Retrieve full institutional overview of submitted and pending attendances for a date, sandboxed for HOD."""
-    overview = await get_sql_date_attendance_overview(db, date)
     user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
+    hod_dept = _resolve_hod_dept_code(current_user) if user_role == "DEPT_ADMIN" else ""
+    user_dept = str(current_user.get("department_code") or "").upper()
+    username = str(current_user.get("Username") or current_user.get("sub") or "").lower()
+    is_placement = (hod_dept == "PLACEMENT" or user_dept == "PLACEMENT" or "placement" in username)
+
+    if is_placement:
+        return await get_placement_attendance_overview(db, date)
+
+    overview = await get_sql_date_attendance_overview(db, date)
     if user_role == "DEPT_ADMIN":
-        hod_dept = _resolve_hod_dept_code(current_user)
         if hod_dept != "PLACEMENT":
             if isinstance(overview, dict):
                 if "submitted" in overview:
@@ -1737,7 +1770,17 @@ async def export_class_attendance_matrix_csv(
     db: AsyncSession = Depends(get_db)
 ):
     """Generates and downloads the detailed Day 1 to Day 31 daily attendance matrix register CSV."""
-    matrix_data = await get_sql_class_matrix(db, class_id, month, year)
+    user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
+    hod_dept = _resolve_hod_dept_code(current_user) if user_role == "DEPT_ADMIN" else ""
+    user_dept = str(current_user.get("department_code") or "").upper()
+    username = str(current_user.get("Username") or current_user.get("sub") or "").lower()
+    is_placement = (hod_dept == "PLACEMENT" or user_dept == "PLACEMENT" or "placement" in username)
+
+    if is_placement:
+        matrix_data = await get_placement_class_matrix(db, class_id, month, year)
+    else:
+        matrix_data = await get_sql_class_matrix(db, class_id, month, year)
+
     if "error" in matrix_data:
         raise HTTPException(status_code=404, detail=matrix_data["error"])
 

@@ -175,6 +175,37 @@ class AttendanceRecord(Base):
     )
 
 
+class PlacementAttendance(Base):
+    __tablename__ = "placement_attendance"
+
+    id = Column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, index=True, autoincrement=True)
+    student_id = Column(Integer, ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
+    class_id = Column(Integer, ForeignKey("classes.id", ondelete="CASCADE"), nullable=False, index=True)
+    faculty_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    attendance_date = Column(Date, nullable=False, index=True)
+    
+    # Supported Multi-Slots:
+    # "training_classes", "technical_assessment", "leetcode_hackerrank",
+    # "mock_interview", "gd_session", "placement_meets"
+    slot_type = Column(String(50), default="training_classes", nullable=False)
+    training_topic = Column(String(150), default="Placement Training", nullable=True)
+    status = Column(String(10), nullable=False) # P, A, OD
+    remarks = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    student = relationship("Student", backref="placement_attendances")
+    class_room = relationship("ClassRoom", backref="placement_attendances")
+    faculty = relationship("User", foreign_keys=[faculty_id])
+
+    __table_args__ = (
+        Index("idx_placement_att_unique", "student_id", "attendance_date", "slot_type", unique=True),
+        Index("idx_placement_att_class_date", "class_id", "attendance_date"),
+        Index("idx_placement_att_date", "attendance_date"),
+        Index("idx_placement_att_status", "status"),
+    )
+
+
 # ═════════════════════════════════════════════════════════════════════════════
 # LEAVE & PERMISSION WORKFLOW ENGINES
 # ═════════════════════════════════════════════════════════════════════════════

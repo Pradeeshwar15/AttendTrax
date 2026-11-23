@@ -196,10 +196,10 @@
             <span style="font-size:1.5rem;">🎯</span>
             <div>
               <div style="font-weight:700;font-size:0.95rem;letter-spacing:0.02em;">PLACEMENT &amp; TRAINING ATTENDANCE MODE</div>
-              <div style="font-size:0.75rem;opacity:0.9;">Universal Access: Take and record training run attendance across all 9 departments independently.</div>
+              <div style="font-size:0.75rem;opacity:0.9;">Universal Access: Take and record training run attendance across all 9 departments into Supabase table: <code>placement_attendance</code>.</div>
             </div>
           </div>
-          <span class="badge" style="background:#ecfdf5;color:#065f46;font-weight:700;font-size:0.75rem;padding:0.35rem 0.65rem;">SESSION: PLACEMENT</span>
+          <span class="badge" style="background:#ecfdf5;color:#065f46;font-weight:700;font-size:0.75rem;padding:0.35rem 0.65rem;">🗄️ SUPABASE: placement_attendance</span>
         </div>
         <div class="card selection-card">
           <div class="card-header">
@@ -213,6 +213,20 @@
                 <select id="sel-class" class="form-control">
                   <option value="">— Select Class —</option>
                 </select>
+              </div>
+              <div class="form-group hidden" id="placement-slot-group">
+                <label class="form-label" for="sel-placement-slot" style="font-weight:700;color:#065f46;display:flex;align-items:center;gap:0.4rem;">
+                  <span>🎯</span> Training Activity / Slot
+                </label>
+                <select id="sel-placement-slot" class="form-control" style="font-weight:600;border-color:#059669;background:#f0fdf4;">
+                  <option value="training_classes">📚 Training Classes</option>
+                  <option value="technical_assessment">📝 Technical Assessment</option>
+                  <option value="leetcode_hackerrank">💻 LeetCode / HackerRank Test</option>
+                  <option value="mock_interview">🎙️ Mock Interview</option>
+                  <option value="gd_session">🗣️ GD Session</option>
+                  <option value="placement_meets">🤝 Placement Meets</option>
+                </select>
+                <small class="text-muted" style="font-size:0.75rem;margin-top:0.25rem;display:block;">Recorded directly into dedicated Supabase table: <code>placement_attendance</code></small>
               </div>
               <button type="submit" id="load-students-btn" class="btn btn-primary" disabled>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
@@ -989,6 +1003,8 @@ function initPlacementMode() {
   if (isPlacementUser()) {
     const banner = document.getElementById('placement-mode-banner');
     if (banner) banner.classList.remove('hidden');
+    const slotGroup = document.getElementById('placement-slot-group');
+    if (slotGroup) slotGroup.classList.remove('hidden');
     const tb = document.getElementById('today-badge');
     if (tb) {
       tb.textContent = 'Placement Session';
@@ -1030,18 +1046,24 @@ document.getElementById('sel-class').addEventListener('change', async function()
   resetMarkSection();
 });
 
+document.getElementById('sel-placement-slot')?.addEventListener('change', () => {
+  resetMarkSection();
+});
+
 // ── Load students ───────────────────────────────────────────────────────────
 document.getElementById('selection-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const classId   = document.getElementById('sel-class').value;
+  const slotSel   = document.getElementById('sel-placement-slot');
+  const slotVal   = isPlacementUser() ? (slotSel?.value || 'training_classes') : 'DAY';
+  const slotLabel = isPlacementUser() ? (slotSel?.selectedOptions[0]?.text || 'Training Slot') : 'Class';
   showLoader(true);
   try {
-    const hourVal = isPlacementUser() ? 'PLACEMENT' : 'DAY';
-    const check = await api.get(`/faculty/attendance/check?class_id=${classId}&subject_id=&hour=${hourVal}`);
+    const check = await api.get(`/faculty/attendance/check?class_id=${classId}&subject_id=&hour=${slotVal}`);
     const alertEl = document.getElementById('already-submitted-alert');
     if (alertEl) {
       alertEl.textContent = isPlacementUser()
-        ? '🎯 Placement Training attendance for this Class has already been recorded today.'
+        ? `🎯 Placement Training attendance for ${slotLabel} has already been recorded for this class today.`
         : 'Daily attendance for this Class has already been submitted today and cannot be modified.';
       alertEl.classList.toggle('hidden', !check.already_submitted);
     }
@@ -1137,6 +1159,10 @@ function resetMarkSection() {
 // ── Submit attendance ────────────────────────────────────────────────────────
 document.getElementById('submit-attendance-btn').addEventListener('click', async () => {
   const classId = document.getElementById('sel-class').value;
+  const slotSel = document.getElementById('sel-placement-slot');
+  const slotVal = isPlacementUser() ? (slotSel?.value || 'training_classes') : 'DAY';
+  const slotLabel = isPlacementUser() ? (slotSel?.selectedOptions[0]?.text || 'Training Classes') : '';
+
   const attendanceRows = [];
   document.querySelectorAll('#students-tbody .attendance-chip-group').forEach(group => {
     const regNo  = group.dataset.reg;
@@ -1149,10 +1175,11 @@ document.getElementById('submit-attendance-btn').addEventListener('click', async
   btn.disabled  = true;
   btnText.innerHTML = '<span class="spinner"></span> Submitting...';
   try {
-    const hourVal = isPlacementUser() ? 'PLACEMENT' : 'DAY';
-    const subjVal = isPlacementUser() ? 'PLC-TECH' : '';
     const res = await api.post('/faculty/attendance', {
-      class_id: classId, subject_id: subjVal, hour: hourVal, attendance: attendanceRows,
+      class_id: classId,
+      subject_id: isPlacementUser() ? slotLabel : '',
+      hour: slotVal,
+      attendance: attendanceRows,
     });
     api.clearCache();
     showToast(res.message || 'Attendance submitted!', 'success');

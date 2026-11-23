@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
 from dependencies import require_role
-from models import Student, ClassRoom, Department, User, AttendanceRecord, AttendanceSession, Subject
+from models import Student, ClassRoom, Department, User, AttendanceRecord, AttendanceSession, Subject, PlacementAttendance
 
 router = APIRouter(prefix="/student", tags=["Student"])
 
@@ -159,6 +159,47 @@ async def get_attendance(
             row_dict[h] = date_hour_map[d_str].get(h, "-")
         datewise.append(row_dict)
 
+    # ═════════════════════════════════════════════════════════════════════════
+    # DUAL-TRACK: Placement Training Attendance (Dedicated Supabase Table)
+    # ═════════════════════════════════════════════════════════════════════════
+    stmt_plc = (
+        select(
+            PlacementAttendance.status,
+            PlacementAttendance.attendance_date,
+            PlacementAttendance.slot_type,
+            PlacementAttendance.training_topic,
+            PlacementAttendance.remarks
+        )
+        .where(PlacementAttendance.student_id == st_id)
+        .order_by(PlacementAttendance.attendance_date.desc())
+    )
+    plc_records = (await db.execute(stmt_plc)).all()
+
+    plc_total = len(plc_records)
+    plc_attended = 0
+    plc_od = 0
+    plc_absent = 0
+    plc_history = []
+    for st_val, p_date, s_type, topic, rem in plc_records:
+        st_clean = (st_val or "").strip().upper()
+        if st_clean == "P":
+            plc_attended += 1
+        elif st_clean in ("OD", "ONDUTY", "ON DUTY"):
+            plc_od += 1
+        elif st_clean == "A":
+            plc_absent += 1
+        d_str = p_date.strftime("%d-%m-%Y") if isinstance(p_date, (date, datetime)) else str(p_date)
+        plc_history.append({
+            "date": d_str,
+            "slot": s_type,
+            "topic": topic or "Placement Training",
+            "status": st_clean,
+            "remarks": rem or ""
+        })
+
+    plc_effective = plc_attended + plc_od
+    plc_pct = round((plc_effective / plc_total) * 100, 1) if plc_total > 0 else 0.0
+
     return {
         "total_hours": total,
         "attended_hours": attended,
@@ -166,4 +207,13 @@ async def get_attendance(
         "percentage": overall_pct,
         "subject_summary": subject_summary,
         "datewise": datewise,
+        # Dedicated Placement Dual-Track Attendance
+        "placement": {
+            "total_sessions": plc_total,
+            "attended_sessions": plc_attended,
+            "absent_sessions": plc_absent,
+            "od_sessions": plc_od,
+            "percentage": plc_pct,
+            "history": plc_history,
+        }
     }

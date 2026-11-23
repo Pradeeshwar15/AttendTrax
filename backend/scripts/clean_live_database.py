@@ -39,7 +39,7 @@ ADMIN_USERNAMES = [
 CORE_DEPARTMENTS = [
     ("CSE", "Department of Computer Science & Engineering", "Dr. Antony Sudha K (HOD CSE)"),
     ("IT", "Department of Information Technology", "Dr. S.Banu Priya (HOD IT)"),
-    ("AIDS", "Department of Artificial Intelligence & Data Science", "Dr. K. Rajesh (HOD AI&DS)"),
+    ("AIDS", "Department of Artificial Intelligence & Data Science", "Dr.A. Tamilarasan (HOD AI&DS)"),
     ("ECE", "Department of Electronics & Communication Engineering", "Dr. Dinesh Babu (HOD ECE)"),
     ("MECH", "Department of Mechanical Engineering", "Dr. V. Anand (HOD MECH)"),
     ("EEE", "Department of Electrical & Electronics Engineering", "Dr. Baskar (HOD EEE)"),

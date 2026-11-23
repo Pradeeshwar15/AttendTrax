@@ -124,6 +124,12 @@
         </span>
         Day-wise History
       </div>
+      <div class="nav-item" data-section="placement">
+        <span class="nav-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+        </span>
+        Placement Training
+      </div>
       <div class="nav-item" data-section="leave">
         <span class="nav-icon">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
@@ -215,32 +221,78 @@
           </div>
         </div>
 
-        <!-- Donut + progress -->
-        <div class="card">
-          <div class="card-header"><h3>📈 Attendance Summary</h3></div>
-          <div class="card-body donut-wrap">
-            <!-- SVG donut -->
-            <div>
-              <svg width="140" height="140" viewBox="0 0 140 140">
-                <circle cx="70" cy="70" r="54" fill="none" stroke="var(--gray-200)" stroke-width="16"/>
-                <circle id="donut-circle" cx="70" cy="70" r="54" fill="none" stroke="#10b981"
-                  stroke-width="16" stroke-linecap="round"
-                  stroke-dasharray="339.29" stroke-dashoffset="339.29"
-                  transform="rotate(-90 70 70)"
-                  style="transition:stroke-dashoffset 1s ease;"/>
-                <text x="70" y="68" text-anchor="middle" font-family="Outfit,sans-serif" font-size="22" font-weight="800" fill="var(--gray-900)" id="donut-text">0%</text>
-                <text x="70" y="86" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="var(--gray-500)">Attendance</text>
-              </svg>
+        <!-- Dual Attendance Summaries Side-by-Side (Option A: Academic & Placement) -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:1.5rem;margin-bottom:1.5rem;">
+          <!-- Card 1: Academic Attendance -->
+          <div class="card" style="margin-bottom:0;">
+            <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+              <h3 style="font-size:1.05rem;">🎓 Academic Attendance</h3>
+              <span class="badge" style="background:#eff6ff;color:#1e40af;font-size:0.72rem;font-weight:700;">CURRICULAR</span>
             </div>
-            <div class="donut-info">
-              <div class="pct-stats">
-                <div class="pct-stat"><span class="label">Total Hours</span><span class="val" id="di-total">—</span></div>
-                <div class="pct-stat"><span class="label">Present</span><span class="val" style="color:#059669;" id="di-attended">—</span></div>
-                <div class="pct-stat"><span class="label">Absent</span><span class="val" style="color:#dc2626;" id="di-absent">—</span></div>
+            <div class="card-body donut-wrap">
+              <!-- SVG donut -->
+              <div>
+                <svg width="130" height="130" viewBox="0 0 140 140">
+                  <circle cx="70" cy="70" r="54" fill="none" stroke="var(--gray-200)" stroke-width="16"/>
+                  <circle id="donut-circle" cx="70" cy="70" r="54" fill="none" stroke="#10b981"
+                    stroke-width="16" stroke-linecap="round"
+                    stroke-dasharray="339.29" stroke-dashoffset="339.29"
+                    transform="rotate(-90 70 70)"
+                    style="transition:stroke-dashoffset 1s ease;"/>
+                  <text x="70" y="68" text-anchor="middle" font-family="Outfit,sans-serif" font-size="22" font-weight="800" fill="var(--gray-900)" id="donut-text">0%</text>
+                  <text x="70" y="86" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="var(--gray-500)">Academic</text>
+                </svg>
               </div>
-              <div id="shortage-warning" class="hidden" style="margin-top:1rem;padding:0.75rem 1rem;background:#fef3c7;border-radius:8px;border-left:4px solid #f59e0b;">
-                <p style="font-size:0.8rem;color:#92400e;font-weight:600;" id="shortage-msg"></p>
+              <div class="donut-info">
+                <div class="pct-stats">
+                  <div class="pct-stat"><span class="label">Total Hours</span><span class="val" id="di-total">—</span></div>
+                  <div class="pct-stat"><span class="label">Present</span><span class="val" style="color:#059669;" id="di-attended">—</span></div>
+                  <div class="pct-stat"><span class="label">Absent</span><span class="val" style="color:#dc2626;" id="di-absent">—</span></div>
+                </div>
+                <div id="shortage-warning" class="hidden" style="margin-top:0.75rem;padding:0.6rem 0.85rem;background:#fef3c7;border-radius:8px;border-left:4px solid #f59e0b;">
+                  <p style="font-size:0.75rem;color:#92400e;font-weight:600;margin:0;" id="shortage-msg"></p>
+                </div>
               </div>
+            </div>
+            <div style="padding:0.6rem 1.25rem;border-top:1px solid var(--gray-100);background:var(--gray-50);font-size:0.72rem;color:var(--gray-500);border-radius:0 0 var(--radius-md) var(--radius-md);">
+              Department Academic Hours · Maintained by Department Faculty
+            </div>
+          </div>
+
+          <!-- Card 2: Placement & Training Attendance -->
+          <div class="card" style="margin-bottom:0;border:1px solid rgba(5,150,105,0.25);">
+            <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(to right, #f0fdf4, #ffffff);">
+              <h3 style="font-size:1.05rem;color:#065f46;">🎯 Placement &amp; Training</h3>
+              <span class="badge" style="background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;font-size:0.72rem;font-weight:700;">ISOLATED REPOSITORY</span>
+            </div>
+            <div class="card-body donut-wrap">
+              <!-- SVG donut for placement -->
+              <div>
+                <svg width="130" height="130" viewBox="0 0 140 140">
+                  <circle cx="70" cy="70" r="54" fill="none" stroke="var(--gray-200)" stroke-width="16"/>
+                  <circle id="donut-circle-plc" cx="70" cy="70" r="54" fill="none" stroke="#059669"
+                    stroke-width="16" stroke-linecap="round"
+                    stroke-dasharray="339.29" stroke-dashoffset="339.29"
+                    transform="rotate(-90 70 70)"
+                    style="transition:stroke-dashoffset 1s ease;"/>
+                  <text x="70" y="68" text-anchor="middle" font-family="Outfit,sans-serif" font-size="22" font-weight="800" fill="#065f46" id="donut-text-plc">0%</text>
+                  <text x="70" y="86" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="var(--gray-500)">Placement</text>
+                </svg>
+              </div>
+              <div class="donut-info">
+                <div class="pct-stats">
+                  <div class="pct-stat"><span class="label">Total Sessions</span><span class="val" id="di-plc-total">0</span></div>
+                  <div class="pct-stat"><span class="label">Attended</span><span class="val" style="color:#059669;" id="di-plc-attended">0</span></div>
+                  <div class="pct-stat"><span class="label">Absent</span><span class="val" style="color:#dc2626;" id="di-plc-absent">0</span></div>
+                  <div class="pct-stat"><span class="label">On-Duty</span><span class="val" style="color:#d97706;" id="di-plc-od">0</span></div>
+                </div>
+                <div id="plc-eligibility-msg" style="margin-top:0.75rem;padding:0.6rem 0.85rem;background:#f0fdf4;border-radius:8px;border-left:4px solid #10b981;font-size:0.75rem;">
+                  Checking placement eligibility...
+                </div>
+              </div>
+            </div>
+            <div style="padding:0.6rem 1.25rem;border-top:1px solid #d1fae5;background:#f8fafc;font-size:0.72rem;color:#047857;border-radius:0 0 var(--radius-md) var(--radius-md);">
+              🗄️ Supabase Table: <code>placement_attendance</code> · Maintained by Training &amp; Placement Dept
             </div>
           </div>
         </div>
@@ -275,6 +327,39 @@
                 </thead>
                 <tbody id="history-tbody">
                   <tr><td colspan="9" class="text-center text-muted" style="padding:2rem;">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── PLACEMENT TRAINING HISTORY ─── -->
+      <section class="section" id="section-placement">
+        <div class="flex justify-between items-center" style="margin-bottom:1.25rem;">
+          <div>
+            <h2>🎯 Placement &amp; Training Repository</h2>
+            <p class="text-xs text-muted" style="margin-top:0.25rem;">
+              Independent tracking of campus placement training runs, technical assessments, mock interviews, and GD sessions recorded into Supabase <code>placement_attendance</code>.
+            </p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrapper">
+              <table class="calendar-table">
+                <thead>
+                  <tr>
+                    <th style="text-align:left;padding:10px 14px;">Date</th>
+                    <th style="text-align:left;padding:10px 14px;">Activity Slot</th>
+                    <th style="text-align:left;padding:10px 14px;">Topic / Session</th>
+                    <th style="text-align:center;padding:10px 14px;">Status</th>
+                    <th style="text-align:left;padding:10px 14px;">Trainer / Faculty</th>
+                    <th style="text-align:left;padding:10px 14px;">Remarks</th>
+                  </tr>
+                </thead>
+                <tbody id="placement-history-tbody">
+                  <tr><td colspan="6" class="text-center text-muted" style="padding:2rem;">Loading placement history…</td></tr>
                 </tbody>
               </table>
             </div>
@@ -740,6 +825,7 @@ const secTitles = {
   overview: 'My Attendance Overview', 
   subjects: 'Subject-wise Attendance', 
   history: 'Day-wise History', 
+  placement: 'Placement & Training Attendance',
   leave: 'Apply Leave / Outpass',
   password: 'Change Password', 
   about: 'About Developers & AttendTrax' 
@@ -837,11 +923,60 @@ async function loadStudentData() {
       document.getElementById('shortage-warning').classList.remove('hidden');
     }
 
+    // ── Dual Attendance: Placement & Training Data ───────────────────────
+    const plc = attendance.placement || {
+      total_sessions: 0,
+      attended_sessions: 0,
+      absent_sessions: 0,
+      od_sessions: 0,
+      percentage: 0.0,
+      history: []
+    };
+
+    const plcTotal = plc.total_sessions || 0;
+    const plcAtt = plc.attended_sessions || 0;
+    const plcAbs = plc.absent_sessions || 0;
+    const plcOd  = plc.od_sessions || 0;
+    const plcPct = plc.percentage || 0.0;
+
+    const elPlcTot = document.getElementById('di-plc-total');
+    if (elPlcTot) elPlcTot.textContent = plcTotal;
+    const elPlcAtt = document.getElementById('di-plc-attended');
+    if (elPlcAtt) elPlcAtt.textContent = plcAtt;
+    const elPlcAbs = document.getElementById('di-plc-absent');
+    if (elPlcAbs) elPlcAbs.textContent = plcAbs;
+    const elPlcOd = document.getElementById('di-plc-od');
+    if (elPlcOd) elPlcOd.textContent = plcOd;
+
+    const donutPlc = document.getElementById('donut-circle-plc');
+    if (donutPlc) {
+      const offsetPlc = CIRCUMFERENCE - (plcPct / 100) * CIRCUMFERENCE;
+      donutPlc.setAttribute('stroke-dashoffset', CIRCUMFERENCE);
+      donutPlc.setAttribute('stroke', plcPct >= 75 ? '#059669' : plcPct >= 60 ? '#f59e0b' : '#ef4444');
+      setTimeout(() => donutPlc.setAttribute('stroke-dashoffset', offsetPlc), 100);
+      const donutTextPlc = document.getElementById('donut-text-plc');
+      if (donutTextPlc) donutTextPlc.textContent = `${plcPct}%`;
+    }
+
+    const plcStatusEl = document.getElementById('plc-eligibility-msg');
+    if (plcStatusEl) {
+      if (plcTotal === 0) {
+        plcStatusEl.innerHTML = '<span style="color:var(--gray-500);">No placement training sessions recorded yet.</span>';
+      } else if (plcPct >= 75) {
+        plcStatusEl.innerHTML = '<span style="color:#059669;font-weight:700;">✅ Eligible for Campus Recruitment Drives</span>';
+      } else {
+        plcStatusEl.innerHTML = `<span style="color:#dc2626;font-weight:700;">⚠️ Placement Turnout ${plcPct}% (Target: 75% for Drive Eligibility)</span>`;
+      }
+    }
+
     // Subjects
     renderSubjectGrid(attendance.subject_summary);
 
     // History
     renderHistory(attendance.datewise);
+
+    // Placement Training History
+    renderPlacementHistory(plc.history || []);
 
   } catch(e) {
     showToast(e.message, 'error');
@@ -894,6 +1029,32 @@ function renderHistory(rows) {
       return `<td class="${cls}" style="padding:4px 8px;">${v === '-' ? '—' : v}</td>`;
     }).join('');
     tbody.innerHTML += `<tr><td style="white-space:nowrap;font-size:0.8rem;padding:6px 12px;">${row.date}</td>${cells}</tr>`;
+  });
+}
+
+// ── Render placement training history ──────────────────────────────────────
+function renderPlacementHistory(rows) {
+  const tbody = document.getElementById('placement-history-tbody');
+  if (!tbody) return;
+  if (!rows || rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted" style="padding:2rem;">No placement training sessions recorded yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = '';
+  rows.forEach(r => {
+    const st = (r.status || 'P').toUpperCase();
+    const stCls = st === 'P' ? 'cal-P' : st === 'A' ? 'cal-A' : 'cal-OD';
+    const stLabel = st === 'P' ? 'Present' : st === 'A' ? 'Absent' : 'On-Duty';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="white-space:nowrap;font-weight:600;font-size:0.82rem;padding:10px 14px;">${escapeHtml(r.attendance_date || '—')}</td>
+      <td style="padding:10px 14px;"><span class="badge" style="background:#ecfdf5;color:#065f46;font-weight:700;font-size:0.75rem;">${escapeHtml(r.slot_label || r.slot_type || 'Training')}</span></td>
+      <td style="font-size:0.85rem;color:var(--gray-800);padding:10px 14px;">${escapeHtml(r.training_topic || 'Training Session')}</td>
+      <td style="text-align:center;padding:10px 14px;"><span class="${stCls}" style="padding:3px 10px;border-radius:4px;display:inline-block;font-size:0.8rem;">${stLabel}</span></td>
+      <td style="font-size:0.82rem;color:var(--gray-600);padding:10px 14px;">${escapeHtml(r.faculty_name || 'Placement Trainer')}</td>
+      <td style="font-size:0.78rem;color:var(--gray-500);padding:10px 14px;">${escapeHtml(r.remarks || '—')}</td>
+    `;
+    tbody.appendChild(tr);
   });
 }
 
