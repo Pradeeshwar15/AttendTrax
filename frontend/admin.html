@@ -1393,10 +1393,26 @@
       <!-- ═══════════ SUBJECTS ═══════════ -->
       <section class="section" id="section-subjects">
         <div class="flex items-center gap-4" style="margin-bottom:1rem;flex-wrap:wrap;">
+          <div class="form-group" id="subject-dept-wrap" style="flex:1;min-width:200px;">
+            <label class="form-label" style="font-weight:700;">Filter by Department</label>
+            <select id="subject-dept-filter" class="form-control" style="font-weight:600;">
+              <option value="ALL">🌐 All Departments</option>
+              <option value="PLACEMENT">🎯 PLACEMENT - Training &amp; Placement</option>
+              <option value="CSE">💻 CSE - Computer Science &amp; Engineering</option>
+              <option value="IT">🌐 IT - Information Technology</option>
+              <option value="AIDS">🤖 AIDS - Artificial Intelligence &amp; Data Science</option>
+              <option value="ECE">📡 ECE - Electronics &amp; Communication</option>
+              <option value="MECH">⚙️ MECH - Mechanical Engineering</option>
+              <option value="EEE">⚡ EEE - Electrical &amp; Electronics</option>
+              <option value="CYBER">🛡️ CYBER - Cyber Security</option>
+              <option value="AIML">🧠 AIML - AI &amp; Machine Learning</option>
+              <option value="SH">📚 SH - Science &amp; Humanities</option>
+            </select>
+          </div>
           <div class="form-group" style="flex:1;min-width:200px;">
             <label class="form-label">Filter by Class</label>
             <select id="subject-class-filter" class="form-control">
-              <option value="">— Select Class —</option>
+              <option value="ALL">🌐 All Classes (View All)</option>
             </select>
           </div>
           <div style="align-self:flex-end;">
@@ -1408,10 +1424,10 @@
             <div class="table-wrapper">
               <table>
                 <thead>
-                  <tr><th>Subject ID</th><th>Subject Name</th><th>Class ID</th><th>Faculty ID</th><th>Actions</th></tr>
+                  <tr><th>Subject ID</th><th>Subject Name</th><th>Department</th><th>Type</th><th>Actions</th></tr>
                 </thead>
                 <tbody id="subjects-tbody">
-                  <tr><td colspan="5" class="text-center text-muted" style="padding:2rem;">Select a class to view subjects.</td></tr>
+                  <tr><td colspan="5" class="text-center text-muted" style="padding:2rem;">Loading subjects...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -4300,48 +4316,84 @@ document.getElementById('add-faculty-btn').addEventListener('click', async () =>
 //  SUBJECTS
 // ════════════════════════════════════════════════════════════════
 async function populateSubjectClassFilter() {
+  const userRole = (getRole() || '').toUpperCase();
+  const curUsername = (getUsername() || '').toLowerCase();
+  const isDeptAdmin = userRole === 'DEPT_ADMIN';
+  let hodDept = '';
+  if (curUsername.startsWith('hod.')) {
+    hodDept = curUsername.replace('hod.', '').toUpperCase();
+  } else if (curUsername.includes('placement')) {
+    hodDept = 'PLACEMENT';
+  }
+
+  const deptSel = document.getElementById('subject-dept-filter');
+  if (deptSel && isDeptAdmin && hodDept) {
+    deptSel.value = hodDept;
+    deptSel.disabled = true;
+  }
+
   const sel = document.getElementById('subject-class-filter');
-  if (sel.options.length > 1) return;
-  const classes = allClasses.length ? allClasses : await api.get('/admin/classes').catch(() => []);
-  const allOpt = document.createElement('option');
-  allOpt.value = 'ALL'; allOpt.textContent = '🌐 All Classes (View All)';
-  sel.appendChild(allOpt);
-  classes.forEach(c => {
-    const o = document.createElement('option');
-    o.value = c.ClassID; o.textContent = c.ClassName;
-    sel.appendChild(o);
-  });
+  if (sel && sel.options.length <= 1) {
+    const classes = allClasses.length ? allClasses : await api.get('/admin/classes').catch(() => []);
+    sel.innerHTML = '<option value="ALL">🌐 All Classes (View All)</option>';
+    classes.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.ClassID; o.textContent = c.ClassName;
+      sel.appendChild(o);
+    });
+  }
+  await loadSubjectsAdmin();
 }
 
-document.getElementById('subject-class-filter').addEventListener('change', async function() {
-  const classId = this.value;
+async function loadSubjectsAdmin() {
   const tbody = document.getElementById('subjects-tbody');
-  if (!classId) { tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:2rem;">Select a class.</td></tr>'; return; }
+  if (!tbody) return;
+  const deptFilter = document.getElementById('subject-dept-filter')?.value || 'ALL';
+  const classId = document.getElementById('subject-class-filter')?.value || 'ALL';
+
   showLoader(true);
   try {
-    const endpoint = classId === 'ALL' ? '/admin/subjects' : `/admin/classes/${classId}/subjects`;
+    let endpoint = '/admin/subjects';
+    const params = new URLSearchParams();
+    if (deptFilter && deptFilter !== 'ALL') params.append('department_code', deptFilter);
+    if (classId && classId !== 'ALL') {
+      endpoint = `/admin/classes/${encodeURIComponent(classId)}/subjects`;
+    } else {
+      const q = params.toString();
+      if (q) endpoint += `?${q}`;
+    }
+
     const subs = await api.get(endpoint);
     tbody.innerHTML = '';
-    if (!subs.length) {
-      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:2rem;">No subjects yet.</td></tr>';
+    if (!subs || !subs.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:2rem;">No subjects found for this selection.</td></tr>';
       return;
     }
+
     subs.forEach(s => {
+      const deptCode = s.Department || s.department || '—';
+      const typeBadge = s.SubjectType === 'LAB' ? 'badge-absent' : 'badge-info';
       tbody.innerHTML += `
         <tr>
-          <td><span class="tag">${s.SubjectID}</span></td>
-          <td class="font-semibold">${s.SubjectName}</td>
-          <td>${s.ClassID}</td>
-          <td>${s.FacultyID || '—'}</td>
+          <td><span class="tag font-mono" style="font-weight:700;">${escapeHtml(s.SubjectID || s.subject_id)}</span></td>
+          <td class="font-semibold">${escapeHtml(s.SubjectName || s.subject_name)}</td>
+          <td><span class="badge badge-info" style="font-size:0.75rem;">${escapeHtml(deptCode)}</span></td>
+          <td><span class="badge ${typeBadge}" style="font-size:0.75rem;">${escapeHtml(s.SubjectType || 'THEORY')}</span></td>
           <td>
-            <button class="btn btn-sm btn-danger del-subject-btn" data-id="${s.SubjectID}" data-name="${s.SubjectName}">🗑️ Remove</button>
+            <button class="btn btn-sm btn-danger del-subject-btn" data-id="${escapeHtml(s.SubjectID || s.subject_id)}" data-name="${escapeHtml(s.SubjectName || s.subject_name)}">🗑️ Remove</button>
           </td>
         </tr>`;
     });
     document.querySelectorAll('.del-subject-btn').forEach(btn => btn.addEventListener('click', deleteSubject));
-  } catch(e) { showToast(e.message,'error'); }
-  finally { showLoader(false); }
-});
+  } catch(e) {
+    showToast(e.message, 'error');
+  } finally {
+    showLoader(false);
+  }
+}
+
+document.getElementById('subject-class-filter')?.addEventListener('change', loadSubjectsAdmin);
+document.getElementById('subject-dept-filter')?.addEventListener('change', loadSubjectsAdmin);
 
 document.getElementById('add-subject-btn').addEventListener('click', async () => {
   const classId = document.getElementById('subject-class-filter').value;
@@ -4352,6 +4404,8 @@ document.getElementById('add-subject-btn').addEventListener('click', async () =>
   let hodDept = 'CSE';
   if (curUsername.startsWith('hod.')) {
     hodDept = curUsername.replace('hod.', '').toUpperCase();
+  } else if (curUsername.includes('placement')) {
+    hodDept = 'PLACEMENT';
   }
 
   const deptHtml = isDeptAdmin
@@ -4363,6 +4417,7 @@ document.getElementById('add-subject-btn').addEventListener('click', async () =>
     : `<div class="form-group">
          <label class="form-label" style="font-weight:700;">Department</label>
          <select data-field="department_code" class="form-control" style="font-weight:600;">
+           <option value="PLACEMENT">🎯 PLACEMENT - Training &amp; Placement</option>
            <option value="CSE" selected>💻 CSE - Computer Science &amp; Engineering</option>
            <option value="IT">🌐 IT - Information Technology</option>
            <option value="AIDS">🤖 AIDS - Artificial Intelligence &amp; Data Science</option>
@@ -4378,9 +4433,15 @@ document.getElementById('add-subject-btn').addEventListener('click', async () =>
   const result = await openFormModal('➕ Add Subject', `
     <div class="form-stack" style="gap:1rem;">
       ${deptHtml}
-      <div class="form-group"><label class="form-label" style="font-weight:700;">Subject Code / ID</label><input data-field="subject_id" class="form-control" placeholder="e.g. CS301" required /></div>
-      <div class="form-group"><label class="form-label" style="font-weight:700;">Subject Name</label><input data-field="subject_name" class="form-control" placeholder="e.g. Data Structures" required /></div>
-      <div class="form-group"><label class="form-label">Faculty ID (optional)</label><input data-field="faculty_id" class="form-control" placeholder="e.g. FAC001" /></div>
+      <div class="form-group"><label class="form-label" style="font-weight:700;">Subject Code / ID</label><input data-field="subject_id" class="form-control" placeholder="e.g. CS301 or PLC101" required /></div>
+      <div class="form-group"><label class="form-label" style="font-weight:700;">Subject Name</label><input data-field="subject_name" class="form-control" placeholder="e.g. Data Structures or Full-Stack Java" required /></div>
+      <div class="form-group"><label class="form-label">Subject Type</label>
+        <select data-field="subject_type" class="form-control">
+          <option value="THEORY" selected>THEORY</option>
+          <option value="LAB">LAB / PRACTICAL</option>
+          <option value="TRAINING">TRAINING / PLACEMENT</option>
+        </select>
+      </div>
     </div>`);
   if (!result?.subject_id || !result?.subject_name) return;
   showLoader(true);
@@ -4392,7 +4453,7 @@ document.getElementById('add-subject-btn').addEventListener('click', async () =>
     };
     await api.post('/admin/subjects', payload);
     showToast(`Subject '${result.subject_name}' added!`,'success');
-    document.getElementById('subject-class-filter').dispatchEvent(new Event('change'));
+    await loadSubjectsAdmin();
   } catch(e) { showToast(e.message,'error'); }
   finally { showLoader(false); }
 });
@@ -4406,8 +4467,10 @@ async function deleteSubject(e) {
   try {
     await api.delete(`/admin/subjects/${id}`);
     showToast('Subject deactivated.','success');
-    document.getElementById('subject-class-filter').dispatchEvent(new Event('change'));
+    await loadSubjectsAdmin();
   } catch(e) { showToast(e.message,'error'); }
+  finally { showLoader(false); }
+}
   finally { showLoader(false); }
 }
 

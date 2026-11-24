@@ -115,7 +115,9 @@ async def test_suite():
             await session.refresh(test_sub)
             print(f"  ✓ Created test subject: {test_sub.subject_code} - {test_sub.name} in department ID {cse_dept.id}")
         else:
-            print(f"  ✓ Test subject exists: {test_sub.subject_code} - {test_sub.name}")
+            test_sub.is_active = True
+            await session.commit()
+            print(f"  ✓ Test subject exists & reactivated: {test_sub.subject_code} - {test_sub.name}")
 
         # Verify subject query scoped to CSE class
         class_res = await session.execute(select(ClassRoom).where(ClassRoom.department_id == cse_dept.id).limit(1))

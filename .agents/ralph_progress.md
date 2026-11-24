@@ -1,23 +1,20 @@
-# Ralph Loop Progress Tracker - Placement Attendance Sandboxing
+# Ralph Loop Progress Tracker: Dynamic Department Subjects & Placement Attendance
 
-## Active Goal
-Establish completely separate `placement_attendance` table in Supabase, implement multi-slot placement faculty marking across all departments, isolate Placement HOD dashboard from academic attendance, shield Principal from placement records, and display side-by-side dual attendance on the Student portal.
+**Active Goal**: Replace hardcoded placement subject dropdowns with dynamic department-scoped subjects in Supabase, require subject selection before loading students in faculty attendance, and provide first-class subject management for all departments (including Placement).
 
-## Execution Checklist
-- [x] Phase 1: Database Model & Supabase Schema Sync (`backend/models.py`)
-- [x] Phase 2: Placement Faculty Multi-Slot Marking & Ingestion (`backend/routers/faculty_router.py`)
-- [x] Phase 3: Analytics Sandboxing (`backend/services/sql_analytics.py`, `backend/routers/admin_router.py`, `backend/routers/executive_router.py`)
-- [x] Phase 4: Student Portal Dual Attendance (`backend/routers/student_router.py`, `frontend/student.html`)
-- [x] Phase 5: Faculty & Admin Portal UI Enhancements (`frontend/faculty.html`, `frontend/admin.html`)
-- [x] Phase 6: Automated End-to-End Testing & Self-Healing Verification (`backend/scripts/test_placement_attendance_sandbox.py`)
-- [x] Phase 7: Restart Server, Push to Git, and Final Walkthrough Artifact
+## Status Checklist
+- [x] Research existing subject models, admin endpoints, and faculty dropdowns
+- [x] Create comprehensive implementation plan artifact (`department_subjects_and_dynamic_placement_attendance_plan.md`)
+- [x] User review & approval of the implementation plan
+- [x] Step 1: Update `backend/routers/admin_router.py` for full Placement department subject management
+- [x] Step 2: Update `backend/routers/faculty_router.py` to dynamically return department-scoped subjects for Placement vs Academic faculty
+- [x] Step 3: Update `frontend/admin.html` Subjects tab with department filter and Placement option
+- [x] Step 4: Update `frontend/faculty.html` to dynamically render department subjects and enforce selection before loading students
+- [x] Step 5: Automated test verification (`backend/scripts/test_dynamic_department_subjects.py`)
+- [x] Step 6: Restart servers, verify end-to-end, and push to GitHub
 
-## Current Status
-- All 7 Phases Fully Completed & Verified:
-  1. `placement_attendance` exists in live Supabase PostgreSQL with 11 columns and unique constraint `idx_placement_att_unique`.
-  2. Multi-slot training drop-down integrated: `training_classes`, `technical_assessment`, `leetcode_hackerrank`, `mock_interview`, `gd_session`, `placement_meets`.
-  3. Placement faculty can mark attendance across all 9 departments class-wise into `placement_attendance`.
-  4. Placement HOD dashboard queries strictly from `placement_attendance` with 0% academic leakage.
-  5. Principal and Academic HODs view strictly academic attendance with 0% placement leakage.
-  6. Student portal renders Option A: Dual-Track Attendance side-by-side (Academic card + Placement Training card) with full session history.
-  7. Automated test suite `backend/scripts/test_placement_attendance_sandbox.py` passed 6/6 tests against live Supabase database.
+## Completed Verification
+- `test_dynamic_department_subjects.py`: PASSED (Step 1-6 verified)
+- `test_performance_and_willingness.py`: PASSED
+- `test_attendance_extensions.py`: PASSED
+- `test_placement_attendance_sandbox.py`: PASSED

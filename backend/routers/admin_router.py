@@ -375,7 +375,7 @@ async def list_all_subjects(
     hod_dept = _resolve_hod_dept_code(current_user) if user_role == "DEPT_ADMIN" else ""
 
     stmt = select(Subject, Department).join(Department, Subject.department_id == Department.id).where(Subject.is_active == True)
-    if user_role == "DEPT_ADMIN" and hod_dept and hod_dept != "PLACEMENT":
+    if user_role == "DEPT_ADMIN" and hod_dept:
         stmt = stmt.where(Department.code == hod_dept)
     elif department_code and department_code.strip().upper() != "ALL":
         clean_dept = _normalize_dept_code(department_code)
@@ -437,6 +437,7 @@ async def add_subject(
     hod_dept = _resolve_hod_dept_code(current_user) if user_role == "DEPT_ADMIN" else ""
     
     target_dept_code = hod_dept if (user_role == "DEPT_ADMIN" and hod_dept) else (body.department_code or "CSE").strip().upper()
+    target_dept_code = _normalize_dept_code(target_dept_code)
     
     d_stmt = select(Department).where(Department.code == target_dept_code)
     dept_obj = (await db.execute(d_stmt)).scalar_one_or_none()
@@ -475,7 +476,9 @@ async def delete_subject(
     stmt = select(Subject).where(Subject.subject_code == clean_code)
     existing = (await db.execute(stmt)).scalar_one_or_none()
     if existing:
-        existing.status = "INACTIVE"
+        existing.is_active = False
+        if hasattr(existing, "status"):
+            existing.status = "INACTIVE"
         await db.commit()
     return {"message": "Subject deactivated."}
 

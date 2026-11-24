@@ -109,8 +109,19 @@ async def list_subjects(
     current_user: dict = _faculty_dep,
     db: AsyncSession = Depends(get_db),
 ):
-    """Return subjects assigned to a class or department (Fast SQL query)."""
+    """Return subjects assigned to a class or department (Fast SQL query).
+    Placement faculties get Placement Department subjects across all classes.
+    Academic faculties get that specific class/department's subjects.
+    """
     try:
+        # If placement faculty, always return Placement Department subjects
+        if is_placement_user(current_user):
+            d_stmt = select(Department.id).where(Department.code == "PLACEMENT")
+            plc_dept_id = (await db.execute(d_stmt)).scalar_one_or_none()
+            stmt = select(Subject).where(and_(Subject.is_active == True, Subject.department_id == plc_dept_id)).order_by(Subject.subject_code)
+            subjs = (await db.execute(stmt)).scalars().all()
+            return [{"SubjectID": s.subject_code, "SubjectName": s.subject_name or getattr(s, "name", s.subject_code)} for s in subjs]
+
         # 1. Resolve Class to find its department
         if str(class_id).isdigit():
             cls_stmt = select(ClassRoom).where(or_(ClassRoom.class_code == str(class_id), ClassRoom.id == int(class_id)))
@@ -133,9 +144,35 @@ async def list_subjects(
         stmt = stmt.order_by(Subject.subject_code)
 
         subjs = (await db.execute(stmt)).scalars().all()
-        return [{"SubjectID": s.subject_code, "SubjectName": s.subject_name or s.name} for s in subjs]
+        return [{"SubjectID": s.subject_code, "SubjectName": s.subject_name or getattr(s, "name", s.subject_code)} for s in subjs]
     except Exception as exc:
         print(f"[Faculty Router Notice] SQL query error: {exc}")
+        return []
+
+
+@router.get("/subjects")
+async def list_faculty_department_subjects(
+    current_user: dict = _faculty_dep,
+    db: AsyncSession = Depends(get_db),
+):
+    """Return active subjects for the logged-in faculty member's department."""
+    try:
+        if is_placement_user(current_user):
+            d_stmt = select(Department.id).where(Department.code == "PLACEMENT")
+            dept_id = (await db.execute(d_stmt)).scalar_one_or_none()
+        else:
+            dept_code = current_user.get("department", "") or current_user.get("department_code", "")
+            d_stmt = select(Department.id).where(Department.code == dept_code.upper()) if dept_code else None
+            dept_id = (await db.execute(d_stmt)).scalar_one_or_none() if d_stmt is not None else None
+
+        stmt = select(Subject).where(Subject.is_active == True)
+        if dept_id:
+            stmt = stmt.where(Subject.department_id == dept_id)
+        stmt = stmt.order_by(Subject.subject_code)
+        subjs = (await db.execute(stmt)).scalars().all()
+        return [{"SubjectID": s.subject_code, "SubjectName": s.subject_name or getattr(s, "name", s.subject_code)} for s in subjs]
+    except Exception as exc:
+        print(f"[Faculty Router Notice] SQL subjects error: {exc}")
         return []
 
 
