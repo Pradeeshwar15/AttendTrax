@@ -10,7 +10,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from fastapi.responses import Response
 from pydantic import BaseModel
-from sqlalchemy import select, and_, or_, desc, case, func, insert
+from sqlalchemy import select, and_, or_, desc, case, func, insert, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth import hash_password, hash_passwords_bulk
@@ -67,6 +67,44 @@ def _parse_date_cell(val) -> str:
         except ValueError:
             pass
     return val_str
+
+
+def _normalize_residence_type(val: Optional[str]) -> str:
+    """Normalize residence type to HOSTELLER or DAY_SCHOLAR."""
+    v = str(val or "").strip().upper()
+    if not v:
+        return "DAY_SCHOLAR"
+    if v in ("HOSTELLER", "HOSTELER", "HOSTEL", "H", "ROSTER"):
+        return "HOSTELLER"
+    if v in ("DAY_SCHOLAR", "DAYSCHOLAR", "DAY SCHOLAR", "DS", "D", "SCHOLAR", "THEIR SCHOLAR", "THEIR_SCHOLAR"):
+        return "DAY_SCHOLAR"
+    if "HOST" in v:
+        return "HOSTELLER"
+    return "DAY_SCHOLAR"
+
+
+def _normalize_gender(val: Optional[str]) -> Optional[str]:
+    """Normalize gender to MALE, FEMALE, OTHER, or None."""
+    v = str(val or "").strip().upper()
+    if not v:
+        return None
+    if v in ("MALE", "M", "BOY", "BOYS"):
+        return "MALE"
+    if v in ("FEMALE", "F", "GIRL", "GIRLS"):
+        return "FEMALE"
+    if v in ("OTHER", "OTHERS", "O", "TRANSGENDER"):
+        return "OTHER"
+    return v
+
+
+def _normalize_placement_willingness(val: Optional[str]) -> str:
+    """Normalize placement willingness to 'active' or 'inactive'."""
+    v = str(val or "").strip().lower()
+    if not v:
+        return "active"
+    if v in ("inactive", "unwilling", "excluded", "no", "false", "0", "disable"):
+        return "inactive"
+    return "active"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -491,9 +529,24 @@ class AddStudentRequest(BaseModel):
     name: str
     class_id: str
     class_name: Optional[str] = ""
+    roll_no: Optional[str] = None
+    gender: Optional[str] = None
+    residence_type: Optional[str] = "DAY_SCHOLAR"
+    hostel_block_room: Optional[str] = None
+    placement_willingness: Optional[str] = "active"
     # Student login credentials
     username: Optional[str] = None   # defaults to name or reg_no
     password: Optional[str] = None   # defaults to reg_no
+
+
+class UpdateStudentRequest(BaseModel):
+    name: Optional[str] = None
+    class_id: Optional[str] = None
+    roll_no: Optional[str] = None
+    gender: Optional[str] = None
+    residence_type: Optional[str] = None
+    hostel_block_room: Optional[str] = None
+    placement_willingness: Optional[str] = None
 
 
 @router.get("/students")
@@ -501,6 +554,9 @@ async def list_all_students(
     class_id: Optional[str] = None,
     department_code: Optional[str] = None,
     year: Optional[str] = None,
+    residence_type: Optional[str] = None,
+    gender: Optional[str] = None,
+    placement_willingness: Optional[str] = None,
     current_user: dict = _admin_dep,
     db: AsyncSession = Depends(get_db),
 ):
@@ -525,17 +581,38 @@ async def list_all_students(
         clean_dept = _normalize_dept_code(department_code)
         stmt = stmt.where(Department.code == clean_dept)
 
-    if year and str(year).strip():
+    if year and str(year).strip() and str(year).strip().upper() != "ALL":
         yr_val = int(year) if str(year).isdigit() else 1
         stmt = stmt.where(ClassRoom.year == yr_val)
+
+    if residence_type and residence_type.strip().upper() != "ALL":
+        norm_res = _normalize_residence_type(residence_type)
+        stmt = stmt.where(Student.residence_type == norm_res)
+
+    if gender and gender.strip().upper() != "ALL":
+        norm_gen = _normalize_gender(gender)
+        if norm_gen:
+            stmt = stmt.where(Student.gender == norm_gen)
+
+    if placement_willingness and placement_willingness.strip().upper() != "ALL":
+        norm_will = _normalize_placement_willingness(placement_willingness)
+        stmt = stmt.where(Student.placement_willingness == norm_will)
 
     rows = (await db.execute(stmt)).all()
     return [
         {
             "RegNo": s.reg_no,
             "reg_no": s.reg_no,
+            "RollNo": s.roll_no or "",
+            "roll_no": s.roll_no or "",
             "Name": s.name,
             "name": s.name,
+            "Gender": s.gender or "",
+            "gender": s.gender or "",
+            "ResidenceType": s.residence_type or "DAY_SCHOLAR",
+            "residence_type": s.residence_type or "DAY_SCHOLAR",
+            "HostelBlockRoom": s.hostel_block_room or "",
+            "hostel_block_room": s.hostel_block_room or "",
             "ClassID": c.class_code,
             "class_id": c.class_code,
             "ClassName": c.class_name,
@@ -569,8 +646,16 @@ async def list_students(
         {
             "RegNo": s.reg_no,
             "reg_no": s.reg_no,
+            "RollNo": s.roll_no or "",
+            "roll_no": s.roll_no or "",
             "Name": s.name,
             "name": s.name,
+            "Gender": s.gender or "",
+            "gender": s.gender or "",
+            "ResidenceType": s.residence_type or "DAY_SCHOLAR",
+            "residence_type": s.residence_type or "DAY_SCHOLAR",
+            "HostelBlockRoom": s.hostel_block_room or "",
+            "hostel_block_room": s.hostel_block_room or "",
             "ClassID": clean_cid,
             "class_id": clean_cid,
             "Status": s.status,
@@ -639,6 +724,12 @@ async def add_student(
         dept_id_fk = dept_obj.id
 
     clean_regno = body.reg_no.strip()
+    clean_roll = body.roll_no.strip() if body.roll_no and body.roll_no.strip() else None
+    norm_gender = _normalize_gender(body.gender)
+    norm_residence = _normalize_residence_type(body.residence_type)
+    clean_hostel = body.hostel_block_room.strip() if body.hostel_block_room and body.hostel_block_room.strip() else None
+    norm_placement = _normalize_placement_willingness(body.placement_willingness)
+
     username = (body.username or clean_regno).strip()
     pwd = (body.password or f"{clean_regno}@2026").strip()
     pwd_hash = hash_password(pwd)
@@ -659,6 +750,7 @@ async def add_student(
         await db.flush()
     else:
         u_obj.password_hash = pwd_hash
+        u_obj.full_name = body.name.strip()
         u_obj.status = "ACTIVE"
         u_obj.department_id = dept_id_fk
 
@@ -672,7 +764,11 @@ async def add_student(
             class_id=cls_id_fk,
             department_id=dept_id_fk,
             name=body.name.strip(),
-            residence_type="DAY_SCHOLAR",
+            roll_no=clean_roll,
+            gender=norm_gender,
+            residence_type=norm_residence,
+            hostel_block_room=clean_hostel,
+            placement_willingness=norm_placement,
             status="ACTIVE"
         )
         db.add(st_obj)
@@ -680,11 +776,68 @@ async def add_student(
         st_obj.class_id = cls_id_fk
         st_obj.department_id = dept_id_fk
         st_obj.name = body.name.strip()
+        if clean_roll is not None:
+            st_obj.roll_no = clean_roll
+        if norm_gender is not None:
+            st_obj.gender = norm_gender
+        st_obj.residence_type = norm_residence
+        if clean_hostel is not None:
+            st_obj.hostel_block_room = clean_hostel
+        st_obj.placement_willingness = norm_placement
         st_obj.status = "ACTIVE"
 
     await db.commit()
     _ADMIN_ANALYTICS_CACHE.clear()
-    return {"message": f"Student '{body.name}' ({clean_regno}) added with login '{username}'."}
+    return {"message": f"Student '{body.name}' ({clean_regno}) saved with login '{username}'."}
+
+
+@router.patch("/students/{reg_no}")
+async def update_student(
+    reg_no: str,
+    body: UpdateStudentRequest,
+    current_user: dict = _admin_dep,
+    db: AsyncSession = Depends(get_db)
+):
+    clean_rn = reg_no.strip()
+    stmt = select(Student).where(Student.reg_no == clean_rn)
+    st_obj = (await db.execute(stmt)).scalar_one_or_none()
+    if not st_obj:
+        raise HTTPException(status_code=404, detail=f"Student '{clean_rn}' not found.")
+
+    if body.name is not None and body.name.strip():
+        st_obj.name = body.name.strip()
+        if st_obj.user_id:
+            u_stmt = select(User).where(User.id == st_obj.user_id)
+            u_obj = (await db.execute(u_stmt)).scalar_one_or_none()
+            if u_obj:
+                u_obj.full_name = st_obj.name
+
+    if body.roll_no is not None:
+        st_obj.roll_no = body.roll_no.strip() if body.roll_no.strip() else None
+
+    if body.gender is not None:
+        st_obj.gender = _normalize_gender(body.gender)
+
+    if body.residence_type is not None:
+        st_obj.residence_type = _normalize_residence_type(body.residence_type)
+
+    if body.hostel_block_room is not None:
+        st_obj.hostel_block_room = body.hostel_block_room.strip() if body.hostel_block_room.strip() else None
+
+    if body.placement_willingness is not None:
+        st_obj.placement_willingness = _normalize_placement_willingness(body.placement_willingness)
+
+    if body.class_id is not None and body.class_id.strip():
+        clean_cid = body.class_id.strip().upper()
+        cls_stmt = select(ClassRoom).where(ClassRoom.class_code == clean_cid)
+        cls_obj = (await db.execute(cls_stmt)).scalar_one_or_none()
+        if cls_obj:
+            st_obj.class_id = cls_obj.id
+            st_obj.department_id = cls_obj.department_id
+
+    await db.commit()
+    _ADMIN_ANALYTICS_CACHE.clear()
+    return {"message": f"Student '{clean_rn}' updated successfully."}
 
 
 @router.delete("/students/{reg_no}")
@@ -2104,7 +2257,100 @@ async def export_class_attendance_matrix_csv(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# BULK IMPORT – STUDENTS (High-Speed Multi-Setup Excel Upload)
+# DOWNLOAD STUDENT BULK IMPORT TEMPLATE (.xlsx)
+# ─────────────────────────────────────────────────────────────────────────────
+@router.get("/template/students")
+async def download_student_template(
+    current_user: dict = _admin_dep,
+):
+    """
+    Generate and serve standard Excel (.xlsx) onboarding template with data validation dropdowns:
+    - Columns: Register No, Roll No, Student Name, Gender, Scholar Type, Class ID, Hostel Room, Placement Standing, Username, Password.
+    - Embedded dropdown validations for Gender (MALE, FEMALE, OTHER), Scholar Type (DAY_SCHOLAR, HOSTELLER), and Placement Standing (active, inactive).
+    """
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.worksheet.datavalidation import DataValidation
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Student Onboarding"
+
+    headers = [
+        "Register No",
+        "Roll No",
+        "Student Name",
+        "Gender",
+        "Scholar Type",
+        "Class ID",
+        "Hostel Room",
+        "Placement Standing",
+        "Username",
+        "Password"
+    ]
+    ws.append(headers)
+
+    sample_rows = [
+        ["410123104001", "23CS001", "Aarav Sharma", "MALE", "HOSTELLER", "CSE3A", "B-Block 204", "active", "410123104001", "410123104001@2026"],
+        ["410123104002", "23CS002", "Deepika Raman", "FEMALE", "DAY_SCHOLAR", "CSE3A", "", "active", "410123104002", "410123104002@2026"],
+        ["410123104003", "23CS003", "Karthik Vijay", "MALE", "DAY_SCHOLAR", "CSE3A", "", "inactive", "410123104003", "410123104003@2026"],
+    ]
+    for r in sample_rows:
+        ws.append(r)
+
+    # Style Header: Institutional Navy #1B365D with crisp white text
+    header_fill = PatternFill(start_color="1B365D", end_color="1B365D", fill_type="solid")
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    thin_border = Border(
+        left=Side(style="thin", color="CBD5E1"),
+        right=Side(style="thin", color="CBD5E1"),
+        top=Side(style="thin", color="CBD5E1"),
+        bottom=Side(style="thin", color="CBD5E1")
+    )
+    for col_num in range(1, len(headers) + 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+    # Dropdown Validations
+    dv_gender = DataValidation(type="list", formula1='"MALE,FEMALE,OTHER"', allow_blank=True)
+    ws.add_data_validation(dv_gender)
+    dv_gender.add("D2:D1000")
+
+    dv_scholar = DataValidation(type="list", formula1='"DAY_SCHOLAR,HOSTELLER"', allow_blank=True)
+    ws.add_data_validation(dv_scholar)
+    dv_scholar.add("E2:E1000")
+
+    dv_placement = DataValidation(type="list", formula1='"active,inactive"', allow_blank=True)
+    ws.add_data_validation(dv_placement)
+    dv_placement.add("H2:H1000")
+
+    # Column widths
+    col_widths = {1: 18, 2: 14, 3: 24, 4: 14, 5: 16, 6: 14, 7: 18, 8: 20, 9: 18, 10: 18}
+    for col_idx, width in col_widths.items():
+        col_letter = openpyxl.utils.get_column_letter(col_idx)
+        ws.column_dimensions[col_letter].width = width
+
+    ws.freeze_panes = "A2"
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    filename = "Adhi_Student_Bulk_Template.xlsx"
+    return Response(
+        content=output.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Access-Control-Expose-Headers": "Content-Disposition",
+        }
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BULK IMPORT – STUDENTS (High-Speed Multi-Setup Excel/CSV Upload)
 # ─────────────────────────────────────────────────────────────────────────────
 @router.post("/import/students")
 async def import_students(
@@ -2114,27 +2360,54 @@ async def import_students(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    High-Speed Bulk Student Onboarding:
-    - Zero Google Sheets overhead.
-    - Multithreaded password hashing (< 0.8s for 500-1,000 accounts). Default password: {RegNo}@2026.
-    - Single-transaction atomic commit directly to Supabase PostgreSQL.
+    High-Speed Bulk Student Onboarding & Upsert:
+    - Supports both .xlsx and .csv formats.
+    - Captures Register No, Roll No (Roster), Student Name, Gender, Scholar Type (Day Scholar / Hosteller),
+      Hostel Room, Placement Standing (active / inactive), Class ID, Username, and Password.
+    - Upserts existing student records while inserting new students.
+    - Multithreaded password hashing (< 0.8s for 500-1,000 accounts).
     """
     import openpyxl
 
     user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
     hod_dept = _resolve_hod_dept_code(current_user)
 
-    if not file.filename.lower().endswith(".xlsx"):
-        raise HTTPException(status_code=400, detail="Only .xlsx files are supported.")
+    fname_lower = (file.filename or "").lower()
+    if not (fname_lower.endswith(".xlsx") or fname_lower.endswith(".csv")):
+        raise HTTPException(status_code=400, detail="Only .xlsx and .csv files are supported.")
 
     contents = await file.read()
-    wb = openpyxl.load_workbook(io.BytesIO(contents), data_only=True)
-    ws_xl = wb.active
+    if fname_lower.endswith(".csv"):
+        text = contents.decode("utf-8-sig", errors="replace")
+        csv_rows = list(csv.reader(io.StringIO(text)))
+        if not csv_rows:
+            raise HTTPException(status_code=400, detail="Uploaded CSV file is empty.")
+        raw_headers = [str(c).strip() for c in csv_rows[0]]
+        data_rows = csv_rows[1:]
+    else:
+        wb = openpyxl.load_workbook(io.BytesIO(contents), data_only=True)
+        ws_xl = wb.active
+        raw_headers = [str(c.value).strip() if c.value is not None else "" for c in next(ws_xl.iter_rows(max_row=1))]
+        data_rows = [
+            [cell for cell in row]
+            for row in ws_xl.iter_rows(min_row=2, values_only=True)
+        ]
 
-    raw_headers = [str(c.value).strip() if c.value is not None else "" for c in next(ws_xl.iter_rows(max_row=1))]
+    # Resolve column mappings
+    reg_col       = _find_col(["regno", "reg_no", "registerno", "registernumber", "registernum", "regnum", "registrationno"], raw_headers)
+    roll_col      = _find_col(["rollno", "roll_no", "rollnumber", "roster", "rosterno", "roll"], raw_headers)
+    if reg_col == -1 and roll_col != -1 and _find_col(["registerno", "regno"], raw_headers) == -1:
+        # Fallback only if no explicit reg_col
+        reg_col = roll_col
+        roll_col = -1
+    elif reg_col == -1:
+        reg_col = _find_col(["rollno", "roll_no", "rollnumber"], raw_headers)
 
-    reg_col       = _find_col(["regno", "reg_no", "registerno", "rollno", "rollnumber", "registernum", "regnum", "registrationno"], raw_headers)
     name_col      = _find_col(["name", "studentname", "fullname", "studentfullname", "sname"], raw_headers)
+    gender_col    = _find_col(["gender", "sex"], raw_headers)
+    residence_col = _find_col(["scholartype", "scholar", "residencetype", "residence", "hostelordayscholar", "dayorhostel", "rosterorscholar", "theirscholar"], raw_headers)
+    hostel_col    = _find_col(["hostelblockroom", "hostelroom", "hostelblock", "roomno", "hostel_block_room", "room"], raw_headers)
+    placement_col = _find_col(["placementstanding", "placementwillingness", "placement", "placementstatus"], raw_headers)
     class_col     = _find_col(["classid", "class", "section", "classcode"], raw_headers)
     classname_col = _find_col(["classname", "class_name", "department", "dept"], raw_headers)
     username_col  = _find_col(["username", "user", "uname", "loginname"], raw_headers)
@@ -2156,9 +2429,9 @@ async def import_students(
     cand_classes = set()
     errors = []
 
-    for row_num, row in enumerate(ws_xl.iter_rows(min_row=2, values_only=True), start=2):
-        reg_no = str(row[reg_col]).strip() if reg_col < len(row) and row[reg_col] is not None else ""
-        name   = str(row[name_col]).strip() if name_col < len(row) and row[name_col] is not None else ""
+    for row_num, row in enumerate(data_rows, start=2):
+        reg_no = str(row[reg_col]).strip() if reg_col != -1 and reg_col < len(row) and row[reg_col] is not None else ""
+        name   = str(row[name_col]).strip() if name_col != -1 and name_col < len(row) and row[name_col] is not None else ""
         
         row_class = str(row[class_col]).strip() if class_col != -1 and class_col < len(row) and row[class_col] is not None else ""
         target_class_id = (row_class or (class_id.strip() if class_id else "")).strip().upper()
@@ -2173,7 +2446,7 @@ async def import_students(
             errors.append(f"Row {row_num}: Student name is required (reg: {reg_no}).")
             continue
         if not target_class_id:
-            errors.append(f"Row {row_num} ({reg_no}): ClassID is missing. Specify in Excel or select a class.")
+            errors.append(f"Row {row_num} ({reg_no}): ClassID is missing. Specify in file or select a class.")
             continue
 
         # Sandboxing check for Academic HODs
@@ -2182,11 +2455,16 @@ async def import_students(
                 errors.append(f"Row {row_num} ({reg_no}): Class '{target_class_id}' does not belong to your department ({hod_dept}).")
                 continue
 
+        row_roll = str(row[roll_col]).strip() if roll_col != -1 and roll_col < len(row) and row[roll_col] is not None else ""
+        row_gender = str(row[gender_col]).strip() if gender_col != -1 and gender_col < len(row) and row[gender_col] is not None else ""
+        row_residence = str(row[residence_col]).strip() if residence_col != -1 and residence_col < len(row) and row[residence_col] is not None else ""
+        row_hostel = str(row[hostel_col]).strip() if hostel_col != -1 and hostel_col < len(row) and row[hostel_col] is not None else ""
+        row_placement = str(row[placement_col]).strip() if placement_col != -1 and placement_col < len(row) and row[placement_col] is not None else ""
         row_classname = str(row[classname_col]).strip() if classname_col != -1 and classname_col < len(row) and row[classname_col] is not None else ""
         row_username = str(row[username_col]).strip() if username_col != -1 and username_col < len(row) and row[username_col] is not None else ""
         row_password = str(row[password_col]).strip() if password_col != -1 and password_col < len(row) and row[password_col] is not None else ""
 
-        raw_rows.append((row_num, reg_no, name, target_class_id, row_classname, row_username, row_password))
+        raw_rows.append((row_num, reg_no, name, row_roll, row_gender, row_residence, row_hostel, row_placement, target_class_id, row_classname, row_username, row_password))
         cand_regnos.add(reg_no.lower())
         cand_classes.add(target_class_id)
 
@@ -2201,16 +2479,13 @@ async def import_students(
             "status": "success",
             "message": "No student records found in file.",
             "inserted": 0,
-            "skipped": 0,
+            "updated": 0,
             "total": 0,
         }
 
-    # 1. Targeted SQL lookups (only for items in this upload)
-    stmt_existing_reg = select(Student.reg_no).where(func.lower(Student.reg_no).in_(list(cand_regnos)))
-    existing_regnos = {
-        str(r).strip().lower()
-        for r in (await db.execute(stmt_existing_reg)).scalars().all()
-    }
+    # 1. Fetch existing students & classes from SQL
+    stmt_existing = select(Student).where(func.lower(Student.reg_no).in_(list(cand_regnos)))
+    existing_students = {s.reg_no.lower(): s for s in (await db.execute(stmt_existing)).scalars().all()}
 
     stmt_classes = select(ClassRoom).where(ClassRoom.class_code.in_(list(cand_classes)))
     all_sql_classes = (await db.execute(stmt_classes)).scalars().all()
@@ -2222,50 +2497,14 @@ async def import_students(
     dept_map = {d.code.upper(): d for d in all_depts}
     default_dept = dept_map.get("CSE") or (all_depts[0] if all_depts else None)
 
-    parsed_rows = []
-    skipped = 0
-    seen_usernames = set()
+    # 2. Batch create missing classes if any
+    needed_classes = {}
+    for r in raw_rows:
+        t_cid = r[8]
+        t_cname = r[9] or class_name_map.get(t_cid, t_cid)
+        if t_cid not in class_map and t_cid not in needed_classes:
+            needed_classes[t_cid] = t_cname
 
-    for _, reg_no, name, target_class_id, row_classname, row_username, row_password in raw_rows:
-        if reg_no.lower() in existing_regnos:
-            skipped += 1
-            continue
-
-        target_class_name = row_classname or class_name_map.get(target_class_id, target_class_id)
-        final_username = row_username or reg_no
-        final_password = row_password or f"{reg_no}@2026"
-
-        if final_username.lower() in seen_usernames:
-            final_username = f"{final_username}_{reg_no}"
-        seen_usernames.add(final_username.lower())
-        existing_regnos.add(reg_no.lower())
-
-        parsed_rows.append({
-            "reg_no": reg_no,
-            "name": name,
-            "target_class_id": target_class_id,
-            "target_class_name": target_class_name,
-            "username": final_username,
-            "password": final_password,
-        })
-
-    if errors:
-        raise HTTPException(
-            status_code=422,
-            detail={"message": "Errors encountered in upload:", "errors": errors[:25]},
-        )
-
-    if not parsed_rows:
-        return {
-            "status": "success",
-            "message": f"Multi-setup complete: 0 new students added, {skipped} skipped (already existed).",
-            "inserted": 0,
-            "skipped": skipped,
-            "total": skipped,
-        }
-
-    # 3. Batch create missing classes if any
-    needed_classes = {p["target_class_id"]: p["target_class_name"] for p in parsed_rows if p["target_class_id"] not in class_map}
     if needed_classes:
         for cid_code, cname in needed_classes.items():
             c_dept_code = hod_dept or "CSE"
@@ -2288,51 +2527,124 @@ async def import_students(
             class_name_map[cid_code] = cname
         await db.flush()
 
-    # 4. Multithreaded password hashing (< 0.8s for 500-1,000 accounts)
-    passwords_list = [p["password"] for p in parsed_rows]
-    hashes = hash_passwords_bulk(passwords_list, rounds=8)
+    parsed_new_rows = []
+    updated_count = 0
+    seen_usernames = set()
 
-    # 5. High-speed multi-row bulk SQL insertion (2 network round-trips total)
-    user_dicts = []
-    for item, pwd_hash in zip(parsed_rows, hashes):
-        cls_obj = class_map[item["target_class_id"]]
-        user_dicts.append({
-            "username": item["username"],
-            "full_name": item["name"],
-            "password_hash": pwd_hash,
-            "role": "STUDENT",
-            "department_id": cls_obj.department_id,
-            "status": "ACTIVE"
+    # Track user IDs for name updates on existing students
+    user_ids_to_update_name = {}
+
+    for (row_num, reg_no, name, row_roll, row_gender, row_residence, row_hostel, row_placement,
+         target_class_id, row_classname, row_username, row_password) in raw_rows:
+
+        norm_gender = _normalize_gender(row_gender)
+        norm_residence = _normalize_residence_type(row_residence)
+        norm_placement = _normalize_placement_willingness(row_placement)
+
+        if reg_no.lower() in existing_students:
+            # ── Upsert existing student record ──
+            existing_st = existing_students[reg_no.lower()]
+            if name:
+                existing_st.name = name
+                if existing_st.user_id:
+                    user_ids_to_update_name[existing_st.user_id] = name
+            if row_roll:
+                existing_st.roll_no = row_roll
+            if norm_gender:
+                existing_st.gender = norm_gender
+            existing_st.residence_type = norm_residence
+            if row_hostel:
+                existing_st.hostel_block_room = row_hostel
+            existing_st.placement_willingness = norm_placement
+
+            if target_class_id in class_map:
+                cls_obj = class_map[target_class_id]
+                existing_st.class_id = cls_obj.id
+                existing_st.department_id = cls_obj.department_id
+
+            existing_st.status = "ACTIVE"
+            updated_count += 1
+            continue
+
+        target_class_name = row_classname or class_name_map.get(target_class_id, target_class_id)
+        final_username = row_username or reg_no
+        final_password = row_password or f"{reg_no}@2026"
+
+        if final_username.lower() in seen_usernames:
+            final_username = f"{final_username}_{reg_no}"
+        seen_usernames.add(final_username.lower())
+        existing_students[reg_no.lower()] = True
+
+        parsed_new_rows.append({
+            "reg_no": reg_no,
+            "name": name,
+            "roll_no": row_roll if row_roll else None,
+            "gender": norm_gender,
+            "residence_type": norm_residence,
+            "hostel_block_room": row_hostel if row_hostel else None,
+            "placement_willingness": norm_placement,
+            "target_class_id": target_class_id,
+            "target_class_name": target_class_name,
+            "username": final_username,
+            "password": final_password,
         })
 
-    stmt_users = insert(User).values(user_dicts).returning(User.id, User.username)
-    res_users = await db.execute(stmt_users)
-    user_id_map = {row.username: row.id for row in res_users.all()}
+    # Update User names if any
+    if user_ids_to_update_name:
+        for uid, uname in user_ids_to_update_name.items():
+            await db.execute(update(User).where(User.id == uid).values(full_name=uname))
 
-    student_dicts = []
-    for item in parsed_rows:
-        cls_obj = class_map[item["target_class_id"]]
-        student_dicts.append({
-            "reg_no": item["reg_no"],
-            "user_id": user_id_map[item["username"]],
-            "class_id": cls_obj.id,
-            "department_id": cls_obj.department_id,
-            "name": item["name"],
-            "residence_type": "DAY_SCHOLAR",
-            "status": "ACTIVE"
-        })
+    # Batch insert new students if any
+    if parsed_new_rows:
+        passwords_list = [p["password"] for p in parsed_new_rows]
+        hashes = hash_passwords_bulk(passwords_list, rounds=8)
 
-    stmt_students = insert(Student).values(student_dicts)
-    await db.execute(stmt_students)
+        user_dicts = []
+        for item, pwd_hash in zip(parsed_new_rows, hashes):
+            cls_obj = class_map[item["target_class_id"]]
+            user_dicts.append({
+                "username": item["username"],
+                "full_name": item["name"],
+                "password_hash": pwd_hash,
+                "role": "STUDENT",
+                "department_id": cls_obj.department_id,
+                "status": "ACTIVE"
+            })
+
+        stmt_users = insert(User).values(user_dicts).returning(User.id, User.username)
+        res_users = await db.execute(stmt_users)
+        user_id_map = {row.username: row.id for row in res_users.all()}
+
+        student_dicts = []
+        for item in parsed_new_rows:
+            cls_obj = class_map[item["target_class_id"]]
+            student_dicts.append({
+                "reg_no": item["reg_no"],
+                "user_id": user_id_map[item["username"]],
+                "class_id": cls_obj.id,
+                "department_id": cls_obj.department_id,
+                "name": item["name"],
+                "roll_no": item["roll_no"],
+                "gender": item["gender"],
+                "residence_type": item["residence_type"],
+                "hostel_block_room": item["hostel_block_room"],
+                "placement_willingness": item["placement_willingness"],
+                "status": "ACTIVE"
+            })
+
+        stmt_students = insert(Student).values(student_dicts)
+        await db.execute(stmt_students)
+
     await db.commit()
     _ADMIN_ANALYTICS_CACHE.clear()
 
+    inserted_count = len(parsed_new_rows)
     return {
         "status": "success",
-        "message": f"Multi-setup import complete! {len(parsed_rows)} student(s) added successfully, {skipped} skipped (already existed).",
-        "inserted": len(parsed_rows),
-        "skipped": skipped,
-        "total": len(parsed_rows) + skipped,
+        "message": f"Multi-setup complete: {inserted_count} student(s) added, {updated_count} updated.",
+        "inserted": inserted_count,
+        "updated": updated_count,
+        "total": inserted_count + updated_count,
     }
 
 

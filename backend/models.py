@@ -78,14 +78,15 @@ class Student(Base):
     class_id = Column(Integer, ForeignKey("classes.id"), nullable=False, index=True)
     department_id = Column(Integer, ForeignKey("departments.id"), nullable=False, index=True)
     name = Column(String(150), nullable=False)
-    roll_no = Column(String(50), nullable=True)
+    roll_no = Column(String(50), nullable=True, index=True)
+    gender = Column(String(20), nullable=True, index=True) # "MALE" | "FEMALE" | "OTHER"
     # DAY_SCHOLAR vs HOSTELLER
-    residence_type = Column(String(20), default="DAY_SCHOLAR", nullable=False)
+    residence_type = Column(String(20), default="DAY_SCHOLAR", nullable=False, index=True)
     class_incharge_faculty_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     warden_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     hostel_block_room = Column(String(50), nullable=True)
     placement_willingness = Column(String(20), default="active", nullable=False, index=True) # "active" | "inactive"
-    status = Column(String(20), default="ACTIVE", nullable=False)
+    status = Column(String(20), default="ACTIVE", nullable=False, index=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     user = relationship("User", foreign_keys=[user_id], back_populates="student_profile")

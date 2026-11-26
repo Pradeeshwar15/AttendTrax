@@ -1282,7 +1282,24 @@
               <option value="1">I Year (First Year)</option>
             </select>
           </div>
-          <div class="form-group" id="student-willingness-wrap" style="flex:1;min-width:180px;margin-bottom:0;">
+          <div class="form-group" id="student-scholar-wrap" style="flex:1;min-width:150px;margin-bottom:0;">
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;">🏠 Scholar Type</label>
+            <select id="student-scholar-filter" class="form-control" style="font-size:0.85rem;">
+              <option value="ALL">All Scholars</option>
+              <option value="DAY_SCHOLAR">🚶 Day Scholar</option>
+              <option value="HOSTELLER">🏢 Hosteller</option>
+            </select>
+          </div>
+          <div class="form-group" id="student-gender-wrap" style="flex:1;min-width:130px;margin-bottom:0;">
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;">👤 Gender</label>
+            <select id="student-gender-filter" class="form-control" style="font-size:0.85rem;">
+              <option value="ALL">All Genders</option>
+              <option value="MALE">👦 Male</option>
+              <option value="FEMALE">👧 Female</option>
+              <option value="OTHER">⚧ Other</option>
+            </select>
+          </div>
+          <div class="form-group" id="student-willingness-wrap" style="flex:1;min-width:170px;margin-bottom:0;">
             <label class="form-label" style="font-size:0.8rem;font-weight:700;">🎯 Placement Standing</label>
             <select id="student-willingness-filter" class="form-control" style="font-size:0.85rem;">
               <option value="ALL">All Students</option>
@@ -1290,7 +1307,7 @@
               <option value="inactive">⚪ Unwilling (Excluded)</option>
             </select>
           </div>
-          <div class="form-group" style="flex:1.2;min-width:200px;margin-bottom:0;">
+          <div class="form-group" style="flex:1.2;min-width:180px;margin-bottom:0;">
             <label class="form-label" style="font-size:0.8rem;font-weight:700;">Filter by Class</label>
             <select id="student-class-filter" class="form-control" style="font-size:0.85rem;">
               <option value="ALL">🌐 All Classes (View All)</option>
@@ -1324,15 +1341,18 @@
                   <tr>
                     <th id="th-student-select" style="width:40px;text-align:center;"><input type="checkbox" id="student-select-all" title="Select All" /></th>
                     <th>Reg No</th>
+                    <th>Roll No</th>
                     <th>Name</th>
+                    <th>Gender</th>
+                    <th>Scholar Type</th>
                     <th>Class</th>
                     <th>Status</th>
                     <th>Placement Standing</th>
-                    <th>Actions</th>
+                    <th style="min-width:140px;">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="students-tbody-admin">
-                  <tr><td colspan="7" class="text-center text-muted" style="padding:2rem;">Select a class to view students.</td></tr>
+                  <tr><td colspan="10" class="text-center text-muted" style="padding:2rem;">Select a class to view students.</td></tr>
                 </tbody>
               </table>
             </div>
@@ -1644,23 +1664,29 @@
         <!-- ── STUDENTS ── -->
         <div class="admin-tab active" id="bulk-students">
           <div class="card" style="max-width:640px;margin:0 auto;">
-            <div class="card-header"><h3>📥 Bulk Import Students</h3></div>
+            <div class="card-header"><h3>📥 Bulk Import &amp; Update Students</h3></div>
             <div class="card-body">
-              <p class="text-sm text-muted" style="margin-bottom:1rem;">
-                Upload an <strong>.xlsx</strong> file with these columns:
-                <span class="tag">RegNo</span>
-                <span class="tag">Name</span>
-                <span class="tag">ClassID</span>
-                <span class="tag" style="opacity:.6;">ClassName (opt)</span>
+              <p class="text-sm text-muted" style="margin-bottom:0.75rem;">
+                Upload an <strong>.xlsx</strong> or <strong>.csv</strong> file with these columns:
+                <span class="tag" style="font-weight:700;">Register No</span>
+                <span class="tag" style="font-weight:700;">Roll No (Roster)</span>
+                <span class="tag" style="font-weight:700;">Student Name</span>
+                <span class="tag" style="font-weight:700;">Gender</span>
+                <span class="tag" style="font-weight:700;">Scholar Type</span>
+                <span class="tag" style="font-weight:700;">Class ID</span>
+                <span class="tag" style="opacity:.75;">Hostel Room</span>
+                <span class="tag" style="opacity:.75;">Placement Standing</span>
                 <span class="tag" style="opacity:.6;">Username (opt)</span>
                 <span class="tag" style="opacity:.6;">Password (opt)</span>
               </p>
-              <p class="text-xs text-muted" style="margin-bottom:1rem;">Username defaults to <strong>Register Number</strong> (e.g. 410123104041), Password defaults to <strong>&lt;RegNo&gt;@CSE</strong> (e.g. 410123104041@CSE) if blank. Duplicate RegNos are skipped.</p>
+              <p class="text-xs text-muted" style="margin-bottom:1rem;">
+                <strong>Smart Upsert:</strong> Existing students are updated with new details; new students are automatically enrolled. Scholar Type supports <em>Day Scholar</em> &amp; <em>Hosteller</em>. Gender supports <em>MALE / FEMALE / OTHER</em>.
+              </p>
               <div class="drop-zone" id="drop-zone-students">
                 <div class="drop-icon">📄</div>
-                <p class="font-semibold" style="margin-bottom:.25rem;">Drop your .xlsx here</p>
+                <p class="font-semibold" style="margin-bottom:.25rem;">Drop your .xlsx or .csv here</p>
                 <p class="text-sm text-muted">or click to browse</p>
-                <input type="file" id="import-file-students" accept=".xlsx" style="display:none;" />
+                <input type="file" id="import-file-students" accept=".xlsx,.csv" style="display:none;" />
               </div>
               <div id="file-chosen-students" class="hidden" style="margin-top:.75rem;padding:.75rem;background:var(--brand-50);border-radius:8px;display:flex;align-items:center;gap:.5rem;">
                 <span>📄</span>
@@ -3897,6 +3923,8 @@ async function populateStudentClassFilter() {
   loadStudentsAdmin();
 }
 
+let _currentStudentsList = [];
+
 async function loadStudentsAdmin() {
   const curUsername = (getUsername() || '').toLowerCase();
   const userRole = (getRole() || '').toUpperCase();
@@ -3906,6 +3934,8 @@ async function loadStudentsAdmin() {
   const classId = document.getElementById('student-class-filter')?.value || 'ALL';
   const deptCode = document.getElementById('student-dept-filter')?.value || 'ALL';
   const yearVal = document.getElementById('student-year-filter')?.value || 'ALL';
+  const scholarVal = document.getElementById('student-scholar-filter')?.value || 'ALL';
+  const genderVal = document.getElementById('student-gender-filter')?.value || 'ALL';
   const willFilter = document.getElementById('student-willingness-filter')?.value || 'ALL';
   const tbody = document.getElementById('students-tbody-admin');
   const selectAllBox = document.getElementById('student-select-all');
@@ -3920,26 +3950,35 @@ async function loadStudentsAdmin() {
       const params = new URLSearchParams();
       if (deptCode && deptCode !== 'ALL') params.append('department_code', deptCode);
       if (yearVal && yearVal !== 'ALL') params.append('year', yearVal);
+      if (scholarVal && scholarVal !== 'ALL') params.append('residence_type', scholarVal);
+      if (genderVal && genderVal !== 'ALL') params.append('gender', genderVal);
+      if (willFilter && willFilter !== 'ALL') params.append('placement_willingness', willFilter);
       const q = params.toString();
       if (q) endpoint += `?${q}`;
     }
     const students = await api.get(endpoint);
+    _currentStudentsList = students || [];
     tbody.innerHTML = '';
     if (!students || !students.length) {
-      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:2rem;">No students found for this selection.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted" style="padding:2rem;">No students found for this selection.</td></tr>';
     } else {
       let filteredStudents = [...students];
-      if (willFilter && willFilter !== 'ALL') {
-        filteredStudents = filteredStudents.filter(s => {
-          const w = ((s.placement_willingness || s.PlacementWillingness || 'active') + '').toLowerCase();
-          return w === willFilter.toLowerCase();
-        });
+      if (classId && classId !== 'ALL') {
+        if (scholarVal && scholarVal !== 'ALL') {
+          filteredStudents = filteredStudents.filter(s => ((s.residence_type || s.ResidenceType || 'DAY_SCHOLAR') + '').toUpperCase() === scholarVal.toUpperCase());
+        }
+        if (genderVal && genderVal !== 'ALL') {
+          filteredStudents = filteredStudents.filter(s => ((s.gender || s.Gender || '') + '').toUpperCase() === genderVal.toUpperCase());
+        }
+        if (willFilter && willFilter !== 'ALL') {
+          filteredStudents = filteredStudents.filter(s => ((s.placement_willingness || s.PlacementWillingness || 'active') + '').toLowerCase() === willFilter.toLowerCase());
+        }
       }
 
       const sortedStudents = filteredStudents.sort((a, b) => String(a.RegNo || a.reg_no || '').localeCompare(String(b.RegNo || b.reg_no || ''), undefined, { numeric: true, sensitivity: 'base' }));
 
       if (!sortedStudents.length) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:2rem;">No students matching placement willingness filter.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted" style="padding:2rem;">No students matching current filter criteria.</td></tr>';
       } else {
         sortedStudents.forEach(s => {
           const willVal = ((s.placement_willingness || s.PlacementWillingness || 'active') + '').toLowerCase();
@@ -3947,6 +3986,25 @@ async function loadStudentsAdmin() {
           const standingBadge = isWilling
             ? '<span class="badge placement-standing-badge" style="background:#ecfdf5;color:#065f46;font-weight:700;font-size:0.75rem;">🟢 Willing</span>'
             : '<span class="badge placement-standing-badge" style="background:#fef2f2;color:#991b1b;font-weight:700;font-size:0.75rem;">⚪ Unwilling</span>';
+
+          const gVal = (s.Gender || s.gender || '').toUpperCase();
+          let genderBadge = '<span class="text-muted" style="font-size:0.8rem;">—</span>';
+          if (gVal === 'MALE') {
+            genderBadge = '<span class="badge" style="background:#eff6ff;color:#1d4ed8;font-weight:700;font-size:0.75rem;">👦 Male</span>';
+          } else if (gVal === 'FEMALE') {
+            genderBadge = '<span class="badge" style="background:#fdf2f8;color:#be185d;font-weight:700;font-size:0.75rem;">👧 Female</span>';
+          } else if (gVal === 'OTHER') {
+            genderBadge = '<span class="badge" style="background:#faf5ff;color:#7e22ce;font-weight:700;font-size:0.75rem;">⚧ Other</span>';
+          }
+
+          const resVal = (s.ResidenceType || s.residence_type || 'DAY_SCHOLAR').toUpperCase();
+          const hostelRoom = s.HostelBlockRoom || s.hostel_block_room || '';
+          const scholarBadge = resVal === 'HOSTELLER'
+            ? `<span class="badge" style="background:#fef3c7;color:#92400e;font-weight:700;font-size:0.75rem;" title="${escapeHtml(hostelRoom)}">🏢 Hosteller${hostelRoom ? ` (${escapeHtml(hostelRoom)})` : ''}</span>`
+            : '<span class="badge" style="background:#f1f5f9;color:#475569;font-weight:600;font-size:0.75rem;">🚶 Day Scholar</span>';
+
+          const rollVal = s.RollNo || s.roll_no;
+          const rollHtml = rollVal ? `<span class="tag font-mono" style="font-size:0.78rem;font-weight:600;">${escapeHtml(rollVal)}</span>` : '<span class="text-muted" style="font-size:0.8rem;">—</span>';
 
           let toggleBtn = '';
           if (isPlacement || isExec) {
@@ -3963,19 +4021,24 @@ async function loadStudentsAdmin() {
                 <input type="checkbox" class="student-select-check" data-reg="${escapeHtml(s.RegNo)}" />
               </td>
               <td><span class="tag font-mono" style="font-weight:700;">${escapeHtml(s.RegNo)}</span></td>
+              <td>${rollHtml}</td>
               <td class="font-semibold">${escapeHtml(s.Name)}</td>
+              <td>${genderBadge}</td>
+              <td>${scholarBadge}</td>
               <td>${escapeHtml(s.ClassName || s.ClassID)}</td>
               <td><span class="badge ${s.Status==='ACTIVE'?'badge-info':'badge-absent'}">${s.Status}</span></td>
               <td class="placement-standing-cell">${standingBadge}</td>
               <td>
                 <div class="flex items-center gap-1">
                   ${toggleBtn}
-                  <button class="btn btn-sm btn-danger deactivate-student-btn" data-reg="${s.RegNo}" data-name="${s.Name}" style="font-size:0.75rem;padding:0.2rem 0.5rem;">🗑️</button>
+                  <button class="btn btn-sm btn-outline edit-student-btn" data-reg="${escapeHtml(s.RegNo)}" style="font-size:0.75rem;padding:0.2rem 0.5rem;" title="Edit student profile">✏️</button>
+                  <button class="btn btn-sm btn-danger deactivate-student-btn" data-reg="${escapeHtml(s.RegNo)}" data-name="${escapeHtml(s.Name)}" style="font-size:0.75rem;padding:0.2rem 0.5rem;" title="Deactivate student">🗑️</button>
                 </div>
               </td>
             </tr>`;
         });
 
+        document.querySelectorAll('.edit-student-btn').forEach(btn => btn.addEventListener('click', (e) => editStudent(e.currentTarget.dataset.reg)));
         document.querySelectorAll('.deactivate-student-btn').forEach(btn => btn.addEventListener('click', deactivateStudent));
         document.querySelectorAll('.toggle-willingness-btn').forEach(btn => btn.addEventListener('click', async (e) => {
           const btnEl = e.currentTarget;
@@ -4046,92 +4109,167 @@ async function loadStudentsAdmin() {
   finally { showLoader(false); }
 }
 
-document.getElementById('student-select-all')?.addEventListener('change', function() {
-  const checked = this.checked;
-  document.querySelectorAll('.student-select-check').forEach(ck => ck.checked = checked);
-  const cntEl = document.getElementById('placement-selected-count');
-  if (cntEl) cntEl.textContent = checked ? document.querySelectorAll('.student-select-check').length : 0;
-});
+async function editStudent(reg) {
+  const s = _currentStudentsList.find(item => (item.RegNo || item.reg_no) === reg);
+  if (!s) return;
+  const classes = allClasses.length ? allClasses : await api.get('/admin/classes').catch(() => []);
+  const curClassId = s.ClassID || s.class_id || '';
+  const opts = classes.map(c => `<option value="${c.ClassID}" ${c.ClassID === curClassId ? 'selected' : ''}>${c.ClassName || c.ClassID}</option>`).join('');
+  const curGender = (s.Gender || s.gender || '').toUpperCase();
+  const curScholar = (s.ResidenceType || s.residence_type || 'DAY_SCHOLAR').toUpperCase();
+  const curWill = ((s.PlacementWillingness || s.placement_willingness || 'active') + '').toLowerCase();
 
-document.getElementById('bulk-mark-willing-btn')?.addEventListener('click', () => bulkSetPlacementWillingness('active'));
-document.getElementById('bulk-mark-unwilling-btn')?.addEventListener('click', () => bulkSetPlacementWillingness('inactive'));
+  const modalHtml = `
+    <div class="form-stack" style="gap:0.85rem;">
+      <div class="form-group">
+        <label class="form-label" style="font-weight:700;">Register No (Permanent)</label>
+        <input class="form-control" value="${escapeHtml(s.RegNo || s.reg_no)}" disabled style="background:#f8fafc;" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="font-weight:700;">Roll No / Roster</label>
+        <input data-field="roll_no" class="form-control" value="${escapeHtml(s.RollNo || s.roll_no || '')}" placeholder="e.g. 23CS001" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="font-weight:700;">Full Name</label>
+        <input data-field="name" class="form-control" value="${escapeHtml(s.Name || s.name || '')}" placeholder="Student Full Name" />
+      </div>
+      <div style="display:flex;gap:0.75rem;">
+        <div class="form-group" style="flex:1;">
+          <label class="form-label" style="font-weight:700;">Gender</label>
+          <select data-field="gender" class="form-control">
+            <option value="" ${!curGender ? 'selected' : ''}>— Select —</option>
+            <option value="MALE" ${curGender === 'MALE' ? 'selected' : ''}>👦 Male</option>
+            <option value="FEMALE" ${curGender === 'FEMALE' ? 'selected' : ''}>👧 Female</option>
+            <option value="OTHER" ${curGender === 'OTHER' ? 'selected' : ''}>⚧ Other</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label class="form-label" style="font-weight:700;">Scholar Type</label>
+          <select data-field="residence_type" class="form-control">
+            <option value="DAY_SCHOLAR" ${curScholar === 'DAY_SCHOLAR' ? 'selected' : ''}>🚶 Day Scholar</option>
+            <option value="HOSTELLER" ${curScholar === 'HOSTELLER' ? 'selected' : ''}>🏢 Hosteller</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="font-weight:700;">Hostel Block & Room (if Hosteller)</label>
+        <input data-field="hostel_block_room" class="form-control" value="${escapeHtml(s.HostelBlockRoom || s.hostel_block_room || '')}" placeholder="e.g. B-Block Room 204" />
+      </div>
+      <div style="display:flex;gap:0.75rem;">
+        <div class="form-group" style="flex:1.2;">
+          <label class="form-label" style="font-weight:700;">Class / Section</label>
+          <select data-field="class_id" class="form-control">
+            <option value="">— Select Class —</option>
+            ${opts}
+          </select>
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label class="form-label" style="font-weight:700;">Placement Standing</label>
+          <select data-field="placement_willingness" class="form-control">
+            <option value="active" ${curWill === 'active' ? 'selected' : ''}>🟢 Willing</option>
+            <option value="inactive" ${curWill === 'inactive' ? 'selected' : ''}>⚪ Unwilling</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  `;
 
-async function bulkSetPlacementWillingness(target) {
-  const checks = Array.from(document.querySelectorAll('.student-select-check:checked'));
-  const regNos = checks.map(c => c.dataset.reg).filter(Boolean);
-  if (!regNos.length) {
-    showToast('Please select at least one student using the checkboxes.', 'warning');
-    return;
-  }
-  const ok = await openConfirm('Bulk Placement Willingness', `Set ${regNos.length} selected student(s) to ${target === 'active' ? 'Willing (Active Placement Candidate)' : 'Unwilling (Excluded from Placement)'}?`);
-  if (!ok) return;
+  const result = await openFormModal(`✏️ Edit Student Profile: ${s.RegNo}`, modalHtml);
+  if (!result) return;
 
-  // ── Zero-Latency Optimistic UI Update for all checked students in 0ms ──
-  const willBeWilling = target === 'active';
-  regNos.forEach(reg => {
-    const row = document.getElementById(`student-row-${reg}`) || document.querySelector(`input[data-reg="${reg}"]`)?.closest('tr');
-    if (row) {
-      const standingCell = row.querySelector('.placement-standing-cell');
-      if (standingCell) {
-        standingCell.innerHTML = willBeWilling
-          ? '<span class="badge placement-standing-badge" style="background:#ecfdf5;color:#065f46;font-weight:700;font-size:0.75rem;">🟢 Willing</span>'
-          : '<span class="badge placement-standing-badge" style="background:#fef2f2;color:#991b1b;font-weight:700;font-size:0.75rem;">⚪ Unwilling</span>';
-      }
-      const btnEl = row.querySelector('.toggle-willingness-btn');
-      if (btnEl) {
-        btnEl.dataset.target = willBeWilling ? 'inactive' : 'active';
-        btnEl.textContent = willBeWilling ? 'Exclude' : 'Include';
-        btnEl.style.color = willBeWilling ? '#b91c1c' : '#059669';
-        btnEl.style.border = willBeWilling ? '1px solid #fca5a5' : '1px solid #6ee7b7';
-        btnEl.title = willBeWilling ? 'Exclude student from placement classes' : 'Include student in placement classes';
-      }
-    }
-  });
-
-  // Uncheck selections
-  document.querySelectorAll('.student-select-check').forEach(ck => ck.checked = false);
-  const selectAll = document.getElementById('student-select-all');
-  if (selectAll) selectAll.checked = false;
-  const cntEl = document.getElementById('placement-selected-count');
-  if (cntEl) cntEl.textContent = '0';
-
-  showToast(`Updated ${regNos.length} student(s) to ${willBeWilling ? 'Willing' : 'Unwilling'}!`, 'success');
-
+  showLoader(true);
   try {
-    await api.post('/admin/students/bulk-placement-willingness', {
-      reg_nos: regNos,
-      placement_willingness: target
-    });
-  } catch(err) {
-    showToast(err.message || 'Bulk update failed.', 'error');
+    await api.patch(`/admin/students/${encodeURIComponent(reg)}`, result);
+    showToast(`Student profile updated for ${s.RegNo}!`, 'success');
     await loadStudentsAdmin();
+  } catch(err) {
+    showToast(err.message || 'Update failed', 'error');
+  } finally {
+    showLoader(false);
   }
 }
 
 document.getElementById('student-class-filter')?.addEventListener('change', loadStudentsAdmin);
 document.getElementById('student-dept-filter')?.addEventListener('change', loadStudentsAdmin);
 document.getElementById('student-year-filter')?.addEventListener('change', loadStudentsAdmin);
+document.getElementById('student-scholar-filter')?.addEventListener('change', loadStudentsAdmin);
+document.getElementById('student-gender-filter')?.addEventListener('change', loadStudentsAdmin);
 document.getElementById('student-willingness-filter')?.addEventListener('change', loadStudentsAdmin);
 
 document.getElementById('add-student-btn').addEventListener('click', async () => {
-  const classId = document.getElementById('student-class-filter').value;
+  const classId = document.getElementById('student-class-filter')?.value || '';
   const classes = allClasses.length ? allClasses : await api.get('/admin/classes').catch(() => []);
-  const opts = classes.map(c => `<option value="${c.ClassID}" ${c.ClassID===classId?'selected':''}>${c.ClassName}</option>`).join('');
-  const result = await openFormModal('➕ Add Student', `
-    <div class="form-stack" style="gap:1rem;">
-      <div class="form-group"><label class="form-label">Reg No</label><input data-field="reg_no" class="form-control" placeholder="e.g. 23CS001" /></div>
-      <div class="form-group"><label class="form-label">Full Name</label><input data-field="name" class="form-control" placeholder="Student full name" /></div>
-      <div class="form-group"><label class="form-label">Class</label><select data-field="class_id" class="form-control"><option value="">— Select —</option>${opts}</select></div>
-      <div class="form-group"><label class="form-label">Login Username (optional, defaults to Reg No)</label><input data-field="username" class="form-control" placeholder="Leave blank to use Reg No" /></div>
-      <div class="form-group"><label class="form-label">Login Password (optional, defaults to &lt;RegNo&gt;@CSE)</label><input data-field="password" class="form-control" type="password" placeholder="Leave blank to use &lt;RegNo&gt;@CSE" /></div>
+  const opts = classes.map(c => `<option value="${c.ClassID}" ${c.ClassID===classId?'selected':''}>${c.ClassName || c.ClassID}</option>`).join('');
+  const result = await openFormModal('➕ Add Student to Roster', `
+    <div class="form-stack" style="gap:0.85rem;">
+      <div style="display:flex;gap:0.75rem;">
+        <div class="form-group" style="flex:1.2;">
+          <label class="form-label" style="font-weight:700;">Register No *</label>
+          <input data-field="reg_no" class="form-control" placeholder="e.g. 410123104001" required />
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label class="form-label" style="font-weight:700;">Roll No / Roster</label>
+          <input data-field="roll_no" class="form-control" placeholder="e.g. 23CS001" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="font-weight:700;">Full Name *</label>
+        <input data-field="name" class="form-control" placeholder="Student full name" required />
+      </div>
+      <div style="display:flex;gap:0.75rem;">
+        <div class="form-group" style="flex:1;">
+          <label class="form-label" style="font-weight:700;">Gender</label>
+          <select data-field="gender" class="form-control">
+            <option value="">— Select —</option>
+            <option value="MALE">👦 Male</option>
+            <option value="FEMALE">👧 Female</option>
+            <option value="OTHER">⚧ Other</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label class="form-label" style="font-weight:700;">Scholar Type</label>
+          <select data-field="residence_type" class="form-control">
+            <option value="DAY_SCHOLAR" selected>🚶 Day Scholar</option>
+            <option value="HOSTELLER">🏢 Hosteller</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="font-weight:700;">Hostel Block & Room (if Hosteller)</label>
+        <input data-field="hostel_block_room" class="form-control" placeholder="e.g. B-Block Room 204" />
+      </div>
+      <div style="display:flex;gap:0.75rem;">
+        <div class="form-group" style="flex:1.2;">
+          <label class="form-label" style="font-weight:700;">Class / Section *</label>
+          <select data-field="class_id" class="form-control">
+            <option value="">— Select Class —</option>
+            ${opts}
+          </select>
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label class="form-label" style="font-weight:700;">Placement Standing</label>
+          <select data-field="placement_willingness" class="form-control">
+            <option value="active" selected>🟢 Willing</option>
+            <option value="inactive">⚪ Unwilling</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="font-weight:700;">Login Username (optional, defaults to Reg No)</label>
+        <input data-field="username" class="form-control" placeholder="Leave blank to use Reg No" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="font-weight:700;">Login Password (optional, defaults to &lt;RegNo&gt;@2026)</label>
+        <input data-field="password" class="form-control" type="password" placeholder="Leave blank to use &lt;RegNo&gt;@2026" />
+      </div>
     </div>`);
   if (!result?.reg_no || !result?.name || !result?.class_id) return;
   showLoader(true);
   try {
     await api.post('/admin/students', result);
-    showToast(`Student '${result.name}' added!`,'success');
-    document.getElementById('student-class-filter').dispatchEvent(new Event('change'));
-  } catch(e) { showToast(e.message,'error'); }
+    showToast(`Student '${result.name}' added to roster!`, 'success');
+    await loadStudentsAdmin();
+  } catch(e) { showToast(e.message, 'error'); }
   finally { showLoader(false); }
 });
 
@@ -4821,7 +4959,7 @@ function wireBulkUpload({ dropId, inputId, fileChosenId, fileNameId, clearBtnId,
         <p class="text-sm">${res.message}</p>
         <div class="flex gap-4" style="margin-top:.5rem;flex-wrap:wrap;">
           <span class="badge badge-info">Inserted: ${res.inserted}</span>
-          <span class="badge badge-warning">Skipped: ${res.skipped ?? 0}</span>
+          <span class="badge badge-warning">Updated: ${res.updated ?? 0}</span>
           <span class="badge badge-success">Engine: Supabase Primary (AsyncPG)</span>
         </div>`;
       resultEl.classList.remove('hidden');
@@ -4842,6 +4980,32 @@ function wireBulkUpload({ dropId, inputId, fileChosenId, fileNameId, clearBtnId,
   if (dlBtn) dlBtn.addEventListener('click', templateFn);
 }
 
+async function downloadStudentsExcelTemplate() {
+  try {
+    showLoader(true);
+    const token = typeof getToken === 'function' ? getToken() : '';
+    const resp = await fetch(`${API_BASE}/admin/template/students`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.detail || `Download failed (${resp.status})`);
+    }
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Adhi_Student_Bulk_Template.xlsx';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Student template (.xlsx) downloaded with dropdown validations!', 'success');
+  } catch(err) {
+    showToast(err.message || 'Failed to download template', 'error');
+  } finally {
+    showLoader(false);
+  }
+}
+
 // ── Wire each bulk tab ───────────────────────────────────────────────────────
 wireBulkUpload({
   dropId: 'drop-zone-students', inputId: 'import-file-students',
@@ -4849,11 +5013,7 @@ wireBulkUpload({
   clearBtnId: 'clear-file-students', resultId: 'import-result-students',
   uploadBtnId: 'upload-btn-students', uploadBtnTextId: 'upload-btn-text-students',
   endpoint: '/admin/import/students',
-  templateFn: () => downloadCsvTemplate(
-    'students_import_template.csv',
-    'RegNo,Name,ClassID,ClassName,Username,Password\n23CS001,Arjun Kumar,CSE3A,CSE III Year A,,\n23CS002,Priya Sharma,CSE3A,CSE III Year A,,\n',
-    'Open in Excel → File → Save As → .xlsx before uploading.'
-  ),
+  templateFn: downloadStudentsExcelTemplate,
 });
 
 wireBulkUpload({
