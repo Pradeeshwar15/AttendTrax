@@ -2260,9 +2260,7 @@ async def export_class_attendance_matrix_csv(
 # DOWNLOAD STUDENT BULK IMPORT TEMPLATE (.xlsx)
 # ─────────────────────────────────────────────────────────────────────────────
 @router.get("/template/students")
-async def download_student_template(
-    current_user: dict = _admin_dep,
-):
+async def download_student_template():
     """
     Generate and serve standard Excel (.xlsx) onboarding template with data validation dropdowns:
     - Columns: Register No, Roll No, Student Name, Gender, Scholar Type, Class ID, Hostel Room, Placement Standing, Username, Password.
