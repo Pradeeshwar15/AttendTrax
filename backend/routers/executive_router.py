@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
 from dependencies import require_role
+from auth import verify_password
 from models import (
     Department, User, ClassRoom, Student, Faculty, Subject,
     AttendanceSession, AttendanceRecord, FacultyLeave, AuditLog,
@@ -951,39 +952,158 @@ async def get_executive_audit_logs(
 
 
 # ── Executive Factory Default Reset & Institutional Master Data Export ────────
+class SecurityActionRequest(BaseModel):
+    password: str
+    confirm_phrase: str
+
+
+@router.get("/system-health")
+async def get_system_health(
+    current_user: dict = _exec_dep,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Returns live database latency, row counts across all institutional tables,
+    integrity checks (orphaned records), and recent audit log events.
+    """
+    t0 = time.perf_counter()
+    await db.execute(select(1))
+    latency_ms = round((time.perf_counter() - t0) * 1000, 2)
+
+    # 1. Row counts across institutional tables
+    table_models = {
+        "departments": Department,
+        "users": User,
+        "classes": ClassRoom,
+        "students": Student,
+        "faculty": Faculty,
+        "subjects": Subject,
+        "faculty_allocations": FacultyAllocation,
+        "attendance_sessions": AttendanceSession,
+        "attendance_records": AttendanceRecord,
+        "student_leaves": StudentLeave,
+        "faculty_leaves": FacultyLeave,
+        "hostel_gate_passes": HostelGatePass,
+        "notifications": Notification,
+        "audit_logs": AuditLog,
+    }
+    
+    counts = {}
+    for name, model in table_models.items():
+        try:
+            cnt = (await db.execute(select(func.count(model.id)))).scalar() or 0
+            counts[name] = cnt
+        except Exception:
+            counts[name] = 0
+
+    # 2. Integrity checks
+    orphan_students = (await db.execute(
+        select(func.count(Student.id))
+        .where(and_(Student.class_id.isnot(None), ~Student.class_id.in_(select(ClassRoom.id))))
+    )).scalar() or 0
+
+    orphan_records = (await db.execute(
+        select(func.count(AttendanceRecord.id))
+        .where(~AttendanceRecord.session_id.in_(select(AttendanceSession.id)))
+    )).scalar() or 0
+
+    # 3. Recent 5 audit logs
+    audit_stmt = (
+        select(
+            AuditLog.id,
+            AuditLog.action,
+            AuditLog.target_entity,
+            AuditLog.created_at,
+            User.username
+        )
+        .outerjoin(User, AuditLog.user_id == User.id)
+        .order_by(AuditLog.created_at.desc())
+        .limit(5)
+    )
+    audit_res = await db.execute(audit_stmt)
+    recent_audits = [
+        {
+            "id": r.id,
+            "action": r.action,
+            "target": r.target_entity,
+            "user": r.username or "System",
+            "time": r.created_at.strftime("%d-%m-%Y %I:%M %p") if r.created_at else ""
+        }
+        for r in audit_res.all()
+    ]
+
+    return {
+        "status": "healthy",
+        "database": {
+            "connected": True,
+            "latency_ms": latency_ms,
+            "provider": "Supabase PostgreSQL (Singapore)",
+        },
+        "integrity": {
+            "orphan_students": orphan_students,
+            "orphan_attendance_records": orphan_records,
+            "is_clean": orphan_students == 0 and orphan_records == 0
+        },
+        "table_counts": counts,
+        "recent_audit_logs": recent_audits,
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+
 @router.post("/factory-reset")
 async def executive_factory_default_reset(
+    payload: SecurityActionRequest,
     current_user: dict = _exec_dep,
     db: AsyncSession = Depends(get_db),
 ):
     """
     Principal Executive Action: Factory Default Reset.
+    Requires account password re-authentication and confirmation phrase 'RESET ATTENDANCE'.
     Removes all students' attendance records and sessions under attendance reports,
     resetting attendance metrics to initial baseline.
     Student profiles, faculty accounts, departments, and classes remain intact.
     """
-# 1. Delete all attendance records and sessions from database
+    # 1. Verify confirmation phrase
+    if payload.confirm_phrase.strip().upper() != "RESET ATTENDANCE":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Confirmation phrase mismatch. Please type exactly 'RESET ATTENDANCE' to proceed."
+        )
+
+    # 2. Verify Principal password
+    uid = current_user.get("UserID") or current_user.get("id")
+    uname = current_user.get("Username") or current_user.get("sub") or "principal"
+
+    stmt = select(User).where(or_(User.id == int(uid), User.username == uname) if uid and str(uid).isdigit() else User.username == uname)
+    res = await db.execute(stmt)
+    user = res.scalars().first()
+
+    if not user or not user.password_hash or not verify_password(payload.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication failed: Incorrect password. Factory reset aborted."
+        )
+
+    # 3. Delete all attendance records and sessions from database
     await db.execute(delete(AttendanceRecord))
     await db.execute(delete(AttendanceSession))
 
-    # 2. Invalidate executive and admin caches
+    # 4. Invalidate executive and admin caches
     _DASHBOARD_CACHE.clear()
     _RADAR_CACHE.clear()
     _ADMIN_ANALYTICS_CACHE.clear()
 
-    # 4. Record audit log
-    uid = current_user.get("UserID") or current_user.get("id")
-    uname = current_user.get("Username") or current_user.get("sub") or "Principal"
+    # 5. Record audit log
     audit = AuditLog(
-        user_id=int(uid) if uid and str(uid).isdigit() else None,
+        user_id=user.id,
         action="FACTORY_RESET",
         target_entity="ATTENDANCE_DATA",
         target_id=0,
-        old_values={"scope": "COLLEGE_ATTENDANCE"},
+        old_values={"scope": "COLLEGE_ATTENDANCE", "auth_verified": True},
         new_values={
             "scope": "COLLEGE_ATTENDANCE",
             "status": "RESET_TO_FACTORY_DEFAULT",
-            "performed_by": uname,
+            "performed_by": user.username,
             "timestamp": datetime.utcnow().isoformat(),
         }
     )
@@ -999,16 +1119,39 @@ async def executive_factory_default_reset(
 
 @router.post("/purge-academic-cohorts")
 async def executive_purge_academic_cohorts(
+    payload: SecurityActionRequest,
     current_user: dict = _exec_dep,
     db: AsyncSession = Depends(get_db),
 ):
     """
     Principal Executive Action: Complete Institutional Reset.
+    Requires account password re-authentication and confirmation phrase 'PURGE INSTITUTION'.
     Removes all student profiles, student user accounts, past attendance sessions & records,
     student leave applications, faculty class allocations, and class records.
     Departments, faculty accounts, HOD accounts, and leadership remain intact.
     """
-    # 1. Foreign key deletion sequence
+    # 1. Verify confirmation phrase
+    if payload.confirm_phrase.strip().upper() != "PURGE INSTITUTION":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Confirmation phrase mismatch. Please type exactly 'PURGE INSTITUTION' to proceed."
+        )
+
+    # 2. Verify Principal password
+    uid = current_user.get("UserID") or current_user.get("id")
+    uname = current_user.get("Username") or current_user.get("sub") or "principal"
+
+    stmt = select(User).where(or_(User.id == int(uid), User.username == uname) if uid and str(uid).isdigit() else User.username == uname)
+    res = await db.execute(stmt)
+    user = res.scalars().first()
+
+    if not user or not user.password_hash or not verify_password(payload.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication failed: Incorrect password. Institutional cohort purge aborted."
+        )
+
+    # 3. Foreign key deletion sequence
     await db.execute(delete(AttendanceRecord))
     await db.execute(delete(AttendanceSession))
     await db.execute(delete(HostelGatePass))
@@ -1023,24 +1166,22 @@ async def executive_purge_academic_cohorts(
     await db.execute(delete(User).where(User.role == "STUDENT"))
     await db.execute(delete(ClassRoom))
 
-    # 2. Invalidate executive and admin caches
+    # 4. Invalidate executive and admin caches
     _DASHBOARD_CACHE.clear()
     _RADAR_CACHE.clear()
     _ADMIN_ANALYTICS_CACHE.clear()
 
-    # 4. Record audit log
-    uid = current_user.get("UserID") or current_user.get("id")
-    uname = current_user.get("Username") or current_user.get("sub") or "Principal"
+    # 5. Record audit log
     audit = AuditLog(
-        user_id=int(uid) if uid and str(uid).isdigit() else None,
+        user_id=user.id,
         action="PURGE_ACADEMIC_COHORTS",
         target_entity="STUDENTS_CLASSES_ATTENDANCE",
         target_id=0,
-        old_values={"scope": "ALL_STUDENTS_AND_CLASSES"},
+        old_values={"scope": "ALL_STUDENTS_AND_CLASSES", "auth_verified": True},
         new_values={
             "scope": "ALL_STUDENTS_AND_CLASSES",
             "status": "PURGED_FOR_FRESH_ONBOARDING",
-            "performed_by": uname,
+            "performed_by": user.username,
             "timestamp": datetime.utcnow().isoformat(),
         }
     )

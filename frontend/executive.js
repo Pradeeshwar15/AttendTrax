@@ -1096,6 +1096,9 @@ function setupExecutiveEventListeners() {
   const batchApproveBtn = document.getElementById('exec-batch-approve-btn');
   if (batchApproveBtn) batchApproveBtn.addEventListener('click', handleBatchExecutiveApproval);
 
+  // Initialize System Maintenance & Danger Zone section
+  initSystemMaintenanceSection();
+
   // Radar Filters
   const radarDept = document.getElementById('exec-radar-filter-dept');
   const radarStatus = document.getElementById('exec-radar-filter-status');
@@ -1142,57 +1145,227 @@ function setupExecutiveEventListeners() {
     });
   }
 
-  // Factory Default Reset Button
-  const factoryResetBtn = document.getElementById('exec-factory-reset-btn');
-  if (factoryResetBtn) {
-    factoryResetBtn.addEventListener('click', async () => {
-      const ok = await openConfirm(
-        '⚠️ Factory Default Reset',
-        'Are you sure you want to remove all students\' attendance data under attendance reports? This will wipe all attendance session logs and reset attendance rates to zero. Student profiles, faculty accounts, departments, and classes will NOT be deleted.'
-      );
-      if (!ok) return;
-      showLoader(true);
-      try {
-        const res = await api.post('/admin/executive/factory-reset');
-        showToast(res.message || 'Factory default reset completed.', 'success', 4000);
-        await refreshExecutiveDashboard();
-        if (typeof loadDashboardAnalytics === 'function') {
-          await loadDashboardAnalytics();
+  // ── Institutional System Maintenance & Danger Zone Manager ─────────────────
+  let _currentDangerAction = null;
+
+  function initSystemMaintenanceSection() {
+    // 1. Export master ZIP backup
+    const exportZipBtn = document.getElementById('maint-export-zip-btn');
+    if (exportZipBtn) {
+      exportZipBtn.addEventListener('click', async () => {
+        try {
+          if (typeof showToast === 'function') showToast('Preparing institutional master backup package (ZIP)...', 'info', 2500);
+          const token = getToken();
+          const res = await fetch(`${API_BASE}/admin/executive/export-all`, {
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+          });
+          if (!res.ok) throw new Error(`Backup export failed (${res.status})`);
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          const todayStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+          a.download = `AttendTrax_Master_Backup_${todayStr}.zip`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+          if (typeof showToast === 'function') showToast('Master backup archive downloaded successfully!', 'success', 4000);
+        } catch (err) {
+          if (typeof showToast === 'function') showToast(err.message || 'Backup export error', 'error');
         }
+      });
+    }
+
+    // 2. Refresh diagnostics
+    const refreshDiagBtn = document.getElementById('maint-refresh-diag-btn');
+    if (refreshDiagBtn) {
+      refreshDiagBtn.addEventListener('click', () => fetchSystemHealthDiagnostics());
+    }
+
+    // 3. Factory Reset Attendance Logs button
+    const factoryResetBtn = document.getElementById('maint-factory-reset-btn');
+    if (factoryResetBtn) {
+      factoryResetBtn.addEventListener('click', () => openDangerConfirmModal('FACTORY_RESET'));
+    }
+
+    // 4. Complete Cohort Purge button
+    const purgeCohortsBtn = document.getElementById('maint-purge-cohorts-btn');
+    if (purgeCohortsBtn) {
+      purgeCohortsBtn.addEventListener('click', () => openDangerConfirmModal('PURGE_COHORTS'));
+    }
+
+    // 5. Modal wiring
+    const cancelBtn = document.getElementById('danger-modal-cancel');
+    const submitBtn = document.getElementById('danger-modal-submit');
+    const phraseInput = document.getElementById('danger-confirm-phrase-input');
+    const passwordInput = document.getElementById('danger-confirm-password-input');
+
+    const updateSubmitState = () => {
+      if (!_currentDangerAction) return;
+      const targetPhrase = _currentDangerAction.targetPhrase;
+      const typedPhrase = (phraseInput?.value || '').trim().toUpperCase();
+      const pwd = (passwordInput?.value || '');
+      const isMatch = (typedPhrase === targetPhrase) && (pwd.length > 0);
+      if (submitBtn) {
+        submitBtn.disabled = !isMatch;
+        submitBtn.style.opacity = isMatch ? '1' : '0.5';
+        submitBtn.style.cursor = isMatch ? 'pointer' : 'not-allowed';
+      }
+    };
+
+    phraseInput?.addEventListener('input', updateSubmitState);
+    passwordInput?.addEventListener('input', updateSubmitState);
+
+    cancelBtn?.addEventListener('click', () => {
+      closeDangerConfirmModal();
+    });
+
+    submitBtn?.addEventListener('click', async () => {
+      if (!_currentDangerAction) return;
+      const targetPhrase = _currentDangerAction.targetPhrase;
+      const typedPhrase = (phraseInput?.value || '').trim().toUpperCase();
+      const pwd = (passwordInput?.value || '');
+      if (typedPhrase !== targetPhrase) {
+        if (typeof showToast === 'function') showToast(`Please type '${targetPhrase}' exactly to proceed.`, 'error');
+        return;
+      }
+      if (!pwd) {
+        if (typeof showToast === 'function') showToast('Please enter your account password.', 'error');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Verifying & Executing...';
+      if (typeof showLoader === 'function') showLoader(true);
+
+      try {
+        const payload = {
+          confirm_phrase: typedPhrase,
+          password: pwd
+        };
+        const endpoint = _currentDangerAction.endpoint;
+        const res = await api.post(endpoint, payload);
+
+        closeDangerConfirmModal();
+        if (typeof showToast === 'function') {
+          showToast(res.message || 'Operation executed successfully.', 'success', 5000);
+        }
+        await fetchSystemHealthDiagnostics();
+        if (typeof refreshExecutiveDashboard === 'function') await refreshExecutiveDashboard();
+        if (typeof loadDashboardAnalytics === 'function') await loadDashboardAnalytics();
+        if (typeof loadClasses === 'function') await loadClasses();
       } catch (err) {
-        showToast(err.message || 'Failed to execute factory default reset.', 'error');
+        const msg = err.message || 'Action failed';
+        if (typeof showToast === 'function') {
+          showToast(msg, 'error', 5000);
+        }
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Confirm & Execute';
       } finally {
-        showLoader(false);
+        if (typeof showLoader === 'function') showLoader(false);
       }
     });
   }
 
-  // Complete Institutional Cohort Purge Button (Students, Classes, Past Attendance)
-  const purgeCohortsBtn = document.getElementById('exec-purge-cohorts-btn');
-  if (purgeCohortsBtn) {
-    purgeCohortsBtn.addEventListener('click', async () => {
-      const ok = await openConfirm(
-        '🗑️ Complete Institutional Reset',
-        'CRITICAL ACTION: Are you sure you want to permanently clear ALL students, ALL classes, and ALL past attendance records across the entire institution? Departments, faculty accounts, and HOD accounts will be preserved intact. This prepares the system for fresh departmental class creation and student onboarding.'
-      );
-      if (!ok) return;
-      showLoader(true);
-      try {
-        const res = await api.post('/admin/executive/purge-academic-cohorts');
-        showToast(res.message || 'Institutional reset complete! All students, classes, and attendance records cleared.', 'success', 5000);
-        await refreshExecutiveDashboard();
-        if (typeof loadDashboardAnalytics === 'function') {
-          await loadDashboardAnalytics();
-        }
-        if (typeof loadClasses === 'function') {
-          await loadClasses();
-        }
-      } catch (err) {
-        showToast(err.message || 'Failed to execute institutional reset.', 'error');
-      } finally {
-        showLoader(false);
-      }
-    });
+  function openDangerConfirmModal(actionType) {
+    const modal = document.getElementById('danger-confirm-modal');
+    const titleEl = document.getElementById('danger-modal-title');
+    const descEl = document.getElementById('danger-modal-description');
+    const phraseTargetEl = document.getElementById('danger-phrase-target');
+    const phraseInput = document.getElementById('danger-confirm-phrase-input');
+    const passwordInput = document.getElementById('danger-confirm-password-input');
+    const submitBtn = document.getElementById('danger-modal-submit');
+
+    if (actionType === 'FACTORY_RESET') {
+      _currentDangerAction = {
+        type: 'FACTORY_RESET',
+        targetPhrase: 'RESET ATTENDANCE',
+        endpoint: '/admin/executive/factory-reset'
+      };
+      if (titleEl) titleEl.textContent = '⚠️ Confirm Factory Default Attendance Reset';
+      if (descEl) descEl.innerHTML = '<strong>WARNING:</strong> You are about to wipe all student attendance session records and attendance reports across the institution. Student profiles, classes, and faculty accounts will NOT be deleted. This operation is permanent.';
+      if (phraseTargetEl) phraseTargetEl.textContent = 'RESET ATTENDANCE';
+    } else if (actionType === 'PURGE_COHORTS') {
+      _currentDangerAction = {
+        type: 'PURGE_COHORTS',
+        targetPhrase: 'PURGE INSTITUTION',
+        endpoint: '/admin/executive/purge-academic-cohorts'
+      };
+      if (titleEl) titleEl.textContent = '🗑️ Confirm Complete Institutional Cohort Purge';
+      if (descEl) descEl.innerHTML = '<strong>CRITICAL HAZARD:</strong> You are about to permanently purge ALL student profiles, student user accounts, classes, class allocations, student leave applications, and past attendance sessions across the entire institution. Departments and faculty accounts will remain intact.';
+      if (phraseTargetEl) phraseTargetEl.textContent = 'PURGE INSTITUTION';
+    }
+
+    if (phraseInput) phraseInput.value = '';
+    if (passwordInput) passwordInput.value = '';
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Confirm & Execute';
+      submitBtn.style.opacity = '0.5';
+      submitBtn.style.cursor = 'not-allowed';
+    }
+
+    modal?.classList.remove('hidden');
+    phraseInput?.focus();
+  }
+
+  function closeDangerConfirmModal() {
+    const modal = document.getElementById('danger-confirm-modal');
+    modal?.classList.add('hidden');
+    _currentDangerAction = null;
+  }
+
+  async function fetchSystemHealthDiagnostics() {
+    const badgeEl = document.getElementById('maint-db-status-badge');
+    const gridEl = document.getElementById('maint-counts-grid');
+    if (!badgeEl || !gridEl) return;
+
+    badgeEl.innerHTML = '<span class="badge" style="background:#3b82f6;color:#fff;padding:0.35rem 0.75rem;">Scanning Telemetry...</span>';
+
+    try {
+      const data = await api.get('/admin/executive/system-health');
+      const lat = data.database?.latency_ms ?? '—';
+      const isClean = data.integrity?.is_clean;
+
+      badgeEl.innerHTML = `
+        <span class="badge" style="background:${data.status === 'healthy' ? '#059669' : '#dc2626'};color:#fff;padding:0.35rem 0.75rem;font-weight:700;">
+          🟢 Supabase Connected (${lat} ms)
+        </span>
+        <span class="badge" style="background:${isClean ? '#3b82f6' : '#d97706'};color:#fff;padding:0.35rem 0.75rem;margin-left:0.5rem;font-weight:700;">
+          ${isClean ? '✓ Zero Orphan Records' : '⚠️ Integrity Warning'}
+        </span>
+      `;
+
+      const counts = data.table_counts || {};
+      const items = [
+        { label: 'Departments', count: counts.departments ?? 0, icon: '🏢' },
+        { label: 'System Users', count: counts.users ?? 0, icon: '👥' },
+        { label: 'Active Classes', count: counts.classes ?? 0, icon: '🏫' },
+        { label: 'Enrolled Students', count: counts.students ?? 0, icon: '🎓' },
+        { label: 'Faculty Accounts', count: counts.faculty ?? 0, icon: '👨‍🏫' },
+        { label: 'Subjects / Courses', count: counts.subjects ?? 0, icon: '📚' },
+        { label: 'Faculty Allocations', count: counts.faculty_allocations ?? 0, icon: '🔗' },
+        { label: 'Attendance Sessions', count: counts.attendance_sessions ?? 0, icon: '📋' },
+        { label: 'Attendance Records', count: counts.attendance_records ?? 0, icon: '📝' },
+        { label: 'Student Leaves', count: counts.student_leaves ?? 0, icon: '✉️' },
+        { label: 'Hostel Gate Passes', count: counts.hostel_gate_passes ?? 0, icon: '🚪' },
+        { label: 'Security Audit Logs', count: counts.audit_logs ?? 0, icon: '🔒' },
+      ];
+
+      gridEl.innerHTML = items.map(it => `
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:0.75rem;display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:0.75rem;color:#64748b;font-weight:600;text-transform:uppercase;">${it.icon} ${it.label}</div>
+            <div style="font-size:1.25rem;font-weight:800;color:#0f172a;margin-top:0.15rem;">${it.count.toLocaleString()}</div>
+          </div>
+        </div>
+      `).join('');
+
+    } catch (err) {
+      badgeEl.innerHTML = '<span class="badge" style="background:#dc2626;color:#fff;padding:0.35rem 0.75rem;">Telemetry Offline</span>';
+      gridEl.innerHTML = `<div style="grid-column:1/-1;padding:1rem;color:#dc2626;background:#fef2f2;border-radius:6px;border:1px solid #fecaca;">Failed to query system health: ${_esc(err.message || 'Server error')}</div>`;
+    }
   }
 
   // Dedicated Archive Page Listeners
@@ -1968,6 +2141,10 @@ if (typeof window !== 'undefined') {
   window.nudgeDepartmentHOD = nudgeDepartmentHOD;
   window.fetchInAppNotifications = fetchInAppNotifications;
   window.initNotificationsUI = initNotificationsUI;
+  window.fetchSystemHealthDiagnostics = fetchSystemHealthDiagnostics;
+  window.initSystemMaintenanceSection = initSystemMaintenanceSection;
+  window.openDangerConfirmModal = openDangerConfirmModal;
+  window.closeDangerConfirmModal = closeDangerConfirmModal;
 
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
     setTimeout(initExecutivePortal, 50);

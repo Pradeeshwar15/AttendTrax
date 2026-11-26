@@ -146,6 +146,47 @@
   </div>
 </div>
 
+<!-- Secure Danger Zone Re-Authentication Modal -->
+<div id="danger-confirm-modal" class="modal-overlay hidden" style="z-index:99999;">
+  <div class="modal-box" style="max-width:540px;border-top:4px solid #dc2626;padding:1.75rem;">
+    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">
+      <div style="width:42px;height:42px;border-radius:50%;background:#fee2e2;color:#dc2626;display:flex;align-items:center;justify-content:center;font-size:1.35rem;flex-shrink:0;">
+        ⚠️
+      </div>
+      <div>
+        <h3 id="danger-modal-title" style="margin:0;color:#991b1b;font-size:1.15rem;font-weight:800;">Security Verification Required</h3>
+        <span style="font-size:0.75rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Principal Executive Authorization Gate</span>
+      </div>
+    </div>
+    
+    <div id="danger-modal-description" style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:0.9rem;color:#7f1d1d;font-size:0.85rem;line-height:1.45;margin-bottom:1.25rem;">
+      <!-- Dynamic Description inserted via JS -->
+    </div>
+    
+    <div style="display:flex;flex-direction:column;gap:1.1rem;margin-bottom:1.5rem;">
+      <div>
+        <label style="display:block;font-size:0.8rem;font-weight:700;color:#334155;margin-bottom:0.35rem;">
+          Step 1: Type Confirmation Phrase <span id="danger-phrase-target" style="color:#dc2626;font-family:monospace;font-weight:800;background:#fee2e2;padding:0.15rem 0.45rem;border-radius:4px;"></span>
+        </label>
+        <input type="text" id="danger-confirm-phrase-input" class="form-control" autocomplete="off" placeholder="Type the required phrase exactly" style="font-family:monospace;font-weight:600;">
+      </div>
+      <div>
+        <label style="display:block;font-size:0.8rem;font-weight:700;color:#334155;margin-bottom:0.35rem;">
+          Step 2: Enter Principal / Administrator Account Password
+        </label>
+        <input type="password" id="danger-confirm-password-input" class="form-control" placeholder="Enter your login password to confirm identity">
+      </div>
+    </div>
+
+    <div class="flex gap-4 justify-between" style="border-top:1px solid #f1f5f9;padding-top:1rem;">
+      <button type="button" class="btn btn-secondary" id="danger-modal-cancel">Cancel</button>
+      <button type="button" class="btn btn-danger" id="danger-modal-submit" disabled style="opacity:0.5;cursor:not-allowed;font-weight:700;">
+        Confirm &amp; Execute
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Generic Form Modal -->
 <div id="form-modal" class="modal-overlay hidden">
   <div class="modal-box">
@@ -432,6 +473,12 @@
         </span>
         Security Audit Trail
       </div>
+      <div class="nav-item" data-section="maintenance" id="nav-maintenance">
+        <span class="nav-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </span>
+        System Maintenance
+      </div>
       <div class="nav-item" data-section="leaves" id="nav-leaves">
         <span class="nav-icon">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
@@ -549,12 +596,6 @@
             </button>
             <button type="button" class="btn btn-secondary btn-sm" id="exec-export-all-btn" style="background:#059669;border-color:#10b981;color:#fff;font-weight:700;">
               📥 Export All Data (CSV/ZIP)
-            </button>
-            <button type="button" class="btn btn-secondary btn-sm" id="exec-factory-reset-btn" style="background:#d97706;border-color:#f59e0b;color:#fff;font-weight:700;">
-              ⚠️ Reset Attendance Logs
-            </button>
-            <button type="button" class="btn btn-danger btn-sm" id="exec-purge-cohorts-btn" style="background:#dc2626;border-color:#ef4444;color:#fff;font-weight:700;">
-              🗑️ Reset All (Students, Classes &amp; Attendance)
             </button>
           </div>
         </div>
@@ -2074,6 +2115,122 @@
         </div>
       </section>
 
+      <!-- ══════════════════ SYSTEM MAINTENANCE & DANGER ZONE ══════════════════ -->
+      <section class="section" id="section-maintenance" style="display:none;">
+        <div style="display:flex;flex-direction:column;gap:1.5rem;max-width:1200px;margin:0 auto;">
+          
+          <!-- Banner Card -->
+          <div class="card" style="background:linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);color:#fff;border:1px solid #334155;">
+            <div style="padding:1.5rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
+              <div>
+                <span style="font-size:0.75rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#f59e0b;">🛡️ Restricted Administrative Zone</span>
+                <h2 style="color:#fff;margin:0.25rem 0 0.5rem;font-size:1.4rem;">Institutional System Maintenance &amp; Danger Zone</h2>
+                <p style="color:#cbd5e1;font-size:0.875rem;max-width:750px;margin:0;">
+                  Protected administrative controls for institutional database backups, live telemetry diagnostics, attendance baseline resets, and academic cohort purging. All destructive actions require Principal password re-authentication and are immutably logged.
+                </p>
+              </div>
+              <div style="display:flex;align-items:center;gap:0.75rem;">
+                <button type="button" class="btn btn-secondary btn-sm" id="maint-refresh-diag-btn" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">
+                  🔄 Refresh Diagnostics
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 1: Master Institutional Backup (Recommended First Step) -->
+          <div class="card" style="border-left:4px solid #10b981;">
+            <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
+              <div>
+                <h3 style="font-size:1.05rem;font-weight:700;color:#0f172a;margin:0 0 0.25rem;display:flex;align-items:center;gap:0.5rem;">
+                  <span>📥</span> Institutional Master Data Backup (Pre-Maintenance Snapshot)
+                </h3>
+                <p style="color:#64748b;font-size:0.85rem;margin:0;">
+                  Download a complete compressed ZIP archive containing all students, classes, faculty, departments, and attendance records before performing any maintenance.
+                </p>
+              </div>
+              <div>
+                <button type="button" class="btn btn-secondary btn-sm" id="maint-export-zip-btn" style="background:#059669;border-color:#10b981;color:#fff;font-weight:700;padding:0.45rem 1rem;">
+                  📥 Download Master Backup (.ZIP)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Live System Health & Diagnostics Monitor -->
+          <div class="card" style="border-left:4px solid #3b82f6;">
+            <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
+              <div>
+                <h3 style="font-size:1.05rem;font-weight:700;color:#0f172a;margin:0 0 0.25rem;display:flex;align-items:center;gap:0.5rem;">
+                  <span>🩺</span> System Health, Database Telemetry &amp; Table Statistics
+                </h3>
+                <p style="color:#64748b;font-size:0.85rem;margin:0;">
+                  Real-time database connectivity, Singapore Supabase round-trip latency, table row distribution, and referential integrity audit.
+                </p>
+              </div>
+              <div id="maint-db-status-badge">
+                <span class="badge" style="background:#3b82f6;color:#fff;padding:0.35rem 0.75rem;">Checking telemetry...</span>
+              </div>
+            </div>
+            <div class="card-body">
+              <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(170px, 1fr));gap:0.85rem;" id="maint-counts-grid">
+                <div style="padding:0.75rem;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0;text-align:center;color:#64748b;">Loading table statistics...</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Danger Zone Container -->
+          <div style="border:1px solid #fca5a5;border-radius:8px;background:#fff5f5;padding:1.5rem;">
+            <div style="margin-bottom:1.25rem;border-bottom:1px solid #fed7d7;padding-bottom:0.75rem;">
+              <h3 style="font-size:1.15rem;font-weight:800;color:#991b1b;margin:0 0 0.25rem;display:flex;align-items:center;gap:0.5rem;">
+                <span>⚠️</span> Irreversible Destructive Operations (Danger Zone)
+              </h3>
+              <p style="color:#7f1d1d;font-size:0.85rem;margin:0;">
+                Actions in this section permanently delete live records from Supabase PostgreSQL. Accidental execution is prevented by mandatory typed confirmation phrases and Principal password re-authentication.
+              </p>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:1.25rem;">
+              
+              <!-- Danger Item A: Factory Default Reset -->
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;background:#fff;padding:1.25rem;border-radius:6px;border:1px solid #fecaca;">
+                <div style="max-width:700px;">
+                  <strong style="color:#9a3412;font-size:0.95rem;display:block;margin-bottom:0.25rem;">
+                    ⚠️ Reset Attendance Logs (Factory Default Baseline)
+                  </strong>
+                  <p style="color:#64748b;font-size:0.825rem;margin:0;line-height:1.4;">
+                    Permanently deletes all student attendance records and sessions under attendance reports, setting attendance rates to zero. <strong>Student profiles, classes, faculty accounts, and departments remain completely intact.</strong>
+                  </p>
+                </div>
+                <div>
+                  <button type="button" class="btn btn-secondary btn-sm" id="maint-factory-reset-btn" style="background:#d97706;border-color:#f59e0b;color:#fff;font-weight:700;padding:0.45rem 1rem;">
+                    ⚠️ Reset Attendance Baseline
+                  </button>
+                </div>
+              </div>
+
+              <!-- Danger Item B: Complete Institutional Cohort Purge -->
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;background:#fff;padding:1.25rem;border-radius:6px;border:1px solid #fca5a5;">
+                <div style="max-width:700px;">
+                  <strong style="color:#991b1b;font-size:0.95rem;display:block;margin-bottom:0.25rem;">
+                    🗑️ Complete Institutional Cohort Purge (All Students, Classes &amp; Records)
+                  </strong>
+                  <p style="color:#64748b;font-size:0.825rem;margin:0;line-height:1.4;">
+                    Permanently wipes <strong>all student profiles, student user accounts, classes, class allocations, student leave requests, hostel gate passes, and past attendance sessions</strong> across the institution. Departments, faculty accounts, and HOD accounts remain intact for fresh academic year onboarding.
+                  </p>
+                </div>
+                <div>
+                  <button type="button" class="btn btn-danger btn-sm" id="maint-purge-cohorts-btn" style="background:#dc2626;border-color:#ef4444;color:#fff;font-weight:700;padding:0.45rem 1rem;">
+                    🗑️ Erase All Academic Cohorts
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </section>
+
       <!-- ══════════════════ ABOUT US ══════════════════ -->
       <section class="section" id="section-about">
         <div class="about-container">
@@ -2409,6 +2566,7 @@ const sectionLoaders = {
   leaves:             () => { loadAllLeaveQueues(); if (typeof loadDailyActiveFacultyLeaves === 'function') loadDailyActiveFacultyLeaves(); },
   'sanctioned-archive': () => { if (typeof loadSanctionedLeavesArchivePage === 'function') loadSanctionedLeavesArchivePage(); },
   audit:              () => { if (typeof loadExecutiveAuditLogsPage === 'function') loadExecutiveAuditLogsPage(); },
+  maintenance:        () => { if (typeof fetchSystemHealthDiagnostics === 'function') fetchSystemHealthDiagnostics(); },
   about:              () => {},
 };
 const secTitles = {
@@ -2425,6 +2583,7 @@ const secTitles = {
   leaves:             'Leave & Outpass Approvals',
   'sanctioned-archive': 'Officially Sanctioned Leaves & Hard Copy Dockets',
   audit:              'Institutional Security Audit Trail & Ledger',
+  maintenance:        'Institutional System Maintenance & Danger Zone',
   about:              'About Developers & AttendTrax',
 };
 
@@ -5383,7 +5542,7 @@ document.getElementById('global-dept-selector')?.addEventListener('change', (e) 
     const secDash = document.getElementById('section-dashboard');
 
     const clericalNavIds = ['nav-import', 'nav-daily-attendance'];
-    const execNavIds = ['nav-executive', 'nav-audit'];
+    const execNavIds = ['nav-executive', 'nav-audit', 'nav-maintenance'];
 
     if (isSuperAdmin) {
       // Principal / Super Admin: Macro Institutional Cockpit & Clean Governance
