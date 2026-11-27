@@ -61,10 +61,12 @@ class ClassRoom(Base):
     section = Column(String(10), nullable=False, default="A")
     semester = Column(Integer, nullable=False, default=1)                     # 1..8
     academic_year = Column(String(20), default="2026-2027", nullable=False)
+    incharge_faculty_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     status = Column(String(20), default="ACTIVE", nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     department = relationship("Department", back_populates="classes")
+    incharge = relationship("User", foreign_keys=[incharge_faculty_id])
     students = relationship("Student", back_populates="class_room")
     sessions = relationship("AttendanceSession", back_populates="class_room")
 

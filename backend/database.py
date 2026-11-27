@@ -82,5 +82,7 @@ async def init_db() -> None:
             await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_students_roll_no ON students (roll_no);"))
             await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_students_placement_willingness ON students (placement_willingness);"))
             await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_students_status ON students (status);"))
+            await conn.execute(text("ALTER TABLE classes ADD COLUMN IF NOT EXISTS incharge_faculty_id INTEGER REFERENCES users(id);"))
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_classes_incharge_faculty_id ON classes (incharge_faculty_id);"))
         except Exception:
             pass

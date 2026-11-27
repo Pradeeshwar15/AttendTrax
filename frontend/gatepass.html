@@ -189,7 +189,7 @@
                 <th>Student</th>
                 <th>Reg No</th>
                 <th>Class</th>
-                <th>Hostel Block / Room</th>
+                <th>Residence</th>
                 <th>Type</th>
                 <th>Outpass Dates</th>
                 <th>Reason</th>
@@ -319,7 +319,7 @@ async function loadWardenQueue() {
           <td><strong>${escapeHtml(item.student_name)}</strong></td>
           <td><span class="mono" style="font-size:0.82rem;">${escapeHtml(item.reg_no)}</span></td>
           <td><span class="badge" style="font-size:0.75rem;">${escapeHtml(item.class_code)}</span></td>
-          <td><span style="font-size:0.83rem;font-weight:600;color:var(--indigo-700);">${escapeHtml(item.hostel_room)}</span></td>
+          <td><span style="font-size:0.83rem;font-weight:600;color:var(--indigo-700);">${escapeHtml(item.residence_type || item.hostel_room || 'HOSTELLER')}</span></td>
           <td><span class="skill-tag" style="font-size:0.75rem;">${escapeHtml(item.leave_type)}</span></td>
           <td><span style="font-size:0.82rem;">${escapeHtml(dates)}</span></td>
           <td style="max-width:180px;font-size:0.82rem;" title="${escapeHtml(item.reason)}">${escapeHtml(item.reason)}</td>

@@ -59,14 +59,14 @@ class GateVerificationRequest(BaseModel):
 # ═════════════════════════════════════════════════════════════════════════════
 
 async def _resolve_int_user_id(db: AsyncSession, current_user: dict) -> Optional[int]:
-    raw_uid = current_user.get("user_id")
+    raw_uid = current_user.get("user_id") or current_user.get("id") or current_user.get("ID")
     if raw_uid is not None and str(raw_uid).isdigit():
         uid_val = int(raw_uid)
         chk = await db.execute(select(User.id).where(User.id == uid_val))
         if chk.scalar_one_or_none():
             return uid_val
 
-    sub = current_user.get("sub") or current_user.get("Username")
+    sub = current_user.get("sub") or current_user.get("Username") or current_user.get("username")
     if sub:
         u_res = await db.execute(select(User.id).where(User.username == str(sub).strip().lower()))
         uid = u_res.scalar_one_or_none()
@@ -810,20 +810,40 @@ async def get_my_student_leaves(
 
 @router.get("/student/pending-incharge")
 async def get_student_leaves_pending_incharge(
-    current_user: dict = Depends(require_role("CLASS_INCHARGE", "FACULTY", "DEPT_ADMIN")),
+    current_user: dict = Depends(require_role("CLASS_INCHARGE", "FACULTY", "DEPT_ADMIN", "SUPER_ADMIN", "ADMIN")),
     db: AsyncSession = Depends(get_db),
 ):
-    """Class Incharge views pending student leave tickets for their class."""
+    """Class Incharge views pending student leave tickets for their assigned class(es)."""
+    user_role = (current_user.get("role") or "").upper()
+    int_user_id = await _resolve_int_user_id(db, current_user)
+
     stmt = select(
-        StudentLeave, Student.name, Student.reg_no, ClassRoom.class_code
+        StudentLeave, Student.name, Student.reg_no, ClassRoom.class_code, ClassRoom.class_name
     ).join(
         Student, StudentLeave.student_id == Student.id
     ).join(
         ClassRoom, StudentLeave.class_id == ClassRoom.id
     ).where(
         StudentLeave.incharge_status == "PENDING"
-    ).order_by(StudentLeave.created_at)
+    )
 
+    if user_role in ("FACULTY", "CLASS_INCHARGE"):
+        if not int_user_id:
+            return []
+        # Strictly scope to classes where this faculty is assigned as Class Incharge
+        incharge_class_subq = select(ClassRoom.id).where(ClassRoom.incharge_faculty_id == int_user_id)
+        stmt = stmt.where(
+            or_(
+                StudentLeave.class_id.in_(incharge_class_subq),
+                and_(Student.class_incharge_faculty_id.is_not(None), Student.class_incharge_faculty_id == int_user_id)
+            )
+        )
+    elif user_role == "DEPT_ADMIN":
+        int_dept_id = await _resolve_int_dept_id(db, current_user)
+        if int_dept_id:
+            stmt = stmt.where(StudentLeave.department_id == int_dept_id)
+
+    stmt = stmt.order_by(StudentLeave.created_at)
     res = await db.execute(stmt)
     return [
         {
@@ -831,6 +851,7 @@ async def get_student_leaves_pending_incharge(
             "student_name": r.name,
             "reg_no": r.reg_no,
             "class_code": r.class_code,
+            "class_name": r.class_name,
             "residence_type": r.StudentLeave.residence_type,
             "leave_type": r.StudentLeave.leave_type,
             "start_date": r.StudentLeave.start_date,
@@ -847,18 +868,41 @@ async def incharge_review_student_leave(
     leave_id: int,
     body: ReviewLeaveRequest,
     request: Request,
-    current_user: dict = Depends(require_role("CLASS_INCHARGE", "FACULTY", "DEPT_ADMIN")),
+    current_user: dict = Depends(require_role("CLASS_INCHARGE", "FACULTY", "DEPT_ADMIN", "SUPER_ADMIN", "ADMIN")),
     db: AsyncSession = Depends(get_db),
 ):
-    """Class Incharge approves Level 1 $\rightarrow$ advances ticket to HOD."""
+    """Class Incharge approves Level 1 -> advances ticket to HOD."""
     stmt = select(StudentLeave).where(StudentLeave.id == leave_id)
     res = await db.execute(stmt)
     leave = res.scalar_one_or_none()
     if not leave:
         raise HTTPException(status_code=404, detail="Student leave ticket not found.")
 
-    act = body.action.upper()
+    user_role = (current_user.get("role") or "").upper()
     int_user_id = await _resolve_int_user_id(db, current_user)
+
+    # Scoped authorization check: only assigned Class Incharge or HOD/Admin can approve
+    if user_role in ("FACULTY", "CLASS_INCHARGE"):
+        if not int_user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: Unable to determine your faculty identity."
+            )
+        cls_obj = (await db.execute(select(ClassRoom).where(ClassRoom.id == leave.class_id))).scalar_one_or_none()
+        st_obj = (await db.execute(select(Student).where(Student.id == leave.student_id))).scalar_one_or_none()
+        is_assigned = False
+        if cls_obj and cls_obj.incharge_faculty_id is not None and cls_obj.incharge_faculty_id == int_user_id:
+            is_assigned = True
+        elif st_obj and st_obj.class_incharge_faculty_id is not None and st_obj.class_incharge_faculty_id == int_user_id:
+            is_assigned = True
+
+        if not is_assigned:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: You are not assigned as the Class Incharge for this student's class."
+            )
+
+    act = body.action.upper()
 
     if act == "APPROVE":
         leave.incharge_status = "APPROVED"
@@ -1011,7 +1055,8 @@ async def get_student_leaves_pending_warden(
             "student_name": r.name,
             "reg_no": r.reg_no,
             "class_code": r.class_code,
-            "hostel_room": r.hostel_block_room or "Unassigned",
+            "hostel_room": "Hosteller",
+            "residence_type": "HOSTELLER",
             "leave_type": r.StudentLeave.leave_type,
             "start_date": r.StudentLeave.start_date,
             "end_date": r.StudentLeave.end_date,

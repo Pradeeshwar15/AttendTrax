@@ -174,6 +174,7 @@ class AddClassRequest(BaseModel):
     section: Optional[str] = "A"
     semester: Optional[str] = "1"
     academic_year: Optional[str] = "2026-2027"
+    incharge_id: Optional[str] = None
 
 
 @router.get("/classes")
@@ -190,8 +191,9 @@ async def list_all_classes(
         return cached
 
     stmt = (
-        select(ClassRoom, Department)
+        select(ClassRoom, Department, User)
         .join(Department, ClassRoom.department_id == Department.id)
+        .outerjoin(User, ClassRoom.incharge_faculty_id == User.id)
         .where(ClassRoom.status == "ACTIVE")
     )
     if user_role == "DEPT_ADMIN" and hod_dept != "PLACEMENT":
@@ -208,9 +210,12 @@ async def list_all_classes(
             "Section": cls_obj.section,
             "Semester": str(cls_obj.semester),
             "Department": dept_obj.code,
-            "Status": cls_obj.status
+            "Status": cls_obj.status,
+            "InchargeFacultyID": cls_obj.incharge_faculty_id,
+            "InchargeName": inc_user.full_name if inc_user else "Unassigned",
+            "InchargeUsername": inc_user.username if inc_user else "",
         }
-        for cls_obj, dept_obj in rows
+        for cls_obj, dept_obj, inc_user in rows
     ]
     res_sorted = sorted(sql_classes, key=lambda c: str(c.get("ClassID", "")))
     cache.set(cache_key, res_sorted, ttl_seconds=30)
@@ -271,6 +276,27 @@ async def add_class(
     sem = int(body.semester) if str(body.semester).isdigit() else 1
     sec = str(body.section or "A").strip().upper()
 
+    # Resolve Class Incharge Faculty User ID if provided
+    incharge_user_id = None
+    if body.incharge_id and str(body.incharge_id).strip():
+        raw_inc = str(body.incharge_id).strip()
+        if raw_inc.isdigit():
+            u_chk = (await db.execute(select(User).where(User.id == int(raw_inc)))).scalar_one_or_none()
+            if u_chk:
+                incharge_user_id = u_chk.id
+            else:
+                f_chk = (await db.execute(select(Faculty).where(Faculty.id == int(raw_inc)))).scalar_one_or_none()
+                if f_chk:
+                    incharge_user_id = f_chk.user_id
+        if not incharge_user_id:
+            u_chk = (await db.execute(select(User).where(User.username == raw_inc))).scalar_one_or_none()
+            if u_chk:
+                incharge_user_id = u_chk.id
+            else:
+                f_chk = (await db.execute(select(Faculty).where(Faculty.faculty_code == raw_inc))).scalar_one_or_none()
+                if f_chk:
+                    incharge_user_id = f_chk.user_id
+
     if existing_cls:
         existing_cls.status = "ACTIVE"
         existing_cls.class_name = body.class_name
@@ -278,6 +304,8 @@ async def add_class(
         existing_cls.year = yr
         existing_cls.section = sec
         existing_cls.semester = sem
+        if body.incharge_id is not None:
+            existing_cls.incharge_faculty_id = incharge_user_id
         await db.commit()
         cache.invalidate("classes_")
         _ADMIN_ANALYTICS_CACHE.clear()
@@ -296,6 +324,7 @@ async def add_class(
             section=sec,
             semester=sem,
             academic_year=body.academic_year or "2026-2027",
+            incharge_faculty_id=incharge_user_id,
             status="ACTIVE"
         )
         db.add(new_cls)
@@ -314,6 +343,7 @@ async def add_class(
 
 class RenameClassRequest(BaseModel):
     new_name: str
+    incharge_id: Optional[str] = None
 
 
 @router.patch("/classes/{class_id}/rename")
@@ -343,11 +373,33 @@ async def rename_class(
                     detail=f"Access denied: HOD of {hod_dept} cannot rename classes belonging to {dept_obj.code}."
                 )
         cls_obj.class_name = body.new_name
+        if body.incharge_id is not None:
+            raw_inc = str(body.incharge_id).strip()
+            incharge_uid = None
+            if raw_inc:
+                if raw_inc.isdigit():
+                    u_chk = (await db.execute(select(User).where(User.id == int(raw_inc)))).scalar_one_or_none()
+                    if u_chk:
+                        incharge_uid = u_chk.id
+                    else:
+                        f_chk = (await db.execute(select(Faculty).where(Faculty.id == int(raw_inc)))).scalar_one_or_none()
+                        if f_chk:
+                            incharge_uid = f_chk.user_id
+                if not incharge_uid:
+                    u_chk = (await db.execute(select(User).where(User.username == raw_inc))).scalar_one_or_none()
+                    if u_chk:
+                        incharge_uid = u_chk.id
+                    else:
+                        f_chk = (await db.execute(select(Faculty).where(Faculty.faculty_code == raw_inc))).scalar_one_or_none()
+                        if f_chk:
+                            incharge_uid = f_chk.user_id
+            cls_obj.incharge_faculty_id = incharge_uid
+
         await db.commit()
 
     cache.invalidate("classes_")
     _ADMIN_ANALYTICS_CACHE.clear()
-    return {"status": "success", "message": f"Class '{clean_cid}' renamed to '{body.new_name}'."}
+    return {"status": "success", "message": f"Class '{clean_cid}' updated successfully."}
 
 
 @router.delete("/classes/{class_id}")
@@ -2281,7 +2333,6 @@ async def download_student_template():
         "Gender",
         "Scholar Type",
         "Class ID",
-        "Hostel Room",
         "Placement Standing",
         "Username",
         "Password"
@@ -2289,9 +2340,9 @@ async def download_student_template():
     ws.append(headers)
 
     sample_rows = [
-        ["410123104001", "23CS001", "Aarav Sharma", "MALE", "HOSTELLER", "CSE3A", "B-Block 204", "active", "410123104001", "410123104001@2026"],
-        ["410123104002", "23CS002", "Deepika Raman", "FEMALE", "DAY_SCHOLAR", "CSE3A", "", "active", "410123104002", "410123104002@2026"],
-        ["410123104003", "23CS003", "Karthik Vijay", "MALE", "DAY_SCHOLAR", "CSE3A", "", "inactive", "410123104003", "410123104003@2026"],
+        ["410123104001", "23CS001", "Aarav Sharma", "MALE", "HOSTELLER", "CSE3A", "active", "410123104001", "410123104001@2026"],
+        ["410123104002", "23CS002", "Deepika Raman", "FEMALE", "DAY_SCHOLAR", "CSE3A", "active", "410123104002", "410123104002@2026"],
+        ["410123104003", "23CS003", "Karthik Vijay", "MALE", "DAY_SCHOLAR", "CSE3A", "inactive", "410123104003", "410123104003@2026"],
     ]
     for r in sample_rows:
         ws.append(r)
@@ -2322,10 +2373,10 @@ async def download_student_template():
 
     dv_placement = DataValidation(type="list", formula1='"active,inactive"', allow_blank=True)
     ws.add_data_validation(dv_placement)
-    dv_placement.add("H2:H1000")
+    dv_placement.add("G2:G1000")
 
     # Column widths
-    col_widths = {1: 18, 2: 14, 3: 24, 4: 14, 5: 16, 6: 14, 7: 18, 8: 20, 9: 18, 10: 18}
+    col_widths = {1: 18, 2: 14, 3: 24, 4: 14, 5: 16, 6: 14, 7: 20, 8: 18, 9: 18}
     for col_idx, width in col_widths.items():
         col_letter = openpyxl.utils.get_column_letter(col_idx)
         ws.column_dimensions[col_letter].width = width

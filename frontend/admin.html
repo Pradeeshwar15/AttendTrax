@@ -1274,10 +1274,10 @@
             <div class="table-wrapper">
               <table>
                 <thead>
-                  <tr><th>Class ID</th><th>Class Name</th><th>Year</th><th>Section</th><th>Semester</th><th>Status</th><th>Actions</th></tr>
+                  <tr><th>Class ID</th><th>Class Name</th><th>Class Incharge</th><th>Year</th><th>Section</th><th>Semester</th><th>Status</th><th>Actions</th></tr>
                 </thead>
                 <tbody id="classes-tbody">
-                  <tr><td colspan="7" class="text-center text-muted" style="padding:2rem;">Loading…</td></tr>
+                  <tr><td colspan="8" class="text-center text-muted" style="padding:2rem;">Loading…</td></tr>
                 </tbody>
               </table>
             </div>
@@ -1715,7 +1715,6 @@
                 <span class="tag" style="font-weight:700;">Gender</span>
                 <span class="tag" style="font-weight:700;">Scholar Type</span>
                 <span class="tag" style="font-weight:700;">Class ID</span>
-                <span class="tag" style="opacity:.75;">Hostel Room</span>
                 <span class="tag" style="opacity:.75;">Placement Standing</span>
                 <span class="tag" style="opacity:.6;">Username (opt)</span>
                 <span class="tag" style="opacity:.6;">Password (opt)</span>
@@ -1745,7 +1744,7 @@
                   <button class="btn btn-secondary" id="dl-template-students-csv" style="font-weight:600;">⬇️ Download CSV Template (.csv)</button>
                 </div>
                 <p class="text-xs text-muted" style="margin-top:0.6rem;line-height:1.4;">
-                  ✨ Includes all 10 institutional parameters: <strong>Register No</strong>, <strong>Roll No (Roster)</strong>, <strong>Student Name</strong>, <strong>Gender (MALE/FEMALE/OTHER)</strong>, <strong>Scholar Type (DAY_SCHOLAR/HOSTELLER)</strong>, <strong>Class ID</strong>, <strong>Hostel Room</strong>, <strong>Placement Standing (active/inactive)</strong>, <strong>Username</strong>, and <strong>Password</strong>.
+                  ✨ Includes all 9 institutional parameters: <strong>Register No</strong>, <strong>Roll No (Roster)</strong>, <strong>Student Name</strong>, <strong>Gender (MALE/FEMALE/OTHER)</strong>, <strong>Scholar Type (DAY_SCHOLAR/HOSTELLER)</strong>, <strong>Class ID</strong>, <strong>Placement Standing (active/inactive)</strong>, <strong>Username</strong>, and <strong>Password</strong>.
                 </p>
               </div>
             </div>
@@ -3941,21 +3940,25 @@ function renderClasses(classes) {
   const tbody = document.getElementById('classes-tbody');
   tbody.innerHTML = '';
   if (!classes.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:2rem;">No classes found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding:2rem;">No classes found.</td></tr>';
     return;
   }
   classes.forEach(c => {
+    const inchargeDisplay = (c.InchargeName && c.InchargeName !== 'Unassigned')
+      ? `<span class="font-semibold" style="color:var(--brand-700,#1d4ed8);">${escapeHtml(c.InchargeName)}</span>`
+      : `<span class="text-muted" style="font-style:italic;">Unassigned</span>`;
     tbody.innerHTML += `
       <tr>
         <td><span class="tag">${c.ClassID}</span></td>
         <td class="font-semibold">${c.ClassName}</td>
+        <td>${inchargeDisplay}</td>
         <td>${c.Year || '—'}</td>
         <td>${c.Section || '—'}</td>
         <td>${c.Semester || '—'}</td>
         <td><span class="badge ${c.Status==='ACTIVE'?'badge-info':'badge-absent'}">${c.Status}</span></td>
         <td>
           <div class="flex gap-2">
-            <button class="btn btn-sm btn-secondary rename-class-btn" data-id="${c.ClassID}" data-name="${c.ClassName}">✏️ Rename</button>
+            <button class="btn btn-sm btn-secondary rename-class-btn" data-id="${c.ClassID}" data-name="${escapeHtml(c.ClassName)}" data-incharge="${escapeHtml(c.InchargeUsername || c.InchargeFacultyID || '')}">✏️ Edit / Incharge</button>
             <button class="btn btn-sm btn-danger deactivate-class-btn" data-id="${c.ClassID}">🗑️</button>
           </div>
         </td>
@@ -3973,6 +3976,23 @@ document.getElementById('add-class-btn').addEventListener('click', async () => {
   if (isHod && curUsername.startsWith('hod.')) {
     hodDept = curUsername.replace('hod.', '').toUpperCase();
   }
+
+  showLoader(true);
+  let facultyList = [];
+  try {
+    facultyList = await api.get('/admin/faculty');
+  } catch(err) {
+    console.warn('Failed to load faculty for add class:', err);
+  } finally {
+    showLoader(false);
+  }
+
+  const facultyOpts = `<option value="">— Unassigned (No Class Incharge) —</option>` +
+    (Array.isArray(facultyList) ? facultyList : []).map(f => {
+      const val = f.Username || f.FacultyID;
+      const deptPart = f.Department ? ` [${f.Department}]` : '';
+      return `<option value="${escapeHtml(val)}">${escapeHtml(f.Name)}${deptPart} (${escapeHtml(f.FacultyID || f.Username)})</option>`;
+    }).join('');
 
   const deptFieldHtml = (isHod && hodDept !== 'PLACEMENT')
     ? `<div class="form-group" style="background:var(--brand-50,#eff6ff);border:1px solid var(--brand-100,#dbeafe);padding:0.75rem;border-radius:8px;">
@@ -4004,6 +4024,13 @@ document.getElementById('add-class-btn').addEventListener('click', async () => {
       ${deptFieldHtml}
       <div class="form-group"><label class="form-label">Class ID / Code</label><input data-field="class_id" class="form-control" placeholder="${placeholderId}" required /></div>
       <div class="form-group"><label class="form-label">Class Name</label><input data-field="class_name" class="form-control" placeholder="${placeholderName}" required /></div>
+      <div class="form-group">
+        <label class="form-label">Class Incharge (Faculty) 🧑‍🏫</label>
+        <select data-field="incharge_id" class="form-control">
+          ${facultyOpts}
+        </select>
+        <small class="text-xs text-muted" style="margin-top:0.25rem;display:block;">Assigned faculty receives exclusive leave approval access for students in this class.</small>
+      </div>
       <div class="grid grid-3" style="gap:0.75rem;">
         <div class="form-group"><label class="form-label">Year (1-4)</label><input data-field="year" class="form-control" placeholder="3" /></div>
         <div class="form-group"><label class="form-label">Section</label><input data-field="section" class="form-control" placeholder="A" /></div>
@@ -4024,16 +4051,50 @@ document.getElementById('add-class-btn').addEventListener('click', async () => {
 async function renameClass(e) {
   const id   = e.currentTarget.dataset.id;
   const name = e.currentTarget.dataset.name;
-  const result = await openFormModal('✏️ Rename Class', `
-    <div class="form-group">
-      <label class="form-label">New Class Name</label>
-      <input data-field="new_name" class="form-control" value="${name}" />
+  const curIncharge = e.currentTarget.dataset.incharge || '';
+
+  showLoader(true);
+  let facultyList = [];
+  try {
+    facultyList = await api.get('/admin/faculty');
+  } catch(err) {
+    console.warn('Failed to load faculty for rename class:', err);
+  } finally {
+    showLoader(false);
+  }
+
+  const facultyOpts = `<option value="">— Unassigned (No Class Incharge) —</option>` +
+    (Array.isArray(facultyList) ? facultyList : []).map(f => {
+      const val = f.Username || f.FacultyID;
+      const deptPart = f.Department ? ` [${f.Department}]` : '';
+      const isSel = (String(curIncharge).toLowerCase() === String(f.FacultyID).toLowerCase() ||
+                     String(curIncharge).toLowerCase() === String(f.Username).toLowerCase() ||
+                     String(curIncharge).toLowerCase() === String(f.Name).toLowerCase()) ? 'selected' : '';
+      return `<option value="${escapeHtml(val)}" ${isSel}>${escapeHtml(f.Name)}${deptPart} (${escapeHtml(f.FacultyID || f.Username)})</option>`;
+    }).join('');
+
+  const result = await openFormModal('✏️ Edit Class / Assign Incharge', `
+    <div class="form-stack" style="gap:1rem;">
+      <div class="form-group">
+        <label class="form-label">Class Name</label>
+        <input data-field="new_name" class="form-control" value="${escapeHtml(name)}" required />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Class Incharge (Faculty) 🧑‍🏫</label>
+        <select data-field="incharge_id" class="form-control">
+          ${facultyOpts}
+        </select>
+        <small class="text-xs text-muted" style="margin-top:0.25rem;display:block;">Assigned faculty receives exclusive leave approval access for students in this class.</small>
+      </div>
     </div>`);
   if (!result?.new_name) return;
   showLoader(true);
   try {
-    await api.patch(`/admin/classes/${id}/rename`, { new_name: result.new_name });
-    showToast('Class renamed.','success');
+    await api.patch(`/admin/classes/${encodeURIComponent(id)}/rename`, {
+      new_name: result.new_name,
+      incharge_id: result.incharge_id || null
+    });
+    showToast('Class updated successfully.','success');
     loadClasses();
   } catch(e) { showToast(e.message,'error'); }
   finally { showLoader(false); }
@@ -4163,9 +4224,8 @@ async function loadStudentsAdmin() {
           }
 
           const resVal = (s.ResidenceType || s.residence_type || 'DAY_SCHOLAR').toUpperCase();
-          const hostelRoom = s.HostelBlockRoom || s.hostel_block_room || '';
           const scholarBadge = resVal === 'HOSTELLER'
-            ? `<span class="badge" style="background:#fef3c7;color:#92400e;font-weight:700;font-size:0.75rem;" title="${escapeHtml(hostelRoom)}">🏢 Hosteller${hostelRoom ? ` (${escapeHtml(hostelRoom)})` : ''}</span>`
+            ? `<span class="badge" style="background:#fef3c7;color:#92400e;font-weight:700;font-size:0.75rem;">🏢 Hosteller</span>`
             : '<span class="badge" style="background:#f1f5f9;color:#475569;font-weight:600;font-size:0.75rem;">🚶 Day Scholar</span>';
 
           const rollVal = s.RollNo || s.roll_no;
@@ -4316,10 +4376,6 @@ async function editStudent(reg) {
           </select>
         </div>
       </div>
-      <div class="form-group">
-        <label class="form-label" style="font-weight:700;">Hostel Block & Room (if Hosteller)</label>
-        <input data-field="hostel_block_room" class="form-control" value="${escapeHtml(s.HostelBlockRoom || s.hostel_block_room || '')}" placeholder="e.g. B-Block Room 204" />
-      </div>
       <div style="display:flex;gap:0.75rem;">
         <div class="form-group" style="flex:1.2;">
           <label class="form-label" style="font-weight:700;">Class / Section</label>
@@ -4398,10 +4454,6 @@ document.getElementById('add-student-btn').addEventListener('click', async () =>
             <option value="HOSTELLER">🏢 Hosteller</option>
           </select>
         </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label" style="font-weight:700;">Hostel Block & Room (if Hosteller)</label>
-        <input data-field="hostel_block_room" class="form-control" placeholder="e.g. B-Block Room 204" />
       </div>
       <div style="display:flex;gap:0.75rem;">
         <div class="form-group" style="flex:1.2;">
@@ -5177,10 +5229,10 @@ async function downloadStudentsExcelTemplate() {
 }
 
 function downloadStudentsCsvTemplate() {
-  const headers = "Register No,Roll No,Student Name,Gender,Scholar Type,Class ID,Hostel Room,Placement Standing,Username,Password\n";
-  const sample = "410123104001,23CS001,Aarav Sharma,MALE,HOSTELLER,CSE3A,B-Block Room 204,active,410123104001,410123104001@2026\n"
-               + "410123104002,23CS002,Deepika Raman,FEMALE,DAY_SCHOLAR,CSE3A,,active,410123104002,410123104002@2026\n"
-               + "410123104003,23CS003,Karthik Vijay,MALE,DAY_SCHOLAR,CSE3A,,inactive,410123104003,410123104003@2026\n";
+  const headers = "Register No,Roll No,Student Name,Gender,Scholar Type,Class ID,Placement Standing,Username,Password\n";
+  const sample = "410123104001,23CS001,Aarav Sharma,MALE,HOSTELLER,CSE3A,active,410123104001,410123104001@2026\n"
+               + "410123104002,23CS002,Deepika Raman,FEMALE,DAY_SCHOLAR,CSE3A,active,410123104002,410123104002@2026\n"
+               + "410123104003,23CS003,Karthik Vijay,MALE,DAY_SCHOLAR,CSE3A,inactive,410123104003,410123104003@2026\n";
   downloadCsvTemplate('Adhi_Student_Bulk_Template.csv', headers + sample, 'Student CSV template downloaded! Includes Gender, Scholar Type, and Placement Standing.');
 }
 
