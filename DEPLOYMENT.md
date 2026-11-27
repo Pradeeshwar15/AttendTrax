@@ -65,7 +65,23 @@ const API_BASE = window.location.hostname === 'localhost' || window.location.hos
 
 ---
 
-## 4. Deploying via Docker (Alternative)
+## 4. Deploying Frontend to Render (Automatic Dual Redundancy)
+
+`render.yaml` includes an official **Static Site** definition (`attendtrax-frontend`):
+1. In [dashboard.render.com](https://dashboard.render.com), if you use **Blueprints**, Render will automatically deploy:
+   - **`attendtrax-api`** (Python Backend Web Service on `rootDir: backend`)
+   - **`attendtrax-frontend`** (Static Site on `rootDir: frontend`, `staticPublishPath: .`)
+2. Whenever you modify and push frontend files (e.g. `frontend/faculty.html` or `frontend/style.css`), Render detects changes in `rootDir: frontend` and automatically deploys the frontend static site with free global CDN!
+3. If creating manually on Render:
+   - Click **New + > Static Site**
+   - Connect GitHub repo
+   - Root Directory: `frontend`
+   - Build Command: *(leave blank)*
+   - Publish Directory: `.`
+
+---
+
+## 5. Deploying via Docker (Alternative)
 
 To build and run the backend as a container:
 ```bash
