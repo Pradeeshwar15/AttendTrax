@@ -4410,16 +4410,16 @@ async function editStudent(reg) {
           <label class="form-label" style="font-weight:700;">Gender</label>
           <select data-field="gender" class="form-control">
             <option value="" ${!curGender ? 'selected' : ''}>— Select —</option>
-            <option value="MALE" ${curGender === \'MALE\' ? \'selected\' : \'\'}>Male</option>
-            <option value="FEMALE" ${curGender === \'FEMALE\' ? \'selected\' : \'\'}>Female</option>
-            <option value="OTHER" ${curGender === \'OTHER\' ? \'selected\' : \'\'}>Other</option>
+            <option value="MALE" ${curGender === 'MALE' ? 'selected' : ''}>Male</option>
+            <option value="FEMALE" ${curGender === 'FEMALE' ? 'selected' : ''}>Female</option>
+            <option value="OTHER" ${curGender === 'OTHER' ? 'selected' : ''}>Other</option>
           </select>
         </div>
         <div class="form-group" style="flex:1;">
           <label class="form-label" style="font-weight:700;">Scholar Type</label>
           <select data-field="residence_type" class="form-control">
-            <option value="DAY_SCHOLAR" ${curScholar === \'DAY_SCHOLAR\' ? \'selected\' : \'\'}>Day Scholar</option>
-            <option value="HOSTELLER" ${curScholar === \'HOSTELLER\' ? \'selected\' : \'\'}>Hosteller</option>
+            <option value="DAY_SCHOLAR" ${curScholar === 'DAY_SCHOLAR' ? 'selected' : ''}>Day Scholar</option>
+            <option value="HOSTELLER" ${curScholar === 'HOSTELLER' ? 'selected' : ''}>Hosteller</option>
           </select>
         </div>
       </div>
@@ -4434,8 +4434,8 @@ async function editStudent(reg) {
         <div class="form-group" style="flex:1;">
           <label class="form-label" style="font-weight:700;">Placement Standing</label>
           <select data-field="placement_willingness" class="form-control">
-            <option value="active" ${curWill === \'active\' ? \'selected\' : \'\'}>Active (Willing)</option>
-            <option value="inactive" ${curWill === \'inactive\' ? \'selected\' : \'\'}>Inactive (Unwilling)</option>
+            <option value="active" ${curWill === 'active' ? 'selected' : ''}>Active (Willing)</option>
+            <option value="inactive" ${curWill === 'inactive' ? 'selected' : ''}>Inactive (Unwilling)</option>
           </select>
         </div>
       </div>
