@@ -1,20 +1,42 @@
-# Ralph Loop Progress Tracker: Dynamic Department Subjects & Placement Attendance
+# Ralph Loop: AttendTrax UI Improvement & Mobile Optimization
+**Goal**: Clean, human-crafted UI design refresh across all pages + full mobile optimization
+**Status**: COMPLETED
+**Completed**: 2026-11-27
 
-**Active Goal**: Replace hardcoded placement subject dropdowns with dynamic department-scoped subjects in Supabase, require subject selection before loading students in faculty attendance, and provide first-class subject management for all departments (including Placement).
+## Checklist
+- [x] Full code audit (style.css, index.html, admin.html, faculty.html, student.html, gatepass.html)
+- [x] User approved plan
+- [x] Phase 1: style.css — design token refresh, component polish, mobile base patterns
+- [x] Phase 2: index.html — login page redesign
+- [x] Phase 3: admin.html — admin dashboard improvements
+- [x] Phase 4: faculty.html — faculty dashboard improvements
+- [x] Phase 5: student.html — student dashboard improvements
+- [x] Phase 6: gatepass.html — gatepass terminal improvements
+- [x] Validation: HTML structure check (0 unclosed tags across all pages)
+- [x] Git commit + push
 
-## Status Checklist
-- [x] Research existing subject models, admin endpoints, and faculty dropdowns
-- [x] Create comprehensive implementation plan artifact (`department_subjects_and_dynamic_placement_attendance_plan.md`)
-- [x] User review & approval of the implementation plan
-- [x] Step 1: Update `backend/routers/admin_router.py` for full Placement department subject management
-- [x] Step 2: Update `backend/routers/faculty_router.py` to dynamically return department-scoped subjects for Placement vs Academic faculty
-- [x] Step 3: Update `frontend/admin.html` Subjects tab with department filter and Placement option
-- [x] Step 4: Update `frontend/faculty.html` to dynamically render department subjects and enforce selection before loading students
-- [x] Step 5: Automated test verification (`backend/scripts/test_dynamic_department_subjects.py`)
-- [x] Step 6: Restart servers, verify end-to-end, and push to GitHub
-
-## Completed Verification
-- `test_dynamic_department_subjects.py`: PASSED (Step 1-6 verified)
-- `test_performance_and_willingness.py`: PASSED
-- `test_attendance_extensions.py`: PASSED
-- `test_placement_attendance_sandbox.py`: PASSED
+## Completed Changes
+1. **Design System Refresh (`frontend/style.css`)**:
+   - Replaced generic SaaS palette with warm-tinted slate neutral hierarchy and refined indigo primary accents
+   - Introduced depth tokens (`--surface`, `--surface-raised`, `--surface-inset`, `--surface-hover`)
+   - Rebuilt button states with tactile press feedback and subtle border elevations
+   - Added icon-box stat cards and improved table typography
+   - Full mobile responsiveness with card-stacking utilities and bottom-anchored mobile toasts
+2. **Login Experience (`frontend/index.html`)**:
+   - Institutional branding banner with Adhi College of Engineering & Technology attribution
+   - Layered radial glow mesh background and refined feature trust list
+   - Touch-optimized form inputs with secure password toggling
+3. **Admin Dashboard (`frontend/admin.html`)**:
+   - Categorized sidebar into Intelligence, Academics, Operations, and System domains
+   - Horizontally scrollable tab pills for mobile viewports
+   - Compact topbar refresh button and department selector on mobile
+4. **Faculty Dashboard (`frontend/faculty.html`)**:
+   - Categorized navigation for attendance vs account services
+   - Tactile chip selectors and mobile card attendance layout
+5. **Student Dashboard (`frontend/student.html`)**:
+   - Responsive donut chart wrapping and single/double column subject cards
+   - Categorized sidebar navigation
+6. **GatePass Terminal (`frontend/gatepass.html`)**:
+   - Dark mode scanner card with glowing indigo accent
+   - Tactile exit/return buttons with 44px touch targets
+   - Horizontal tab navigation
