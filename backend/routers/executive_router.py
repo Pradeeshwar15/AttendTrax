@@ -1201,16 +1201,23 @@ async def executive_export_all_institutional_data(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Principal Executive Action: Export all institutional data to a compressed ZIP archive containing:
-    - Students_Master.csv
-    - Faculty_Master.csv
-    - Attendance_Reports.csv
+    Principal Executive Action: Export all institutional data to a comprehensive compressed ZIP archive containing:
+    - AttendTrax_Students_Master.csv
+    - AttendTrax_Faculty_Master.csv
+    - AttendTrax_Classes_Master.csv
+    - AttendTrax_Subjects_Master.csv
+    - AttendTrax_Departments_Master.csv
+    - AttendTrax_Leaves_Audit.csv
+    - AttendTrax_Attendance_Reports.csv
     """
     # 1. Export Students
     stu_stmt = (
         select(
             Student.reg_no,
+            Student.roll_no,
             Student.name,
+            Student.gender,
+            Student.residence_type,
             Department.code.label("department"),
             ClassRoom.class_code.label("class_id"),
             ClassRoom.year,
@@ -1226,9 +1233,13 @@ async def executive_export_all_institutional_data(
 
     stu_buf = io.StringIO()
     stu_writer = csv.writer(stu_buf)
-    stu_writer.writerow(["Register Number", "Student Name", "Department", "Class ID", "Year", "Section", "Status"])
+    stu_writer.writerow(["Register Number", "Roll No", "Student Name", "Gender", "Scholar Type", "Department", "Class ID", "Year", "Section", "Status"])
     for r in stu_rows:
-        stu_writer.writerow([r.reg_no, r.name, r.department, r.class_id or "", r.year or "", r.section or "", r.status])
+        stu_writer.writerow([
+            r.reg_no, r.roll_no or "", r.name, r.gender or "MALE",
+            r.residence_type or "DAY_SCHOLAR", r.department, r.class_id or "",
+            r.year or "", r.section or "", r.status
+        ])
     stu_csv = stu_buf.getvalue()
 
     # 2. Export Faculty
@@ -1255,7 +1266,123 @@ async def executive_export_all_institutional_data(
         fac_writer.writerow([r.faculty_id, r.full_name, r.department, r.email, r.role, r.designation or "Faculty"])
     fac_csv = fac_buf.getvalue()
 
-    # 3. Export Attendance Sessions / Reports
+    # 3. Export Classes Master
+    cls_stmt = (
+        select(
+            ClassRoom.class_code,
+            ClassRoom.class_name,
+            Department.code.label("department"),
+            ClassRoom.year,
+            ClassRoom.section,
+            ClassRoom.semester,
+            User.username.label("incharge_username"),
+            User.full_name.label("incharge_name"),
+            ClassRoom.status
+        )
+        .outerjoin(Department, ClassRoom.department_id == Department.id)
+        .outerjoin(User, ClassRoom.incharge_faculty_id == User.id)
+        .order_by(Department.code, ClassRoom.class_code)
+    )
+    cls_rows = (await db.execute(cls_stmt)).all()
+
+    cls_buf = io.StringIO()
+    cls_writer = csv.writer(cls_buf)
+    cls_writer.writerow(["Class ID", "Class Name", "Department", "Year", "Section", "Semester", "Incharge Username", "Incharge Name", "Status"])
+    for r in cls_rows:
+        cls_writer.writerow([
+            r.class_code, r.class_name, r.department or "", r.year or "",
+            r.section or "", r.semester or "", r.incharge_username or "",
+            r.incharge_name or "Unassigned", r.status
+        ])
+    cls_csv = cls_buf.getvalue()
+
+    # 4. Export Subjects Master
+    sub_stmt = (
+        select(
+            Subject.subject_code,
+            Subject.subject_name,
+            ClassRoom.class_code.label("class_id"),
+            Department.code.label("department"),
+            Subject.status
+        )
+        .outerjoin(ClassRoom, Subject.class_id == ClassRoom.id)
+        .outerjoin(Department, Subject.department_id == Department.id)
+        .order_by(Department.code, ClassRoom.class_code, Subject.subject_code)
+    )
+    sub_rows = (await db.execute(sub_stmt)).all()
+
+    sub_buf = io.StringIO()
+    sub_writer = csv.writer(sub_buf)
+    sub_writer.writerow(["Subject Code", "Subject Name", "Class ID", "Department", "Status"])
+    for r in sub_rows:
+        sub_writer.writerow([r.subject_code, r.subject_name, r.class_id or "", r.department or "", r.status])
+    sub_csv = sub_buf.getvalue()
+
+    # 5. Export Departments Master
+    dept_stmt = select(Department).order_by(Department.code)
+    dept_rows = (await db.execute(dept_stmt)).scalars().all()
+
+    dept_buf = io.StringIO()
+    dept_writer = csv.writer(dept_buf)
+    dept_writer.writerow(["Department Code", "Department Name", "Is Active"])
+    for d in dept_rows:
+        dept_writer.writerow([d.code, d.name, "YES" if d.is_active else "NO"])
+    dept_csv = dept_buf.getvalue()
+
+    # 6. Export Leaves Audit Trail
+    leave_buf = io.StringIO()
+    leave_writer = csv.writer(leave_buf)
+    leave_writer.writerow(["Leave ID", "Applicant Type", "Identifier", "Name", "Leave Type", "Start Date", "End Date", "Reason", "Status", "Docket Number"])
+
+    fl_stmt = (
+        select(
+            FacultyLeave.id,
+            Faculty.faculty_code,
+            User.full_name,
+            FacultyLeave.leave_type,
+            FacultyLeave.start_date,
+            FacultyLeave.end_date,
+            FacultyLeave.reason,
+            FacultyLeave.status,
+            FacultyLeave.docket_number
+        )
+        .join(Faculty, FacultyLeave.faculty_id == Faculty.id)
+        .join(User, Faculty.user_id == User.id)
+        .order_by(FacultyLeave.created_at.desc())
+        .limit(1000)
+    )
+    fl_rows = (await db.execute(fl_stmt)).all()
+    for r in fl_rows:
+        leave_writer.writerow([
+            r.id, "FACULTY", r.faculty_code, r.full_name, r.leave_type,
+            str(r.start_date), str(r.end_date), r.reason or "", r.status, r.docket_number or ""
+        ])
+
+    sl_stmt = (
+        select(
+            StudentLeave.id,
+            Student.reg_no,
+            Student.name,
+            StudentLeave.leave_type,
+            StudentLeave.start_date,
+            StudentLeave.end_date,
+            StudentLeave.reason,
+            StudentLeave.status,
+            StudentLeave.docket_number
+        )
+        .join(Student, StudentLeave.student_id == Student.id)
+        .order_by(StudentLeave.created_at.desc())
+        .limit(1000)
+    )
+    sl_rows = (await db.execute(sl_stmt)).all()
+    for r in sl_rows:
+        leave_writer.writerow([
+            r.id, "STUDENT", r.reg_no, r.name, r.leave_type,
+            str(r.start_date), str(r.end_date), r.reason or "", r.status, r.docket_number or ""
+        ])
+    leaves_csv = leave_buf.getvalue()
+
+    # 7. Export Attendance Sessions / Reports
     att_stmt = (
         select(
             AttendanceSession.id,
@@ -1319,11 +1446,15 @@ async def executive_export_all_institutional_data(
         ])
     att_csv = att_buf.getvalue()
 
-    # Create ZIP archive
+    # Create ZIP archive with all 7 Master datasets
     zip_buf = io.BytesIO()
     with zipfile.ZipFile(zip_buf, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("AttendTrax_Students_Master.csv", stu_csv)
         zf.writestr("AttendTrax_Faculty_Master.csv", fac_csv)
+        zf.writestr("AttendTrax_Classes_Master.csv", cls_csv)
+        zf.writestr("AttendTrax_Subjects_Master.csv", sub_csv)
+        zf.writestr("AttendTrax_Departments_Master.csv", dept_csv)
+        zf.writestr("AttendTrax_Leaves_Audit.csv", leaves_csv)
         zf.writestr("AttendTrax_Attendance_Reports.csv", att_csv)
 
     zip_bytes = zip_buf.getvalue()

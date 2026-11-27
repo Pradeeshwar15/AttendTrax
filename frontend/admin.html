@@ -500,12 +500,6 @@
         </span>
         Import Data
       </div>
-      <div class="nav-item" data-section="bulk" id="nav-bulk">
-        <span class="nav-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-        </span>
-        Bulk Setup
-      </div>
       <div class="nav-item" data-section="leaves" id="nav-leaves">
         <span class="nav-icon">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
@@ -520,6 +514,12 @@
       </div>
 
       <div class="nav-group-label">System</div>
+      <div class="nav-item" data-section="bulk" id="nav-bulk">
+        <span class="nav-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+        </span>
+        Bulk Setup
+      </div>
       <div class="nav-item" data-section="audit" id="nav-audit">
         <span class="nav-icon">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -1745,6 +1745,7 @@
         <!-- Sub-tabs -->
         <div class="tab-pills">
           <button class="tab-pill active" data-bulk-tab="bulk-students">Bulk Students</button>
+          <button class="tab-pill"        data-bulk-tab="bulk-classes">Bulk Classes</button>
           <button class="tab-pill"        data-bulk-tab="bulk-faculty">Bulk Faculty</button>
           <button class="tab-pill"        data-bulk-tab="bulk-subjects">Bulk Subjects</button>
         </div>
@@ -1798,24 +1799,73 @@
           </div>
         </div>
 
+        <!-- ── CLASSES ── -->
+        <div class="admin-tab" id="bulk-classes">
+          <div class="card" style="max-width:640px;margin:0 auto;">
+            <div class="card-header"><h3>Bulk Import &amp; Setup Classes</h3></div>
+            <div class="card-body">
+              <p class="text-sm text-muted" style="margin-bottom:0.75rem;">
+                Upload an <strong>.xlsx</strong> or <strong>.csv</strong> file with these columns:
+                <span class="tag" style="font-weight:700;">ClassID</span>
+                <span class="tag" style="font-weight:700;">ClassName</span>
+                <span class="tag" style="font-weight:700;">Department</span>
+                <span class="tag">Year (1-4)</span>
+                <span class="tag">Section (A/B)</span>
+                <span class="tag">Semester</span>
+                <span class="tag" style="opacity:.85;">InchargeUsername</span>
+              </p>
+              <p class="text-xs text-muted" style="margin-bottom:1rem;">
+                <strong>Smart Upsert &amp; Leave Routing:</strong> Creates new class cohorts and updates existing classes. Providing <code>InchargeUsername</code> automatically designates that faculty member as the Class Incharge to approve student leave requests and outpasses.
+              </p>
+              <div class="drop-zone" id="drop-zone-classes">
+                <div class="drop-icon"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+                <p class="font-semibold" style="margin-bottom:.25rem;">Drop your .xlsx or .csv here</p>
+                <p class="text-sm text-muted">or click to browse</p>
+                <input type="file" id="import-file-classes" accept=".xlsx,.csv" style="display:none;" />
+              </div>
+              <div id="file-chosen-classes" class="hidden" style="margin-top:.75rem;padding:.75rem;background:var(--brand-50);border-radius:8px;display:flex;align-items:center;gap:.5rem;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                <span id="file-name-classes" class="text-sm font-semibold"></span>
+                <button class="btn btn-sm btn-secondary" id="clear-file-classes" style="margin-left:auto;display:inline-flex;align-items:center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Clear</button>
+              </div>
+              <div id="import-result-classes" class="hidden" style="margin-top:1rem;padding:1rem;border-radius:8px;"></div>
+              <button class="btn btn-primary w-full" id="upload-btn-classes" style="margin-top:1.25rem;" disabled>
+                <span id="upload-btn-text-classes" style="display:inline-flex;align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload &amp; Import Classes</span>
+              </button>
+              <div style="margin-top:1.5rem;border-top:1px solid var(--gray-100);padding-top:1.25rem;">
+                <h4 style="margin-bottom:.75rem;">Download Class Onboarding Template</h4>
+                <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+                  <button class="btn btn-primary" id="dl-template-classes" style="font-weight:700;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download Excel Template (.xlsx)</button>
+                  <button class="btn btn-secondary" id="dl-template-classes-csv" style="font-weight:600;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download CSV Template (.csv)</button>
+                </div>
+                <p class="text-xs text-muted" style="margin-top:0.6rem;line-height:1.4;">
+                  Includes standard columns: <strong>ClassID</strong> (e.g. CSE3A), <strong>ClassName</strong>, <strong>Department</strong> (with dropdown validator), <strong>Year</strong>, <strong>Section</strong>, <strong>Semester</strong>, and <strong>InchargeUsername</strong> (e.g. sp.cse).
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- ── FACULTY ── -->
         <div class="admin-tab" id="bulk-faculty">
           <div class="card" style="max-width:640px;margin:0 auto;">
             <div class="card-header"><h3>Bulk Import Faculty</h3></div>
             <div class="card-body">
               <p class="text-sm text-muted" style="margin-bottom:1rem;">
-                Upload an <strong>.xlsx</strong> file with:
-                <span class="tag">FacultyID</span>
-                <span class="tag">Name</span>
-                <span class="tag">Username</span>
-                <span class="tag">Password</span>
+                Upload an <strong>.xlsx</strong> or <strong>.csv</strong> file with:
+                <span class="tag" style="font-weight:700;">FacultyID</span>
+                <span class="tag" style="font-weight:700;">Name</span>
+                <span class="tag" style="font-weight:700;">Department</span>
+                <span class="tag">Designation</span>
+                <span class="tag" style="font-weight:700;">Username</span>
+                <span class="tag" style="font-weight:700;">Password</span>
               </p>
-              <p class="text-xs text-muted" style="margin-bottom:1rem;">Rows with a Username that already exists are skipped.</p>
+              <p class="text-xs text-muted" style="margin-bottom:1rem;">Department column assigns faculty to their exact branch (CSE, ECE, MECH, etc.). Rows with an existing username or FacultyID are skipped.</p>
               <div class="drop-zone" id="drop-zone-faculty">
                 <div class="drop-icon"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
-                <p class="font-semibold" style="margin-bottom:.25rem;">Drop your .xlsx here</p>
+                <p class="font-semibold" style="margin-bottom:.25rem;">Drop your .xlsx or .csv here</p>
                 <p class="text-sm text-muted">or click to browse</p>
-                <input type="file" id="import-file-faculty" accept=".xlsx" style="display:none;" />
+                <input type="file" id="import-file-faculty" accept=".xlsx,.csv" style="display:none;" />
               </div>
               <div id="file-chosen-faculty" class="hidden" style="margin-top:.75rem;padding:.75rem;background:var(--brand-50);border-radius:8px;display:flex;align-items:center;gap:.5rem;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
@@ -1827,8 +1877,11 @@
                 <span id="upload-btn-text-faculty" style="display:inline-flex;align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload &amp; Import Faculty</span>
               </button>
               <div style="margin-top:1.5rem;border-top:1px solid var(--gray-100);padding-top:1.25rem;">
-                <h4 style="margin-bottom:.75rem;">Download Template</h4>
-                <button class="btn btn-secondary" id="dl-template-faculty"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Faculty Template (.xlsx)</button>
+                <h4 style="margin-bottom:.75rem;">Download Faculty Template</h4>
+                <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+                  <button class="btn btn-primary" id="dl-template-faculty" style="font-weight:700;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download Excel Template (.xlsx)</button>
+                  <button class="btn btn-secondary" id="dl-template-faculty-csv" style="font-weight:600;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download CSV Template (.csv)</button>
+                </div>
               </div>
             </div>
           </div>
@@ -1840,18 +1893,18 @@
             <div class="card-header"><h3>Bulk Import Subjects</h3></div>
             <div class="card-body">
               <p class="text-sm text-muted" style="margin-bottom:1rem;">
-                Upload an <strong>.xlsx</strong> file with:
-                <span class="tag">SubjectID</span>
-                <span class="tag">SubjectName</span>
-                <span class="tag">ClassID</span>
+                Upload an <strong>.xlsx</strong> or <strong>.csv</strong> file with:
+                <span class="tag" style="font-weight:700;">SubjectID</span>
+                <span class="tag" style="font-weight:700;">SubjectName</span>
+                <span class="tag" style="font-weight:700;">ClassID</span>
                 <span class="tag" style="opacity:.6;">FacultyID (opt)</span>
               </p>
-              <p class="text-xs text-muted" style="margin-bottom:1rem;">ClassID must already exist in the Classes registry.</p>
+              <p class="text-xs text-muted" style="margin-bottom:1rem;">ClassID must match an existing class code (e.g. CSE3A). FacultyID is optional.</p>
               <div class="drop-zone" id="drop-zone-subjects">
                 <div class="drop-icon"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
-                <p class="font-semibold" style="margin-bottom:.25rem;">Drop your .xlsx here</p>
+                <p class="font-semibold" style="margin-bottom:.25rem;">Drop your .xlsx or .csv here</p>
                 <p class="text-sm text-muted">or click to browse</p>
-                <input type="file" id="import-file-subjects" accept=".xlsx" style="display:none;" />
+                <input type="file" id="import-file-subjects" accept=".xlsx,.csv" style="display:none;" />
               </div>
               <div id="file-chosen-subjects" class="hidden" style="margin-top:.75rem;padding:.75rem;background:var(--brand-50);border-radius:8px;display:flex;align-items:center;gap:.5rem;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
@@ -1863,8 +1916,11 @@
                 <span id="upload-btn-text-subjects" style="display:inline-flex;align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload &amp; Import Subjects</span>
               </button>
               <div style="margin-top:1.5rem;border-top:1px solid var(--gray-100);padding-top:1.25rem;">
-                <h4 style="margin-bottom:.75rem;">Download Template</h4>
-                <button class="btn btn-secondary" id="dl-template-subjects">⬇️ Subjects Template (.xlsx)</button>
+                <h4 style="margin-bottom:.75rem;">Download Subjects Template</h4>
+                <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+                  <button class="btn btn-primary" id="dl-template-subjects" style="font-weight:700;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download Excel Template (.xlsx)</button>
+                  <button class="btn btn-secondary" id="dl-template-subjects-csv" style="font-weight:600;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download CSV Template (.csv)</button>
+                </div>
               </div>
             </div>
           </div>
@@ -2162,7 +2218,7 @@
       </section>
 
       <!-- ══════════════════ SYSTEM MAINTENANCE & DANGER ZONE ══════════════════ -->
-      <section class="section" id="section-maintenance" style="display:none;">
+      <section class="section" id="section-maintenance">
         <div style="display:flex;flex-direction:column;gap:1.5rem;max-width:1200px;margin:0 auto;">
           
           <!-- Banner Card -->
@@ -2612,7 +2668,7 @@ const sectionLoaders = {
   leaves:             () => { loadAllLeaveQueues(); if (typeof loadDailyActiveFacultyLeaves === 'function') loadDailyActiveFacultyLeaves(); },
   'sanctioned-archive': () => { if (typeof loadSanctionedLeavesArchivePage === 'function') loadSanctionedLeavesArchivePage(); },
   audit:              () => { if (typeof loadExecutiveAuditLogsPage === 'function') loadExecutiveAuditLogsPage(); },
-  maintenance:        () => { if (typeof fetchSystemHealthDiagnostics === 'function') fetchSystemHealthDiagnostics(); },
+  maintenance:        () => { if (typeof initSystemMaintenanceSection === 'function') initSystemMaintenanceSection(); if (typeof fetchSystemHealthDiagnostics === 'function') fetchSystemHealthDiagnostics(); },
   about:              () => {},
 };
 const secTitles = {
@@ -5173,6 +5229,7 @@ function wireBulkUpload({ dropId, inputId, fileChosenId, fileNameId, clearBtnId,
                           resultId, uploadBtnId, uploadBtnTextId, endpoint, templateFn }) {
   const dropZone  = document.getElementById(dropId);
   const fileInput = document.getElementById(inputId);
+  if (!dropZone || !fileInput) return;
   let currentFile = null;
 
   dropZone.addEventListener('click', () => fileInput.click());
@@ -5181,106 +5238,143 @@ function wireBulkUpload({ dropId, inputId, fileChosenId, fileNameId, clearBtnId,
   dropZone.addEventListener('drop', e => {
     e.preventDefault(); dropZone.classList.remove('dragging');
     const f = e.dataTransfer.files[0];
-    if (f?.name.toLowerCase().endsWith('.xlsx')) setFile(f);
-    else showToast('Please drop a .xlsx file.', 'warning');
+    if (f && (f.name.toLowerCase().endsWith('.xlsx') || f.name.toLowerCase().endsWith('.csv'))) setFile(f);
+    else showToast('Please drop a .xlsx or .csv file.', 'warning');
   });
   fileInput.addEventListener('change', e => { if (e.target.files[0]) setFile(e.target.files[0]); });
 
   function setFile(f) {
     currentFile = f;
-    document.getElementById(fileNameId).textContent = f.name;
-    document.getElementById(fileChosenId).classList.remove('hidden');
-    document.getElementById(uploadBtnId).disabled = false;
-    document.getElementById(resultId).classList.add('hidden');
+    const nameEl = document.getElementById(fileNameId);
+    if (nameEl) nameEl.textContent = f.name;
+    const chosenEl = document.getElementById(fileChosenId);
+    if (chosenEl) chosenEl.classList.remove('hidden');
+    const upBtn = document.getElementById(uploadBtnId);
+    if (upBtn) upBtn.disabled = false;
+    const resEl = document.getElementById(resultId);
+    if (resEl) resEl.classList.add('hidden');
   }
 
-  document.getElementById(clearBtnId).addEventListener('click', () => {
-    currentFile = null; fileInput.value = '';
-    document.getElementById(fileChosenId).classList.add('hidden');
-    document.getElementById(uploadBtnId).disabled = true;
-    document.getElementById(resultId).classList.add('hidden');
-  });
+  const clearBtn = document.getElementById(clearBtnId);
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      currentFile = null; fileInput.value = '';
+      const chosenEl = document.getElementById(fileChosenId);
+      if (chosenEl) chosenEl.classList.add('hidden');
+      const upBtn = document.getElementById(uploadBtnId);
+      if (upBtn) upBtn.disabled = true;
+      const resEl = document.getElementById(resultId);
+      if (resEl) resEl.classList.add('hidden');
+    });
+  }
 
-  document.getElementById(uploadBtnId).addEventListener('click', async () => {
-    if (!currentFile) return;
-    const btn     = document.getElementById(uploadBtnId);
-    const btnText = document.getElementById(uploadBtnTextId);
-    btn.disabled  = true;
-    btnText.innerHTML = '<span class="spinner"></span> Importing…';
-    const resultEl = document.getElementById(resultId);
-    const formData = new FormData();
-    formData.append('file', currentFile);
-    const startTime = performance.now();
-    try {
-      const res = await api.upload(endpoint, formData);
-      const elapsedSec = ((performance.now() - startTime) / 1000).toFixed(2);
-      resultEl.style.cssText = 'background:#d1fae5;border:1px solid #6ee7b7;';
-      resultEl.innerHTML = `
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-bottom:.5rem;">
-          <p style="color:#065f46;font-weight:700;margin:0;">Import Successful!</p>
-          <span class="badge" style="background:#10b981;color:#fff;font-weight:700;">${elapsedSec}s Execution</span>
-        </div>
-        <p class="text-sm">${res.message}</p>
-        <div class="flex gap-4" style="margin-top:.5rem;flex-wrap:wrap;">
-          <span class="badge badge-info">Inserted: ${res.inserted}</span>
-          <span class="badge badge-warning">Updated: ${res.updated ?? 0}</span>
-          <span class="badge badge-success">Engine: Supabase Primary (AsyncPG)</span>
-        </div>`;
-      resultEl.classList.remove('hidden');
-      showToast(res.message, 'success');
-    } catch(e) {
-      resultEl.style.cssText = 'background:#fee2e2;border:1px solid #fca5a5;';
-      resultEl.innerHTML = `<p style="color:#991b1b;font-weight:700;">Import Failed</p><p class="text-sm">${e.message}</p>`;
-      resultEl.classList.remove('hidden');
-      showToast('Import failed. Check the error details.', 'error');
-    } finally {
-      btn.disabled  = false;
-      btnText.innerHTML = btnText.innerHTML.replace(/<span.*<\/span>\s*/, '');
-      btnText.textContent = uploadBtnTextId.replace('upload-btn-text-', 'Upload & Import ');
-    }
-  });
+  const upBtn = document.getElementById(uploadBtnId);
+  if (upBtn) {
+    upBtn.addEventListener('click', async () => {
+      if (!currentFile) return;
+      const btn     = document.getElementById(uploadBtnId);
+      const btnText = document.getElementById(uploadBtnTextId);
+      btn.disabled  = true;
+      btnText.innerHTML = '<span class="spinner"></span> Importing…';
+      const resultEl = document.getElementById(resultId);
+      const formData = new FormData();
+      formData.append('file', currentFile);
+      const startTime = performance.now();
+      try {
+        const res = await api.upload(endpoint, formData);
+        const elapsedSec = ((performance.now() - startTime) / 1000).toFixed(2);
+        resultEl.style.cssText = 'background:#d1fae5;border:1px solid #6ee7b7;';
+        resultEl.innerHTML = `
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-bottom:.5rem;">
+            <p style="color:#065f46;font-weight:700;margin:0;">Import Successful!</p>
+            <span class="badge" style="background:#10b981;color:#fff;font-weight:700;">${elapsedSec}s Execution</span>
+          </div>
+          <p class="text-sm">${res.message}</p>
+          <div class="flex gap-4" style="margin-top:.5rem;flex-wrap:wrap;">
+            <span class="badge badge-info">Inserted: ${res.inserted ?? 0}</span>
+            <span class="badge badge-warning">Updated: ${res.updated ?? 0}</span>
+            <span class="badge badge-success">Engine: Supabase Primary (AsyncPG)</span>
+          </div>`;
+        resultEl.classList.remove('hidden');
+        showToast(res.message, 'success');
+      } catch(e) {
+        resultEl.style.cssText = 'background:#fee2e2;border:1px solid #fca5a5;';
+        resultEl.innerHTML = `<p style="color:#991b1b;font-weight:700;">Import Failed</p><p class="text-sm">${e.message}</p>`;
+        resultEl.classList.remove('hidden');
+        showToast('Import failed. Check the error details.', 'error');
+      } finally {
+        btn.disabled  = false;
+        btnText.innerHTML = btnText.innerHTML.replace(/<span.*<\/span>\s*/, '');
+        btnText.textContent = uploadBtnTextId.replace('upload-btn-text-', 'Upload & Import ');
+      }
+    });
+  }
 
   const dlBtn = document.getElementById('dl-template-' + endpoint.split('/').pop());
-  if (dlBtn) dlBtn.addEventListener('click', templateFn);
+  if (dlBtn && templateFn) dlBtn.addEventListener('click', templateFn);
 }
 
-async function downloadStudentsExcelTemplate() {
+async function downloadServerTemplate(endpoint, defaultFilename, fallbackCsvContent, label) {
   try {
     showLoader(true);
-    // Direct link trigger for zero-failure browser downloading
     const token = typeof getToken === 'function' ? getToken() : '';
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    const resp = await fetch(`${API_BASE}/admin/template/students`, { headers });
-    if (!resp.ok) {
-      throw new Error(`Server returned ${resp.status}`);
-    }
+    const resp = await fetch(`${API_BASE}${endpoint}`, { headers });
+    if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
     const blob = await resp.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'Adhi_Student_Bulk_Template.xlsx';
+    a.download = defaultFilename;
     a.click();
     URL.revokeObjectURL(url);
-    showToast('Adhi Student Excel Template (.xlsx) downloaded with dropdown validations!', 'success');
+    showToast(`${label} downloaded successfully!`, 'success');
   } catch(err) {
-    console.warn('Direct fetch failed, falling back to window.open & CSV generator:', err);
-    try {
-      window.open(`${API_BASE}/admin/template/students`, '_blank');
-      showToast('Initiated direct Excel template download from server.', 'info');
-    } catch(e) {
-      downloadStudentsCsvTemplate();
+    console.warn(`Direct fetch failed for ${defaultFilename}, attempting direct link or fallback:`, err);
+    if (fallbackCsvContent) {
+      downloadCsvTemplate(defaultFilename.replace('.xlsx', '.csv'), fallbackCsvContent, `${label} CSV template generated!`);
+    } else {
+      window.open(`${API_BASE}${endpoint}`, '_blank');
+      showToast(`Initiated template download from server.`, 'info');
     }
   } finally {
     showLoader(false);
   }
 }
 
+async function downloadStudentsExcelTemplate() {
+  await downloadServerTemplate('/admin/template/students?format=xlsx', 'Adhi_Student_Bulk_Template.xlsx', null, 'Students Excel Template (.xlsx)');
+}
 function downloadStudentsCsvTemplate() {
   const headers = "Register No,Roll No,Student Name,Gender,Scholar Type,Class ID,Placement Standing,Username,Password\n";
   const sample = "410123104001,23CS001,Aarav Sharma,MALE,HOSTELLER,CSE3A,active,410123104001,410123104001@2026\n"
                + "410123104002,23CS002,Deepika Raman,FEMALE,DAY_SCHOLAR,CSE3A,active,410123104002,410123104002@2026\n"
                + "410123104003,23CS003,Karthik Vijay,MALE,DAY_SCHOLAR,CSE3A,inactive,410123104003,410123104003@2026\n";
   downloadCsvTemplate('Adhi_Student_Bulk_Template.csv', headers + sample, 'Student CSV template downloaded! Includes Gender, Scholar Type, and Placement Standing.');
+}
+
+async function downloadClassesExcelTemplate() {
+  await downloadServerTemplate('/admin/template/classes?format=xlsx', 'Adhi_Classes_Bulk_Template.xlsx', null, 'Classes Excel Template (.xlsx)');
+}
+async function downloadClassesCsvTemplate() {
+  const fallback = "ClassID,ClassName,Department,Year,Section,Semester,InchargeUsername\nCSE3A,B.E. Computer Science & Engineering - III Year A,CSE,3,A,5,sp.cse\nECE2B,B.E. Electronics & Communication - II Year B,ECE,2,B,3,\nIT1A,B.Tech Information Technology - I Year A,IT,1,A,1,\n";
+  await downloadServerTemplate('/admin/template/classes?format=csv', 'Adhi_Classes_Bulk_Template.csv', fallback, 'Classes CSV Template (.csv)');
+}
+
+async function downloadFacultyExcelTemplate() {
+  await downloadServerTemplate('/admin/template/faculty?format=xlsx', 'Adhi_Faculty_Bulk_Template.xlsx', null, 'Faculty Excel Template (.xlsx)');
+}
+async function downloadFacultyCsvTemplate() {
+  const fallback = "FacultyID,Name,Department,Designation,Username,Password\nFAC001,Dr. Ramesh Babu,CSE,Associate Professor,ramesh.cse,Pass@123\nFAC002,Prof. Kavitha R,ECE,Assistant Professor,kavitha.ece,Pass@456\n";
+  await downloadServerTemplate('/admin/template/faculty?format=csv', 'Adhi_Faculty_Bulk_Template.csv', fallback, 'Faculty CSV Template (.csv)');
+}
+
+async function downloadSubjectsExcelTemplate() {
+  await downloadServerTemplate('/admin/template/subjects?format=xlsx', 'Adhi_Subjects_Bulk_Template.xlsx', null, 'Subjects Excel Template (.xlsx)');
+}
+async function downloadSubjectsCsvTemplate() {
+  const fallback = "SubjectID,SubjectName,ClassID,FacultyID\nCS301,Data Structures & Algorithms,CSE3A,FAC001\nCS302,Database Management Systems,CSE3A,FAC002\n";
+  await downloadServerTemplate('/admin/template/subjects?format=csv', 'Adhi_Subjects_Bulk_Template.csv', fallback, 'Subjects CSV Template (.csv)');
 }
 
 // ── Wire each bulk tab ───────────────────────────────────────────────────────
@@ -5292,9 +5386,19 @@ wireBulkUpload({
   endpoint: '/admin/import/students',
   templateFn: downloadStudentsExcelTemplate,
 });
-
 document.getElementById('dl-template-students')?.addEventListener('click', downloadStudentsExcelTemplate);
 document.getElementById('dl-template-students-csv')?.addEventListener('click', downloadStudentsCsvTemplate);
+
+wireBulkUpload({
+  dropId: 'drop-zone-classes', inputId: 'import-file-classes',
+  fileChosenId: 'file-chosen-classes', fileNameId: 'file-name-classes',
+  clearBtnId: 'clear-file-classes', resultId: 'import-result-classes',
+  uploadBtnId: 'upload-btn-classes', uploadBtnTextId: 'upload-btn-text-classes',
+  endpoint: '/admin/import/classes',
+  templateFn: downloadClassesExcelTemplate,
+});
+document.getElementById('dl-template-classes')?.addEventListener('click', downloadClassesExcelTemplate);
+document.getElementById('dl-template-classes-csv')?.addEventListener('click', downloadClassesCsvTemplate);
 
 wireBulkUpload({
   dropId: 'drop-zone-faculty', inputId: 'import-file-faculty',
@@ -5302,12 +5406,10 @@ wireBulkUpload({
   clearBtnId: 'clear-file-faculty', resultId: 'import-result-faculty',
   uploadBtnId: 'upload-btn-faculty', uploadBtnTextId: 'upload-btn-text-faculty',
   endpoint: '/admin/import/faculty',
-  templateFn: () => downloadCsvTemplate(
-    'faculty_import_template.csv',
-    'FacultyID,Name,Username,Password\nFAC001,Dr. Ramesh Babu,ramesh.babu,Pass@123\nFAC002,Prof. Kavitha,kavitha.r,Pass@456\n',
-    'Fill in your faculty details and save as .xlsx.'
-  ),
+  templateFn: downloadFacultyExcelTemplate,
 });
+document.getElementById('dl-template-faculty')?.addEventListener('click', downloadFacultyExcelTemplate);
+document.getElementById('dl-template-faculty-csv')?.addEventListener('click', downloadFacultyCsvTemplate);
 
 wireBulkUpload({
   dropId: 'drop-zone-subjects', inputId: 'import-file-subjects',
@@ -5315,12 +5417,10 @@ wireBulkUpload({
   clearBtnId: 'clear-file-subjects', resultId: 'import-result-subjects',
   uploadBtnId: 'upload-btn-subjects', uploadBtnTextId: 'upload-btn-text-subjects',
   endpoint: '/admin/import/subjects',
-  templateFn: () => downloadCsvTemplate(
-    'subjects_import_template.csv',
-    'SubjectID,SubjectName,ClassID,FacultyID\nCS301,Data Structures,CSE3A,FAC001\nCS302,Computer Networks,CSE3A,FAC002\n',
-    'ClassID must match an existing class. FacultyID is optional.'
-  ),
+  templateFn: downloadSubjectsExcelTemplate,
 });
+document.getElementById('dl-template-subjects')?.addEventListener('click', downloadSubjectsExcelTemplate);
+document.getElementById('dl-template-subjects-csv')?.addEventListener('click', downloadSubjectsCsvTemplate);
 
 function downloadCsvTemplate(filename, csvContent, toastMsg) {
   const blob = new Blob([csvContent], { type: 'text/csv' });

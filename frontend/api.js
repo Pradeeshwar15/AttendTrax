@@ -3,14 +3,31 @@
 // =============================================================================
 
 // ── API Base URL Resolution (Localhost, file://, and Cloud) ────────────────
+const CLOUD_API = 'https://attendtrax-api.onrender.com';
+const LOCAL_API = 'http://127.0.0.1:8000';
+
 const isLocalEnv = window.location.hostname === 'localhost'
   || window.location.hostname === '127.0.0.1'
   || window.location.hostname === ''
   || window.location.protocol === 'file:';
 
-const API_BASE = isLocalEnv
-  ? 'http://127.0.0.1:8000'
-  : 'https://attendtrax-api.onrender.com';
+// Default to Cloud API unless explicitly configured to local or local probe succeeds
+let API_BASE = (isLocalEnv && localStorage.getItem('at_api_env') === 'local')
+  ? LOCAL_API
+  : CLOUD_API;
+
+window.API_BASE = API_BASE;
+window.setApiEnv = (env) => {
+  if (env === 'local') {
+    API_BASE = LOCAL_API;
+    localStorage.setItem('at_api_env', 'local');
+  } else {
+    API_BASE = CLOUD_API;
+    localStorage.setItem('at_api_env', 'cloud');
+  }
+  window.API_BASE = API_BASE;
+  console.log('[AttendTrax API] Environment switched to:', API_BASE);
+};
 
 // ── Token storage ──────────────────────────────────────────────────────────
 function saveAuth(data) {
@@ -167,15 +184,16 @@ async function apiFetch(path, options = {}) {
     ...(options.headers || {}),
   };
 
-  // Start background warm-up indicator if request takes > 2.2s
+  // Start background warm-up indicator if request takes > 1.8s
   const warmupTimer = setTimeout(() => {
-    showWarmupPill(true, 'Waking up live cloud backend… Please hold on a moment.');
-  }, 2200);
+    showWarmupPill(true, 'Connecting to live cloud backend… Please hold on a moment.');
+  }, 1800);
 
   let res;
   let lastErr = null;
+  const maxAttempts = 5;
 
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
       res = await fetch(`${API_BASE}${path}`, {
         ...options,
@@ -184,8 +202,17 @@ async function apiFetch(path, options = {}) {
       if (res) break;
     } catch (netErr) {
       lastErr = netErr;
-      if (attempt < 2) {
-        await new Promise(r => setTimeout(r, 1200 * (attempt + 1)));
+      // If localhost failed in local environment, auto-switch to Render cloud API and retry immediately
+      if (API_BASE === LOCAL_API) {
+        console.warn('[AttendTrax API] Localhost unreachable. Falling back to live Render Cloud API...');
+        API_BASE = CLOUD_API;
+        window.API_BASE = CLOUD_API;
+        continue;
+      }
+      if (attempt < maxAttempts - 1) {
+        const delay = Math.min(1200 * Math.pow(1.5, attempt), 8000);
+        showWarmupPill(true, `Waking up cloud backend (Attempt ${attempt + 2}/${maxAttempts})…`);
+        await new Promise(r => setTimeout(r, delay));
       }
     }
   }
@@ -194,7 +221,7 @@ async function apiFetch(path, options = {}) {
   showWarmupPill(false);
 
   if (!res) {
-    throw new Error('Unable to connect to server. Please check your network connection.');
+    throw new Error('Unable to connect to live server. The cloud service may be waking up or your internet connection is offline. Please retry in a moment.');
   }
 
   if (res.status === 401 && !path.includes('/auth/login')) {
@@ -207,8 +234,11 @@ async function apiFetch(path, options = {}) {
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    const msg = data?.detail || data?.message || `Error ${res.status}`;
-    throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    const rawMsg = data?.detail || data?.message || `Error ${res.status}`;
+    const msg = typeof rawMsg === 'string'
+      ? rawMsg
+      : (Array.isArray(rawMsg) ? rawMsg.map(e => e.msg || JSON.stringify(e)).join(', ') : JSON.stringify(rawMsg));
+    throw new Error(msg);
   }
 
   if (isGet) {
@@ -228,17 +258,39 @@ const api = {
   swrGet:    (path, onFresh, opts = {})   => apiFetch(path, { method: 'GET', swr: true, onFresh, ...opts }),
   patch:     (path, body)                 => { clearClientCache(); return apiFetch(path, { method: 'PATCH',  body: JSON.stringify(body) }); },
   delete:    (path)                       => { clearClientCache(); return apiFetch(path, { method: 'DELETE' }); },
-  upload:    (path, formData)             => {
+  upload:    async (path, formData)      => {
     clearClientCache();
-    return fetch(`${API_BASE}${path}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${getToken()}` },
-      body: formData,
-    }).then(async r => {
-      const d = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(d?.detail || `Error ${r.status}`);
-      return d;
-    });
+    const token = getToken();
+    let targetBase = API_BASE;
+    let r;
+    try {
+      r = await fetch(`${targetBase}${path}`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+    } catch (e) {
+      if (targetBase === LOCAL_API) {
+        targetBase = CLOUD_API;
+        API_BASE = CLOUD_API;
+        r = await fetch(`${targetBase}${path}`, {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: formData,
+        });
+      } else {
+        throw new Error('Upload failed: unable to connect to server. Please check your network.');
+      }
+    }
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      const rawMsg = d?.detail || d?.message || `Error ${r.status}`;
+      const msg = typeof rawMsg === 'string'
+        ? rawMsg
+        : (Array.isArray(rawMsg) ? rawMsg.map(e => e.msg || JSON.stringify(e)).join(', ') : JSON.stringify(rawMsg));
+      throw new Error(msg);
+    }
+    return d;
   },
   clearCache: clearClientCache,
 };

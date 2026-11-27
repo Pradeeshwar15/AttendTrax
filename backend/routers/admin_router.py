@@ -2698,8 +2698,253 @@ async def import_students(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# BULK IMPORT – FACULTY (Excel upload)
+# BULK ONBOARDING TEMPLATES & IMPORTS (CLASSES, FACULTY, SUBJECTS)
 # ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/template/classes")
+async def download_classes_template(format: str = "xlsx"):
+    """
+    Generate and serve standard Class onboarding template (.xlsx or .csv):
+    Required: ClassID, ClassName, Department
+    Optional: Year, Section, Semester, InchargeUsername
+    """
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.worksheet.datavalidation import DataValidation
+
+    headers = ["ClassID", "ClassName", "Department", "Year", "Section", "Semester", "InchargeUsername"]
+    sample_rows = [
+        ["CSE3A", "B.E. Computer Science & Engineering - III Year A", "CSE", "3", "A", "5", "sp.cse"],
+        ["ECE2B", "B.E. Electronics & Communication - II Year B", "ECE", "2", "B", "3", ""],
+        ["IT1A", "B.Tech Information Technology - I Year A", "IT", "1", "A", "1", ""],
+        ["MECH4A", "B.E. Mechanical Engineering - IV Year A", "MECH", "4", "A", "7", ""],
+    ]
+
+    if format.lower() == "csv":
+        out = io.StringIO()
+        writer = csv.writer(out)
+        writer.writerow(headers)
+        writer.writerows(sample_rows)
+        return Response(
+            content=out.getvalue(),
+            media_type="text/csv",
+            headers={"Content-Disposition": 'attachment; filename="Adhi_Classes_Bulk_Template.csv"'}
+        )
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Classes"
+    ws.append(headers)
+    for r in sample_rows:
+        ws.append(r)
+
+    header_fill = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    for col in range(1, len(headers) + 1):
+        cell = ws.cell(row=1, column=col)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+
+    dv_dept = DataValidation(type="list", formula1='"CSE,ECE,EEE,MECH,IT,AIDS,CYBER,AIML,SH,PLACEMENT"', allow_blank=True)
+    ws.add_data_validation(dv_dept)
+    dv_dept.add("C2:C500")
+
+    widths = {1: 14, 2: 44, 3: 16, 4: 10, 5: 10, 6: 12, 7: 22}
+    for col_idx, width in widths.items():
+        ws.column_dimensions[openpyxl.utils.get_column_letter(col_idx)].width = width
+    ws.freeze_panes = "A2"
+
+    out = io.BytesIO()
+    wb.save(out)
+    return Response(
+        content=out.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="Adhi_Classes_Bulk_Template.xlsx"'}
+    )
+
+
+@router.post("/import/classes")
+async def import_classes(
+    file: UploadFile = File(...),
+    current_user: dict = _admin_dep,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    High-Speed Bulk Class Import & Upsert:
+    - Supports both .xlsx and .csv formats.
+    - Columns: ClassID, ClassName, Department, Year, Section, Semester, InchargeUsername
+    - Auto-assigns Class Incharge for student leave approvals if faculty username is provided.
+    """
+    import openpyxl
+
+    fname = (file.filename or "").lower()
+    if not (fname.endswith(".xlsx") or fname.endswith(".csv")):
+        raise HTTPException(status_code=400, detail="Only .xlsx and .csv files are supported.")
+
+    contents = await file.read()
+    if fname.endswith(".csv"):
+        text = contents.decode("utf-8-sig", errors="replace")
+        csv_rows = list(csv.reader(io.StringIO(text)))
+        if not csv_rows:
+            raise HTTPException(status_code=400, detail="Uploaded CSV file is empty.")
+        raw_headers = [str(c).strip() for c in csv_rows[0]]
+        data_rows = csv_rows[1:]
+    else:
+        wb = openpyxl.load_workbook(io.BytesIO(contents), data_only=True)
+        ws_xl = wb.active
+        raw_headers = [str(c.value).strip() if c.value is not None else "" for c in next(ws_xl.iter_rows(max_row=1))]
+        data_rows = [list(row) for row in ws_xl.iter_rows(min_row=2, values_only=True)]
+
+    cid_col      = _find_col(["classid", "class_id", "code", "classcode", "class"], raw_headers)
+    name_col     = _find_col(["classname", "class_name", "name", "title"], raw_headers)
+    dept_col     = _find_col(["department", "dept", "departmentcode", "branch"], raw_headers)
+    year_col     = _find_col(["year", "academic_year_num", "batchyear"], raw_headers)
+    sec_col      = _find_col(["section", "sec"], raw_headers)
+    sem_col      = _find_col(["semester", "sem"], raw_headers)
+    incharge_col = _find_col(["inchargeusername", "incharge", "facultyincharge", "incharge_id", "inchargeuser"], raw_headers)
+
+    if cid_col == -1:
+        raise HTTPException(status_code=400, detail='Missing required column: "ClassID"')
+
+    # Load all departments
+    stmt_depts = select(Department).where(Department.is_active == True)
+    all_depts = (await db.execute(stmt_depts)).scalars().all()
+    dept_map = {d.code.upper(): d for d in all_depts}
+    default_dept = dept_map.get("CSE") or (all_depts[0] if all_depts else None)
+
+    # Load all faculty for incharge resolution (incharge_faculty_id references User.id)
+    stmt_fac = select(User.id, User.username, Faculty.faculty_code).join(Faculty, Faculty.user_id == User.id)
+    fac_rows = (await db.execute(stmt_fac)).all()
+    fac_map = {}
+    for u_id, u_name, f_code in fac_rows:
+        if u_name: fac_map[str(u_name).strip().lower()] = u_id
+        if f_code: fac_map[str(f_code).strip().lower()] = u_id
+        fac_map[str(u_id)] = u_id
+
+    # Load existing classes
+    stmt_cls = select(ClassRoom)
+    existing_classes = {c.class_code.upper(): c for c in (await db.execute(stmt_cls)).scalars().all()}
+
+    inserted = 0
+    updated = 0
+    errors = []
+
+    for row_num, row in enumerate(data_rows, start=2):
+        cid = str(row[cid_col]).strip().upper() if cid_col < len(row) and row[cid_col] is not None else ""
+        if not cid:
+            continue
+
+        cname = str(row[name_col]).strip() if name_col != -1 and name_col < len(row) and row[name_col] is not None else f"Class {cid}"
+        dcode = str(row[dept_col]).strip().upper() if dept_col != -1 and dept_col < len(row) and row[dept_col] is not None else ""
+        year  = str(row[year_col]).strip() if year_col != -1 and year_col < len(row) and row[year_col] is not None else "1"
+        sec   = str(row[sec_col]).strip().upper() if sec_col != -1 and sec_col < len(row) and row[sec_col] is not None else "A"
+        sem   = str(row[sem_col]).strip() if sem_col != -1 and sem_col < len(row) and row[sem_col] is not None else "1"
+        incharge_raw = str(row[incharge_col]).strip().lower() if incharge_col != -1 and incharge_col < len(row) and row[incharge_col] is not None else ""
+
+        dept_obj = dept_map.get(_normalize_dept_code(dcode)) or default_dept
+        incharge_faculty_id = fac_map.get(incharge_raw) if incharge_raw else None
+        year_int = int(year) if year.isdigit() else 1
+        sem_int = int(sem) if sem.isdigit() else 1
+
+        if cid in existing_classes:
+            cls_obj = existing_classes[cid]
+            cls_obj.class_name = cname
+            if dept_obj: cls_obj.department_id = dept_obj.id
+            cls_obj.year = year_int
+            cls_obj.section = sec
+            cls_obj.semester = sem_int
+            if incharge_faculty_id: cls_obj.incharge_faculty_id = incharge_faculty_id
+            updated += 1
+        else:
+            new_cls = ClassRoom(
+                class_code=cid,
+                class_name=cname,
+                department_id=dept_obj.id if dept_obj else None,
+                year=year_int,
+                section=sec,
+                semester=sem_int,
+                incharge_faculty_id=incharge_faculty_id,
+                status="ACTIVE"
+            )
+            db.add(new_cls)
+            existing_classes[cid] = new_cls
+            inserted += 1
+
+    await db.commit()
+    _ADMIN_ANALYTICS_CACHE.clear()
+
+    return {
+        "message": f"Classes import complete. {inserted} class(es) created, {updated} updated.",
+        "inserted": inserted,
+        "updated": updated,
+        "total": inserted + updated,
+    }
+
+
+@router.get("/template/faculty")
+async def download_faculty_template(format: str = "xlsx"):
+    """
+    Generate and serve standard Faculty onboarding template (.xlsx or .csv):
+    Required: FacultyID, Name, Username, Password
+    Optional: Department, Designation
+    """
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.worksheet.datavalidation import DataValidation
+
+    headers = ["FacultyID", "Name", "Department", "Designation", "Username", "Password"]
+    sample_rows = [
+        ["FAC001", "Dr. Ramesh Babu", "CSE", "Associate Professor", "ramesh.cse", "Pass@123"],
+        ["FAC002", "Prof. Kavitha R", "ECE", "Assistant Professor", "kavitha.ece", "Pass@456"],
+        ["FAC003", "Dr. Suresh Kumar", "MECH", "Professor", "suresh.mech", "Pass@789"],
+        ["FAC004", "Prof. Meena S", "IT", "Assistant Professor", "meena.it", "Pass@101"],
+    ]
+
+    if format.lower() == "csv":
+        out = io.StringIO()
+        writer = csv.writer(out)
+        writer.writerow(headers)
+        writer.writerows(sample_rows)
+        return Response(
+            content=out.getvalue(),
+            media_type="text/csv",
+            headers={"Content-Disposition": 'attachment; filename="Adhi_Faculty_Bulk_Template.csv"'}
+        )
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Faculty"
+    ws.append(headers)
+    for r in sample_rows:
+        ws.append(r)
+
+    header_fill = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    for col in range(1, len(headers) + 1):
+        cell = ws.cell(row=1, column=col)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+
+    dv_dept = DataValidation(type="list", formula1='"CSE,ECE,EEE,MECH,IT,AIDS,CYBER,AIML,SH,PLACEMENT"', allow_blank=True)
+    ws.add_data_validation(dv_dept)
+    dv_dept.add("C2:C500")
+
+    widths = {1: 16, 2: 26, 3: 16, 4: 24, 5: 18, 6: 18}
+    for col_idx, width in widths.items():
+        ws.column_dimensions[openpyxl.utils.get_column_letter(col_idx)].width = width
+    ws.freeze_panes = "A2"
+
+    out = io.BytesIO()
+    wb.save(out)
+    return Response(
+        content=out.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="Adhi_Faculty_Bulk_Template.xlsx"'}
+    )
+
+
 @router.post("/import/faculty")
 async def import_faculty(
     file: UploadFile = File(...),
@@ -2707,25 +2952,39 @@ async def import_faculty(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Upload an .xlsx file to bulk-add faculty accounts.
-    Required columns: FacultyID | Name | Username | Password
+    High-Speed Bulk Faculty Onboarding:
+    - Supports both .xlsx and .csv formats.
+    - Required: FacultyID, Name, Username, Password.
+    - Optional: Department, Designation.
+    - Assigns faculty to their specific Department per row!
     """
     import openpyxl
 
     user_role = (current_user.get("role") or current_user.get("Role") or "").upper()
     hod_dept = _resolve_hod_dept_code(current_user)
 
-    if not file.filename.lower().endswith(".xlsx"):
-        raise HTTPException(status_code=400, detail="Only .xlsx files are supported.")
+    fname = (file.filename or "").lower()
+    if not (fname.endswith(".xlsx") or fname.endswith(".csv")):
+        raise HTTPException(status_code=400, detail="Only .xlsx and .csv files are supported.")
 
     contents = await file.read()
-    wb = openpyxl.load_workbook(io.BytesIO(contents), data_only=True)
-    ws_xl = wb.active
-
-    raw_headers = [str(c.value).strip() if c.value is not None else "" for c in next(ws_xl.iter_rows(max_row=1))]
+    if fname.endswith(".csv"):
+        text = contents.decode("utf-8-sig", errors="replace")
+        csv_rows = list(csv.reader(io.StringIO(text)))
+        if not csv_rows:
+            raise HTTPException(status_code=400, detail="Uploaded CSV file is empty.")
+        raw_headers = [str(c).strip() for c in csv_rows[0]]
+        data_rows = csv_rows[1:]
+    else:
+        wb = openpyxl.load_workbook(io.BytesIO(contents), data_only=True)
+        ws_xl = wb.active
+        raw_headers = [str(c.value).strip() if c.value is not None else "" for c in next(ws_xl.iter_rows(max_row=1))]
+        data_rows = [list(row) for row in ws_xl.iter_rows(min_row=2, values_only=True)]
 
     fac_id_col   = _find_col(["facultyid", "faculty_id", "staffid", "staff_id", "facid", "id", "teacherid"], raw_headers)
     name_col     = _find_col(["name", "facultyname", "staffname", "fullname", "teachername"], raw_headers)
+    dept_col     = _find_col(["department", "dept", "departmentcode", "branch"], raw_headers)
+    desig_col    = _find_col(["designation", "role", "title", "post"], raw_headers)
     username_col = _find_col(["username", "user", "uname", "login", "loginname"], raw_headers)
     password_col = _find_col(["password", "pass", "pwd"], raw_headers)
 
@@ -2756,9 +3015,11 @@ async def import_faculty(
     skipped = 0
     errors = []
 
-    for row_num, row in enumerate(ws_xl.iter_rows(min_row=2, values_only=True), start=2):
+    for row_num, row in enumerate(data_rows, start=2):
         faculty_id = str(row[fac_id_col]).strip() if fac_id_col < len(row) and row[fac_id_col] is not None else ""
         name       = str(row[name_col]).strip() if name_col < len(row) and row[name_col] is not None else ""
+        dept_str   = str(row[dept_col]).strip().upper() if dept_col != -1 and dept_col < len(row) and row[dept_col] is not None else ""
+        desig      = str(row[desig_col]).strip() if desig_col != -1 and desig_col < len(row) and row[desig_col] is not None else "Assistant Professor"
         username   = str(row[username_col]).strip() if username_col < len(row) and row[username_col] is not None else ""
         password   = str(row[password_col]).strip() if password_col < len(row) and row[password_col] is not None else ""
 
@@ -2776,9 +3037,13 @@ async def import_faculty(
         existing_usernames.add(username.lower())
         existing_fac_codes.add(faculty_id.lower())
 
+        row_dept = dept_map.get(_normalize_dept_code(dept_str)) or default_dept
+
         parsed_rows.append({
             "faculty_id": faculty_id,
             "name": name,
+            "department_id": row_dept.id if row_dept else None,
+            "designation": desig or "Assistant Professor",
             "username": username,
             "password": password,
         })
@@ -2805,7 +3070,7 @@ async def import_faculty(
             "full_name": item["name"],
             "password_hash": pwd_hash,
             "role": "FACULTY",
-            "department_id": default_dept.id if default_dept else None,
+            "department_id": item["department_id"],
             "status": "ACTIVE"
         })
 
@@ -2818,9 +3083,9 @@ async def import_faculty(
         fac_dicts.append({
             "user_id": u_map[item["username"]],
             "faculty_code": item["faculty_id"],
-            "department_id": default_dept.id if default_dept else None,
+            "department_id": item["department_id"],
             "name": item["name"],
-            "designation": "Assistant Professor",
+            "designation": item["designation"],
             "status": "ACTIVE"
         })
 
@@ -2837,9 +3102,74 @@ async def import_faculty(
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# BULK IMPORT – SUBJECTS (Excel upload)
-# ─────────────────────────────────────────────────────────────────────────────
+@router.get("/template/subjects")
+async def download_subjects_template(
+    format: str = "xlsx",
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Generate and serve standard Subjects onboarding template (.xlsx or .csv):
+    Required: SubjectID, SubjectName, ClassID
+    Optional: FacultyID
+    Dynamically suggests active classes in sample rows.
+    """
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+
+    # Fetch up to 4 real active class codes
+    stmt = select(ClassRoom.class_code).where(ClassRoom.status == "ACTIVE").limit(4)
+    cls_codes = [r[0] for r in (await db.execute(stmt)).all()]
+    c1 = cls_codes[0] if len(cls_codes) > 0 else "CSE3A"
+    c2 = cls_codes[1] if len(cls_codes) > 1 else c1
+
+    headers = ["SubjectID", "SubjectName", "ClassID", "FacultyID"]
+    sample_rows = [
+        ["CS301", "Data Structures & Algorithms", c1, "FAC001"],
+        ["CS302", "Database Management Systems", c1, "FAC002"],
+        ["CS303", "Operating Systems", c2, ""],
+        ["CS304", "Computer Networks", c2, ""],
+    ]
+
+    if format.lower() == "csv":
+        out = io.StringIO()
+        writer = csv.writer(out)
+        writer.writerow(headers)
+        writer.writerows(sample_rows)
+        return Response(
+            content=out.getvalue(),
+            media_type="text/csv",
+            headers={"Content-Disposition": 'attachment; filename="Adhi_Subjects_Bulk_Template.csv"'}
+        )
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Subjects"
+    ws.append(headers)
+    for r in sample_rows:
+        ws.append(r)
+
+    header_fill = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid")
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    for col in range(1, len(headers) + 1):
+        cell = ws.cell(row=1, column=col)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+
+    widths = {1: 16, 2: 36, 3: 16, 4: 16}
+    for col_idx, width in widths.items():
+        ws.column_dimensions[openpyxl.utils.get_column_letter(col_idx)].width = width
+    ws.freeze_panes = "A2"
+
+    out = io.BytesIO()
+    wb.save(out)
+    return Response(
+        content=out.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="Adhi_Subjects_Bulk_Template.xlsx"'}
+    )
+
+
 @router.post("/import/subjects")
 async def import_subjects(
     file: UploadFile = File(...),
@@ -2847,20 +3177,30 @@ async def import_subjects(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Upload an .xlsx file to bulk-add subjects.
-    Required columns: SubjectID | SubjectName | ClassID
-    Optional columns: FacultyID
+    High-Speed Bulk Subjects Import:
+    - Supports both .xlsx and .csv formats.
+    - Required columns: SubjectID | SubjectName | ClassID
+    - Optional columns: FacultyID
     """
     import openpyxl
 
-    if not file.filename.lower().endswith(".xlsx"):
-        raise HTTPException(status_code=400, detail="Only .xlsx files are supported.")
+    fname = (file.filename or "").lower()
+    if not (fname.endswith(".xlsx") or fname.endswith(".csv")):
+        raise HTTPException(status_code=400, detail="Only .xlsx and .csv files are supported.")
 
     contents = await file.read()
-    wb = openpyxl.load_workbook(io.BytesIO(contents), data_only=True)
-    ws_xl = wb.active
-
-    raw_headers = [str(c.value).strip() if c.value is not None else "" for c in next(ws_xl.iter_rows(max_row=1))]
+    if fname.endswith(".csv"):
+        text = contents.decode("utf-8-sig", errors="replace")
+        csv_rows = list(csv.reader(io.StringIO(text)))
+        if not csv_rows:
+            raise HTTPException(status_code=400, detail="Uploaded CSV file is empty.")
+        raw_headers = [str(c).strip() for c in csv_rows[0]]
+        data_rows = csv_rows[1:]
+    else:
+        wb = openpyxl.load_workbook(io.BytesIO(contents), data_only=True)
+        ws_xl = wb.active
+        raw_headers = [str(c.value).strip() if c.value is not None else "" for c in next(ws_xl.iter_rows(max_row=1))]
+        data_rows = [list(row) for row in ws_xl.iter_rows(min_row=2, values_only=True)]
 
     sub_id_col   = _find_col(["subjectid", "subject_id", "subid", "courseid", "coursecode", "code"], raw_headers)
     name_col     = _find_col(["subjectname", "subject_name", "subname", "coursename", "name", "title"], raw_headers)
@@ -2889,7 +3229,7 @@ async def import_subjects(
     errors = []
     skipped = 0
 
-    for row_num, row in enumerate(ws_xl.iter_rows(min_row=2, values_only=True), start=2):
+    for row_num, row in enumerate(data_rows, start=2):
         subject_id   = str(row[sub_id_col]).strip().upper() if sub_id_col < len(row) and row[sub_id_col] is not None else ""
         subject_name = str(row[name_col]).strip() if name_col < len(row) and row[name_col] is not None else ""
         class_code   = str(row[class_col]).strip().upper() if class_col < len(row) and row[class_col] is not None else ""

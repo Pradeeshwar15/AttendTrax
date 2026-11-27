@@ -1,0 +1,43 @@
+name: Institutional Automated Daily Database Backup
+
+on:
+  schedule:
+    # Runs every day at 00:00 UTC (05:30 AM IST - before morning college sessions)
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual on-demand backup'
+        required: false
+        default: 'Manual administrative snapshot'
+
+jobs:
+  daily-backup:
+    name: Execute Master Database Snapshot & Archive
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Master Database Backup Engine
+        env:
+          ATTENDTRAX_API_URL: ${{ secrets.ATTENDTRAX_API_URL || 'https://attendtrax-api.onrender.com' }}
+          BACKUP_PRINCIPAL_USER: ${{ secrets.BACKUP_PRINCIPAL_USER || 'principal' }}
+          BACKUP_PRINCIPAL_PASS: ${{ secrets.BACKUP_PRINCIPAL_PASS || 'Principal@2026' }}
+          BACKUP_DIR: 'backups'
+        run: |
+          python backend/scripts/daily_backup.py --out-dir backups
+
+      - name: Upload Backup Archive to GitHub Artifacts (90-Day Retention)
+        uses: actions/upload-artifact@v4
+        with:
+          name: attendtrax-master-backup-${{ github.run_number }}
+          path: backups/
+          retention-days: 90
+          if-no-files-found: error

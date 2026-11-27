@@ -83,10 +83,19 @@ class GlobalRateLimiterMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
-        if path in ("/health", "/", "/favicon.ico"):
+        # Never rate-limit preflight CORS checks, health, or keep-alive pings
+        if request.method == "OPTIONS" or path in ("/health", "/", "/favicon.ico"):
             return await call_next(request)
 
-        client_ip = request.client.host if request.client else "unknown"
+        # Resolve true client IP behind Render / Cloudflare reverse proxies
+        forwarded = request.headers.get("x-forwarded-for")
+        if forwarded:
+            client_ip = forwarded.split(",")[0].strip()
+        elif request.headers.get("cf-connecting-ip"):
+            client_ip = request.headers.get("cf-connecting-ip").strip()
+        else:
+            client_ip = request.client.host if request.client else "unknown"
+
         now = time.time()
         with self.lock:
             cutoff = now - self.window_seconds
@@ -101,7 +110,7 @@ class GlobalRateLimiterMiddleware(BaseHTTPMiddleware):
 
         return await call_next(request)
 
-app.add_middleware(GlobalRateLimiterMiddleware, max_requests=180, window_seconds=60)
+app.add_middleware(GlobalRateLimiterMiddleware, max_requests=600, window_seconds=60)
 
 # ── Security Headers Middleware ───────────────────────────────────────────────
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -126,7 +135,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             "font-src 'self' https://fonts.gstatic.com data:; "
             "img-src 'self' data: https: blob:; "
-            "connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:5500 http://localhost:5500 https://*.supabase.co https://*.supabase.com; "
+            "connect-src 'self' http://127.0.0.1:8000 http://localhost:8000 http://127.0.0.1:5500 http://localhost:5500 https://*.supabase.co https://*.supabase.com https://*.onrender.com https://*.vercel.app https://attendtrax-api.onrender.com; "
             "frame-ancestors 'none';"
         )
         return response
@@ -146,7 +155,7 @@ for default_origin in [
     if default_origin not in origins:
         origins.append(default_origin)
 
-# Hardened CORS: Explicit origin whitelist only (no open regex wildcards)
+# Hardened CORS: Explicit origin whitelist + all vercel domains
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -155,6 +164,7 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
     expose_headers=["Retry-After"],
+    max_age=86400,
 )
 
 # ── Routers ───────────────────────────────────────────────────────────────────

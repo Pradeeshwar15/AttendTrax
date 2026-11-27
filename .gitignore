@@ -43,6 +43,7 @@ attendtrax.db
 *.sqlite3
 scratch/
 tmp/
+backups/
 .DS_Store
 Thumbs.db
 .github/
