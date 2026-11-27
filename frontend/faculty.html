@@ -173,7 +173,7 @@
         <!-- In-App Notification Bell & Dropdown -->
         <div style="position:relative;" id="notif-bell-container">
           <button type="button" class="btn btn-secondary btn-sm" id="notif-bell-btn" style="position:relative;padding:0.35rem 0.65rem;" title="Notifications &amp; Leave Messages">
-            <span>🔔</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
             <span id="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;font-size:0.65rem;font-weight:700;border-radius:10px;padding:1px 5px;line-height:1.2;">0</span>
           </button>
           <div id="notif-dropdown" style="display:none;position:absolute;right:0;top:calc(100% + 8px);width:320px;max-height:380px;background:#ffffff;border:1px solid #cbd5e1;border-radius:8px;box-shadow:0 10px 25px rgba(0,0,0,0.15);z-index:1050;flex-direction:column;overflow:hidden;">
@@ -196,13 +196,12 @@
       <section class="section active" id="section-mark">
         <div id="placement-mode-banner" class="hidden" style="max-width:680px;margin:0 auto 1rem auto;background:linear-gradient(135deg, #065f46 0%, #047857 100%);color:#fff;border-radius:10px;padding:0.85rem 1.25rem;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 12px rgba(4,120,87,0.15);">
           <div style="display:flex;align-items:center;gap:0.75rem;">
-            <span style="font-size:1.5rem;">🎯</span>
             <div>
               <div style="font-weight:700;font-size:0.95rem;letter-spacing:0.02em;">PLACEMENT &amp; TRAINING ATTENDANCE MODE</div>
               <div style="font-size:0.75rem;opacity:0.9;">Universal Access: Take and record training run attendance across all 9 departments into Supabase table: <code>placement_attendance</code>.</div>
             </div>
           </div>
-          <span class="badge" style="background:#ecfdf5;color:#065f46;font-weight:700;font-size:0.75rem;padding:0.35rem 0.65rem;">🗄️ SUPABASE: placement_attendance</span>
+          <span class="badge" style="background:#ecfdf5;color:#065f46;font-weight:700;font-size:0.75rem;padding:0.35rem 0.65rem;">SUPABASE: placement_attendance</span>
         </div>
         <div class="card selection-card">
           <div class="card-header">
@@ -225,15 +224,15 @@
               </div>
               <div class="form-group hidden" id="placement-slot-group">
                 <label class="form-label" for="sel-placement-slot" style="font-weight:700;color:#065f46;display:flex;align-items:center;gap:0.4rem;">
-                  <span>🎯</span> Training Activity / Slot
+                  Training Activity / Slot
                 </label>
                 <select id="sel-placement-slot" class="form-control" style="font-weight:600;border-color:#059669;background:#f0fdf4;">
-                  <option value="training_classes">📚 Training Classes</option>
-                  <option value="technical_assessment">📝 Technical Assessment</option>
-                  <option value="leetcode_hackerrank">💻 LeetCode / HackerRank Test</option>
-                  <option value="mock_interview">🎙️ Mock Interview</option>
-                  <option value="gd_session">🗣️ GD Session</option>
-                  <option value="placement_meets">🤝 Placement Meets</option>
+                  <option value="training_classes">Training Classes</option>
+                  <option value="technical_assessment">Technical Assessment</option>
+                  <option value="leetcode_hackerrank">LeetCode / HackerRank Test</option>
+                  <option value="mock_interview">Mock Interview</option>
+                  <option value="gd_session">GD Session</option>
+                  <option value="placement_meets">Placement Meets</option>
                 </select>
                 <small class="text-muted" style="font-size:0.75rem;margin-top:0.25rem;display:block;">Recorded directly into dedicated Supabase table: <code>placement_attendance</code></small>
               </div>
@@ -404,7 +403,8 @@
             <div class="card-header" style="border-bottom:1px solid var(--gray-200);padding-bottom:1rem;">
               <div>
                 <h3 style="display:flex;align-items:center;gap:0.5rem;margin:0;">
-                  <span>📝</span> Apply for Faculty Leave / Permission
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--brand-600);"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                  Apply for Faculty Leave / Permission
                 </h3>
                 <p class="text-xs text-muted" style="margin-top:0.25rem;">
                   Official institutional workflow: Submitted tickets route to your Department HOD (Level 1) then to Principal / Vice Principal (Level 2).
@@ -478,10 +478,13 @@
           <div class="card">
             <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
               <div>
-                <h3 style="margin:0;">📋 My Leave &amp; Permission History</h3>
+                <h3 style="margin:0;">My Leave &amp; Permission History</h3>
                 <p class="text-xs text-muted" style="margin-top:0.2rem;">Real-time review track from HOD and Principal</p>
               </div>
-              <button type="button" class="btn btn-secondary btn-sm" id="refresh-faculty-leaves-btn">🔄 Refresh</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="refresh-faculty-leaves-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:text-bottom;margin-right:4px;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                Refresh
+              </button>
             </div>
             <div class="card-body" style="padding:0;">
               <div class="table-wrapper">
@@ -512,11 +515,14 @@
             <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
               <div>
                 <h3 style="margin:0;display:flex;align-items:center;gap:0.5rem;">
-                  <span>👥</span> Student Leave Review Queue (Class Incharge)
+                  Student Leave Review Queue (Class Incharge)
                 </h3>
                 <p class="text-xs text-muted" style="margin-top:0.2rem;">Verify student leave &amp; outpass applications for your assigned class</p>
               </div>
-              <button type="button" class="btn btn-secondary btn-sm" id="refresh-incharge-leaves-btn">🔄 Refresh Queue</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="refresh-incharge-leaves-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:text-bottom;margin-right:4px;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                Refresh Queue
+              </button>
             </div>
             <div class="card-body" style="padding:0;">
               <div class="table-wrapper">
@@ -800,7 +806,7 @@
           <!-- Section 3: Open for Projects & Collaboration Banner -->
           <div class="about-cta-card">
             <div class="about-cta-content">
-              <h4>🚀 Open for Collaboration &amp; Upcoming Projects</h4>
+              <h4>Open for Collaboration &amp; Upcoming Projects</h4>
               <p>
                 Have an ambitious software concept, departmental digital requirement, or development project? We design and deploy robust, high-performance software systems tailored to institutional excellence.
               </p>
@@ -857,7 +863,7 @@
     <footer class="app-footer">
       <div class="footer-inner">
         <div class="footer-brand">
-          <span class="footer-logo">⚡ AttendTrax</span>
+          <span class="footer-logo">AttendTrax</span>
           <span class="footer-desc">· Department Attendance &amp; Analytics Platform</span>
         </div>
         <div class="footer-credit-badge">
@@ -1017,7 +1023,7 @@ function initPlacementMode() {
     const subjGroup = document.getElementById('academic-subject-group');
     if (subjGroup) subjGroup.classList.remove('hidden');
     const subjLbl = document.getElementById('subject-select-label');
-    if (subjLbl) subjLbl.innerHTML = '<span style="color:#059669;">🎯</span> Training Subject (Placement Department)';
+    if (subjLbl) subjLbl.textContent = 'Training Subject (Placement Department)';
     const tb = document.getElementById('today-badge');
     if (tb) {
       tb.textContent = 'Placement Session';
@@ -1151,7 +1157,7 @@ document.getElementById('selection-form').addEventListener('submit', async (e) =
     const alertEl = document.getElementById('already-submitted-alert');
     if (alertEl) {
       alertEl.textContent = isPlacementUser()
-        ? `🎯 Placement Training attendance for ${slotLabel} (${subjText}) has already been recorded for this class today.`
+        ? `Placement Training attendance for ${slotLabel} (${subjText}) has already been recorded for this class today.`
         : 'Daily attendance for this Class has already been submitted today and cannot be modified.';
       alertEl.classList.toggle('hidden', !check.already_submitted);
     }
@@ -1205,9 +1211,9 @@ function renderStudentTable(students) {
       <td><span class="student-name">${escapeHtml(s.name)}</span></td>
       <td style="text-align:center;">
         <div class="attendance-chip-group" data-reg="${escapeHtml(s.reg_no)}">
-          <button type="button" class="attendance-chip chip-P active" data-val="P">🟢 Present</button>
-          <button type="button" class="attendance-chip chip-A"       data-val="A">🔴 Absent</button>
-          <button type="button" class="attendance-chip chip-OD"      data-val="OD">🟡 On-Duty</button>
+          <button type="button" class="attendance-chip chip-P active" data-val="P">Present</button>
+          <button type="button" class="attendance-chip chip-A"       data-val="A">Absent</button>
+          <button type="button" class="attendance-chip chip-OD"      data-val="OD">On-Duty</button>
         </div>
       </td>`;
     tbody.appendChild(tr);
@@ -1513,7 +1519,7 @@ async function loadFacultyLeaves() {
       const stColor = badgeStyle[finalSt] || badgeStyle.PENDING;
 
       const docketBtn = (finalSt === 'APPROVED')
-        ? `<button type="button" class="btn btn-secondary btn-xs" onclick="openFacultyLeaveDocket(${l.id})" style="display:inline-flex;align-items:center;gap:0.3rem;background:#1e40af;color:#fff;border-color:#1e3a8a;font-weight:700;padding:3px 8px;">🖨️ Print Docket</button>`
+        ? `<button type="button" class="btn btn-secondary btn-xs" onclick="openFacultyLeaveDocket(${l.id})" style="display:inline-flex;align-items:center;gap:0.3rem;background:#1e40af;color:#fff;border-color:#1e3a8a;font-weight:700;padding:3px 8px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print Docket</button>`
         : `<span class="text-xs text-muted">—</span>`;
 
       return `
@@ -1564,11 +1570,13 @@ async function loadInchargeLeavesQueue() {
           <td style="max-width:200px;font-size:0.82rem;" title="${escapeHtml(q.reason)}">${escapeHtml(q.reason)}</td>
           <td>
             <div style="display:flex;gap:0.4rem;">
-              <button class="btn btn-success btn-sm" onclick="reviewStudentLeave(${q.id}, 'APPROVE')" style="padding:0.25rem 0.6rem;font-size:0.75rem;">
-                ✓ Recommend
+              <button class="btn btn-success btn-sm" onclick="reviewStudentLeave(${q.id}, 'APPROVE')" style="padding:0.25rem 0.6rem;font-size:0.75rem;display:inline-flex;align-items:center;gap:0.25rem;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                Recommend
               </button>
-              <button class="btn btn-danger btn-sm" onclick="reviewStudentLeave(${q.id}, 'REJECT')" style="padding:0.25rem 0.6rem;font-size:0.75rem;">
-                ✕ Reject
+              <button class="btn btn-danger btn-sm" onclick="reviewStudentLeave(${q.id}, 'REJECT')" style="padding:0.25rem 0.6rem;font-size:0.75rem;display:inline-flex;align-items:center;gap:0.25rem;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                Reject
               </button>
             </div>
           </td>
@@ -1611,7 +1619,9 @@ loadInchargeLeavesQueue();
     <!-- Modal Action Controls (Hidden during print) -->
     <div class="no-print flex items-center justify-between" style="margin-bottom:1.25rem;padding-bottom:0.75rem;border-bottom:1px solid var(--gray-200);">
       <div class="flex items-center gap-2">
-        <span style="font-size:1.25rem;">📄</span>
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:var(--primary-subtle, #eff6ff);color:var(--primary, #1e40af);border-radius:6px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        </span>
         <div>
           <h3 id="docket-heading" style="margin:0;font-size:1.1rem;color:var(--gray-900);">Official Faculty Leave Sanction Docket</h3>
           <p class="text-xs text-muted" style="margin-top:0.2rem;">Physical Administrative Record Format · Ready for A4 Hard Copy Archival</p>
@@ -1622,7 +1632,9 @@ loadInchargeLeavesQueue();
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
           Print Sanction Order (A4)
         </button>
-        <button type="button" class="btn btn-secondary btn-sm" onclick="closeLeaveDocketModal()" style="font-size:1rem;padding:0.35rem 0.65rem;">✕</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeLeaveDocketModal()" style="display:inline-flex;align-items:center;padding:0.4rem;" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
     </div>
 

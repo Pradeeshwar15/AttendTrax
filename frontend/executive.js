@@ -278,16 +278,16 @@ function renderDepartmentBenchmark(benchmarks, deptCode) {
       tbody.innerHTML = displayBenchmarks.map((b, idx) => {
         const color = DEPT_COLORS[b.code] || '#4f46e5';
         const rankBadge = idx === 0 
-          ? '<span class="exec-rank-badge rank-1">🏆 1st</span>' 
+          ? '<span class="exec-rank-badge rank-1"><span class="exec-rank-num">#1</span> First</span>' 
           : idx === 1 
-          ? '<span class="exec-rank-badge rank-2">🥈 2nd</span>' 
+          ? '<span class="exec-rank-badge rank-2"><span class="exec-rank-num">#2</span> Second</span>' 
           : idx === 2 
-          ? '<span class="exec-rank-badge rank-3">🥉 3rd</span>' 
+          ? '<span class="exec-rank-badge rank-3"><span class="exec-rank-num">#3</span> Third</span>' 
           : `<span class="exec-rank-badge">#${idx + 1}</span>`;
 
         const statusBadge = b.is_fully_marked
-          ? '<span class="badge badge-success">✓ 100% Marked</span>'
-          : `<span class="badge badge-warning">⏳ ${b.today_status}</span>`;
+          ? '<span class="badge badge-success"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-1px;margin-right:3px;"><polyline points="20 6 9 17 4 12"/></svg> 100% Marked</span>'
+          : `<span class="badge badge-warning"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:3px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${b.today_status}</span>`;
 
         return `
           <tr ${isFiltered ? 'style="background:rgba(37,99,235,0.06);"' : ''}>
@@ -482,7 +482,7 @@ async function loadExecutiveLeavesQueue(deptCode) {
     if (!leaves.length) {
       container.innerHTML = `
         <div class="empty-state" style="padding:2.5rem 1rem;text-align:center;">
-          <div style="font-size:2rem;margin-bottom:0.5rem;">🎉</div>
+          <div style="display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;background:var(--success-subtle,#ecfdf5);color:var(--success,#059669);margin-bottom:0.75rem;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
           <h4 style="margin:0 0 0.25rem;color:var(--gray-800);">Executive Sign-Off Queue Clear</h4>
           <p class="text-xs text-muted">All HOD-recommended faculty leave tickets have been reviewed and approved.</p>
         </div>
@@ -519,12 +519,12 @@ async function loadExecutiveLeavesQueue(deptCode) {
           
           <div class="exec-leave-body">
             <div class="exec-leave-meta">
-              <span>📅 <strong>${_esc(l.start_date)}</strong> ${l.start_date !== l.end_date ? 'to ' + _esc(l.end_date) : ''}</span>
-              ${l.specific_time_window ? `<span>⏰ ${_esc(l.specific_time_window)}</span>` : ''}
+              <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:3px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><strong>${_esc(l.start_date)}</strong> ${l.start_date !== l.end_date ? 'to ' + _esc(l.end_date) : ''}</span>
+              ${l.specific_time_window ? `<span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:3px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${_esc(l.specific_time_window)}</span>` : ''}
             </div>
             <p class="exec-leave-reason">"${_esc(l.reason)}"</p>
             <div class="exec-leave-hod-remark">
-              <span class="text-xs font-semibold text-emerald-700">✓ HOD Recommendation:</span>
+              <span class="text-xs font-semibold text-emerald-700">HOD Recommendation:</span>
               <span class="text-xs text-gray-700">${_esc(l.hod_remarks || 'Recommended for sanction')}</span>
             </div>
           </div>
@@ -534,12 +534,12 @@ async function loadExecutiveLeavesQueue(deptCode) {
               <button type="button" class="btn btn-secondary btn-sm" onclick="handleExecutiveSignOff(${l.id}, 'REJECT')">
                 Reject
               </button>
-              <button type="button" class="btn btn-primary btn-sm" onclick="handleExecutiveSignOff(${l.id}, 'APPROVE')">
-                ✓ Executive Sanction
+              <button type="button" class="btn btn-primary btn-sm" onclick="handleExecutiveSignOff(${l.id}, 'APPROVE')" style="display:inline-flex;align-items:center;gap:0.3rem;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Executive Sanction
               </button>
             </div>
             <button type="button" class="btn btn-secondary btn-xs" onclick="openLeaveSanctionDocket(${l.id})" style="display:inline-flex;align-items:center;gap:0.25rem;">
-              📄 Preview Docket
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Preview Docket
             </button>
           </div>
         </div>
@@ -653,12 +653,12 @@ function renderLiveRadarTable(classes) {
 
   tbody.innerHTML = filtered.map(c => {
     const statusBadge = c.is_marked
-      ? '<span class="badge badge-success">✓ Marked</span>'
-      : '<span class="badge badge-warning" style="animation:pulse 2s infinite;">⏳ Pending Submission</span>';
+      ? '<span class="badge badge-success"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-1px;margin-right:2px;"><polyline points="20 6 9 17 4 12"/></svg> Marked</span>'
+      : '<span class="badge badge-warning" style="animation:pulse 2s infinite;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:2px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Pending Submission</span>';
 
     const actionBtn = c.is_marked
       ? '<span class="text-xs text-muted">Complete</span>'
-      : `<button type="button" class="btn btn-secondary btn-xs" onclick="nudgeDepartmentHOD('${c.department}', '${c.class_code}')">📢 Nudge HOD</button>`;
+      : `<button type="button" class="btn btn-secondary btn-xs" onclick="nudgeDepartmentHOD('${c.department}', '${c.class_code}')" style="display:inline-flex;align-items:center;gap:0.25rem;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Nudge HOD</button>`;
 
     return `
       <tr>
@@ -677,7 +677,7 @@ function renderLiveRadarTable(classes) {
 }
 
 function nudgeDepartmentHOD(dept, classCode) {
-  showToast(`📢 Alert dispatched to Head of Department (${dept}) for class ${classCode} attendance submission.`, 'info', 4000);
+  showToast(`Alert dispatched to Head of Department (${dept}) for class ${classCode} attendance submission.`, 'info', 4000);
 }
 
 // ── Load Institutional Defaulters Radar (<75%) ──────────────────────────────
@@ -721,8 +721,8 @@ function renderExecutiveDefaultersTable(list) {
 
   tbody.innerHTML = filtered.map(d => {
     const riskBadge = d.risk_level === 'CRITICAL'
-      ? '<span class="badge badge-danger">🔴 Critical (&lt;65%)</span>'
-      : '<span class="badge badge-warning">🟡 Warning (65-75%)</span>';
+      ? '<span class="badge badge-danger">Critical (&lt;65%)</span>'
+      : '<span class="badge badge-warning">Warning (65-75%)</span>';
 
     return `
       <tr>
@@ -780,12 +780,12 @@ async function loadSanctionedLeavesArchive(deptCode) {
             <div class="text-xs text-muted">${r.total_days} Day(s)</div>
           </td>
           <td>
-            <span class="badge badge-success" style="font-size:0.75rem;">✓ Sanctioned</span>
+            <span class="badge badge-success" style="font-size:0.75rem;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-1px;margin-right:2px;"><polyline points="20 6 9 17 4 12"/></svg> Sanctioned</span>
             <div class="text-xs text-muted" style="margin-top:2px;">${r.principal_action_at ? r.principal_action_at.split('T')[0] : 'Approved'}</div>
           </td>
           <td>
             <button type="button" class="btn btn-secondary btn-xs" onclick="openLeaveSanctionDocket(${r.id})" style="display:inline-flex;align-items:center;gap:0.3rem;background:#1e40af;color:#fff;border-color:#1e3a8a;font-weight:700;padding:3px 8px;">
-              🖨️ Print Docket
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print Docket
             </button>
           </td>
         </tr>
@@ -972,8 +972,8 @@ function renderDocketHTML(data, container) {
           <tr>
             <td style="padding:6px 10px;font-weight:700;border-right:1px solid #cbd5e1;">Sanction Status</td>
             <td colspan="3" style="padding:6px 10px;">
-              <span style="display:inline-block;padding:2px 8px;border-radius:4px;background:#dcfce7;color:#15803d;font-weight:700;font-size:0.78rem;">
-                ✓ OFFICIALLY SANCTIONED BY PRINCIPAL
+              <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;background:#dcfce7;color:#15803d;font-weight:700;font-size:0.78rem;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> OFFICIALLY SANCTIONED BY PRINCIPAL
               </span>
             </td>
           </tr>
@@ -983,7 +983,7 @@ function renderDocketHTML(data, container) {
 
     <div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:4px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:0.78rem;">
       <div style="font-weight:700;margin-bottom:0.4rem;color:#0f172a;text-transform:uppercase;letter-spacing:0.04em;display:flex;align-items:center;gap:0.4rem;">
-        <span>🔒</span> Digital Endorsement &amp; Audit Ledger
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Digital Endorsement &amp; Audit Ledger
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
         <div style="border-right:1px solid #e2e8f0;padding-right:0.75rem;">
@@ -1283,7 +1283,7 @@ function setupExecutiveEventListeners() {
         targetPhrase: 'RESET ATTENDANCE',
         endpoint: '/admin/executive/factory-reset'
       };
-      if (titleEl) titleEl.textContent = '⚠️ Confirm Factory Default Attendance Reset';
+      if (titleEl) titleEl.textContent = 'Confirm Factory Default Attendance Reset';
       if (descEl) descEl.innerHTML = '<strong>WARNING:</strong> You are about to wipe all student attendance session records and attendance reports across the institution. Student profiles, classes, and faculty accounts will NOT be deleted. This operation is permanent.';
       if (phraseTargetEl) phraseTargetEl.textContent = 'RESET ATTENDANCE';
     } else if (actionType === 'PURGE_COHORTS') {
@@ -1292,7 +1292,7 @@ function setupExecutiveEventListeners() {
         targetPhrase: 'PURGE INSTITUTION',
         endpoint: '/admin/executive/purge-academic-cohorts'
       };
-      if (titleEl) titleEl.textContent = '🗑️ Confirm Complete Institutional Cohort Purge';
+      if (titleEl) titleEl.textContent = 'Confirm Complete Institutional Cohort Purge';
       if (descEl) descEl.innerHTML = '<strong>CRITICAL HAZARD:</strong> You are about to permanently purge ALL student profiles, student user accounts, classes, class allocations, student leave applications, and past attendance sessions across the entire institution. Departments and faculty accounts will remain intact.';
       if (phraseTargetEl) phraseTargetEl.textContent = 'PURGE INSTITUTION';
     }
@@ -1329,35 +1329,35 @@ function setupExecutiveEventListeners() {
       const isClean = data.integrity?.is_clean;
 
       badgeEl.innerHTML = `
-        <span class="badge" style="background:${data.status === 'healthy' ? '#059669' : '#dc2626'};color:#fff;padding:0.35rem 0.75rem;font-weight:700;">
-          🟢 Supabase Connected (${lat} ms)
+        <span class="badge" style="display:inline-flex;align-items:center;gap:0.35rem;background:${data.status === 'healthy' ? '#059669' : '#dc2626'};color:#fff;padding:0.35rem 0.75rem;font-weight:700;">
+          <span style="width:7px;height:7px;border-radius:50%;background:#fff;display:inline-block;"></span> Supabase Connected (${lat} ms)
         </span>
-        <span class="badge" style="background:${isClean ? '#3b82f6' : '#d97706'};color:#fff;padding:0.35rem 0.75rem;margin-left:0.5rem;font-weight:700;">
-          ${isClean ? '✓ Zero Orphan Records' : '⚠️ Integrity Warning'}
+        <span class="badge" style="display:inline-flex;align-items:center;gap:0.35rem;background:${isClean ? '#3b82f6' : '#d97706'};color:#fff;padding:0.35rem 0.75rem;margin-left:0.5rem;font-weight:700;">
+          ${isClean ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Zero Orphan Records' : 'Integrity Warning'}
         </span>
       `;
 
       const counts = data.table_counts || {};
       const items = [
-        { label: 'Departments', count: counts.departments ?? 0, icon: '🏢' },
-        { label: 'System Users', count: counts.users ?? 0, icon: '👥' },
-        { label: 'Active Classes', count: counts.classes ?? 0, icon: '🏫' },
-        { label: 'Enrolled Students', count: counts.students ?? 0, icon: '🎓' },
-        { label: 'Faculty Accounts', count: counts.faculty ?? 0, icon: '👨‍🏫' },
-        { label: 'Subjects / Courses', count: counts.subjects ?? 0, icon: '📚' },
-        { label: 'Faculty Allocations', count: counts.faculty_allocations ?? 0, icon: '🔗' },
-        { label: 'Attendance Sessions', count: counts.attendance_sessions ?? 0, icon: '📋' },
-        { label: 'Attendance Records', count: counts.attendance_records ?? 0, icon: '📝' },
-        { label: 'Student Leaves', count: counts.student_leaves ?? 0, icon: '✉️' },
-        { label: 'Hostel Gate Passes', count: counts.hostel_gate_passes ?? 0, icon: '🚪' },
-        { label: 'Security Audit Logs', count: counts.audit_logs ?? 0, icon: '🔒' },
+        { label: 'Departments', count: counts.departments ?? 0, svg: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="9" y1="22" x2="9" y2="22.01"/><line x1="15" y1="22" x2="15" y2="22.01"/><line x1="9" y1="6" x2="9" y2="6.01"/><line x1="15" y1="6" x2="15" y2="6.01"/><line x1="9" y1="10" x2="9" y2="10.01"/><line x1="15" y1="10" x2="15" y2="10.01"/><line x1="9" y1="14" x2="9" y2="14.01"/><line x1="15" y1="14" x2="15" y2="14.01"/><line x1="9" y1="18" x2="9" y2="18.01"/><line x1="15" y1="18" x2="15" y2="18.01"/></svg>' },
+        { label: 'System Users', count: counts.users ?? 0, svg: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' },
+        { label: 'Active Classes', count: counts.classes ?? 0, svg: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>' },
+        { label: 'Enrolled Students', count: counts.students ?? 0, svg: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>' },
+        { label: 'Faculty Accounts', count: counts.faculty ?? 0, svg: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' },
+        { label: 'Subjects / Courses', count: counts.subjects ?? 0, svg: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>' },
+        { label: 'Faculty Allocations', count: counts.faculty_allocations ?? 0, svg: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>' },
+        { label: 'Attendance Sessions', count: counts.attendance_sessions ?? 0, svg: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' },
+        { label: 'Attendance Records', count: counts.attendance_records ?? 0, svg: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>' },
+        { label: 'Student Leaves', count: counts.student_leaves ?? 0, svg: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>' },
+        { label: 'Hostel Gate Passes', count: counts.hostel_gate_passes ?? 0, svg: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>' },
+        { label: 'Security Audit Logs', count: counts.audit_logs ?? 0, svg: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' },
       ];
 
       gridEl.innerHTML = items.map(it => `
         <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:0.75rem;display:flex;align-items:center;justify-content:space-between;">
           <div>
-            <div style="font-size:0.75rem;color:#64748b;font-weight:600;text-transform:uppercase;">${it.icon} ${it.label}</div>
-            <div style="font-size:1.25rem;font-weight:800;color:#0f172a;margin-top:0.15rem;">${it.count.toLocaleString()}</div>
+            <div style="font-size:0.75rem;color:#64748b;font-weight:600;text-transform:uppercase;display:flex;align-items:center;gap:0.35rem;"><span style="color:#475569;display:inline-flex;">${it.svg}</span> ${it.label}</div>
+            <div style="font-size:1.25rem;font-weight:800;color:#0f172a;margin-top:0.25rem;">${it.count.toLocaleString()}</div>
           </div>
         </div>
       `).join('');
@@ -1618,7 +1618,7 @@ function generateDocketPrintableHTML(data) {
 <body>
   <div class="no-print" style="max-width:800px;margin:0 auto 12px;display:flex;justify-content:space-between;align-items:center;background:#f8fafc;padding:10px 16px;border-radius:6px;border:1px solid #e2e8f0;">
     <span style="font-size:0.85rem;font-weight:600;color:#334155;">Official Faculty Leave Sanction Docket (A4 Ready)</span>
-    <button onclick="window.print()" style="background:#1e3a8a;color:#fff;border:none;padding:6px 16px;border-radius:4px;font-weight:700;cursor:pointer;">🖨️ Print Now</button>
+    <button onclick="window.print()" style="display:inline-flex;align-items:center;gap:0.35rem;background:#1e3a8a;color:#fff;border:none;padding:6px 16px;border-radius:4px;font-weight:700;cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print Now</button>
   </div>
 
   <div class="docket-wrapper">
@@ -1691,8 +1691,8 @@ function generateDocketPrintableHTML(data) {
           <tr>
             <td class="label">Sanction Status</td>
             <td colspan="3">
-              <span style="display:inline-block;padding:2px 8px;border-radius:4px;background:#dcfce7;color:#15803d;font-weight:700;font-size:0.75rem;">
-                ✓ OFFICIALLY SANCTIONED BY PRINCIPAL
+              <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;background:#dcfce7;color:#15803d;font-weight:700;font-size:0.75rem;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> OFFICIALLY SANCTIONED BY PRINCIPAL
               </span>
             </td>
           </tr>
@@ -1700,8 +1700,8 @@ function generateDocketPrintableHTML(data) {
       </table>
 
       <div class="ledger-box">
-        <div style="font-weight:700;margin-bottom:4px;color:#0f172a;text-transform:uppercase;letter-spacing:0.04em;">
-          🔒 Digital Endorsement &amp; Audit Ledger
+        <div style="font-weight:700;margin-bottom:4px;color:#0f172a;text-transform:uppercase;letter-spacing:0.04em;display:flex;align-items:center;gap:0.35rem;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Digital Endorsement &amp; Audit Ledger
         </div>
         <div class="ledger-grid">
           <div style="border-right:1px solid #e2e8f0;padding-right:8px;">
@@ -1862,16 +1862,16 @@ function renderSanctionedLeavesArchivePageRows(records) {
           <span class="badge badge-primary" style="font-size:0.72rem;">${r.total_days} Day(s)</span>
         </td>
         <td>
-          <span class="badge badge-success" style="font-size:0.75rem;">✓ Sanctioned</span>
+          <span class="badge badge-success" style="font-size:0.75rem;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-1px;margin-right:2px;"><polyline points="20 6 9 17 4 12"/></svg> Sanctioned</span>
           <div class="text-xs text-muted" style="margin-top:2px;">${r.principal_action_at ? r.principal_action_at.split('T')[0] : 'Approved'}</div>
         </td>
         <td>
           <div style="display:flex;gap:0.35rem;align-items:center;">
-            <button type="button" class="btn btn-secondary btn-xs" onclick="openLeaveSanctionDocket(${r.id})" style="padding:3px 7px;">
-              📄 View
+            <button type="button" class="btn btn-secondary btn-xs" onclick="openLeaveSanctionDocket(${r.id})" style="display:inline-flex;align-items:center;gap:0.25rem;padding:3px 7px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> View
             </button>
             <button type="button" class="btn btn-primary btn-xs" onclick="printLeaveDocketDirect(${r.id})" style="display:inline-flex;align-items:center;gap:0.25rem;background:#1e40af;color:#fff;border-color:#1e3a8a;font-weight:700;padding:3px 8px;">
-              🖨️ Print Docket
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print Docket
             </button>
           </div>
         </td>
@@ -1965,7 +1965,7 @@ async function loadDailyActiveFacultyLeaves() {
     const res = await api.get(`/leaves/faculty/active-on-date?${params.toString()}`);
     const records = Array.isArray(res) ? res : (res?.faculties_on_leave || []);
     if (!records.length) {
-      tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted" style="padding:1.5rem;">No faculty members on approved leave on <strong>${queryDate}</strong> for the selected scope. All faculty accounted for! 🎉</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted" style="padding:1.5rem;">No faculty members on approved leave on <strong>${queryDate}</strong> for the selected scope. All faculty members accounted for.</td></tr>`;
       return;
     }
 
@@ -1988,7 +1988,7 @@ async function loadDailyActiveFacultyLeaves() {
           <td><code style="font-weight:700;color:#1e40af;">${_esc(r.docket_ref || ('DOCK-' + r.id))}</code></td>
           <td>
             <button type="button" class="btn btn-primary btn-xs" onclick="printLeaveDocketDirect(${r.id})" style="display:inline-flex;align-items:center;gap:0.3rem;background:#1e40af;color:#fff;border-color:#1e3a8a;font-weight:700;padding:3px 8px;">
-              🖨️ Print Docket
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print Docket
             </button>
           </td>
         </tr>
@@ -2085,7 +2085,7 @@ async function loadDepartmentReports(deptCode) {
                 </td>
                 <td>
                   <button type="button" class="btn btn-secondary btn-xs" onclick="selectAndLoadClassReport('${c.class_id}')" style="display:inline-flex;align-items:center;gap:0.25rem;font-weight:600;padding:3px 8px;">
-                    📋 View Roster
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> View Roster
                   </button>
                 </td>
               </tr>

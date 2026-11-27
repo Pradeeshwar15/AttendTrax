@@ -190,8 +190,8 @@
 <div id="danger-confirm-modal" class="modal-overlay hidden" style="z-index:99999;">
   <div class="modal-box" style="max-width:540px;border-top:4px solid #dc2626;padding:1.75rem;">
     <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">
-      <div style="width:42px;height:42px;border-radius:50%;background:#fee2e2;color:#dc2626;display:flex;align-items:center;justify-content:center;font-size:1.35rem;flex-shrink:0;">
-        ⚠️
+      <div style="width:42px;height:42px;border-radius:50%;background:#fee2e2;color:#dc2626;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       </div>
       <div>
         <h3 id="danger-modal-title" style="margin:0;color:#991b1b;font-size:1.15rem;font-weight:800;">Security Verification Required</h3>
@@ -245,24 +245,24 @@
     <div class="flex items-center justify-between" style="margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid var(--gray-200);">
       <div>
         <h3 id="modal-daily-title" style="margin:0;color:var(--gray-900);display:flex;align-items:center;gap:0.5rem;">
-          <span>✏️</span> Edit Daily Attendance
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Edit Daily Attendance
         </h3>
         <p class="text-xs" id="modal-daily-faculty" style="margin-top:0.35rem;color:var(--indigo-700);font-weight:600;">
           Submitted by Faculty: Staff
         </p>
       </div>
-      <button type="button" class="btn btn-secondary btn-sm" id="modal-daily-close" style="font-size:1rem;padding:0.25rem 0.6rem;">✕</button>
+      <button type="button" class="btn btn-secondary btn-sm" id="modal-daily-close" style="display:inline-flex;align-items:center;padding:0.35rem 0.5rem;" aria-label="Close"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
 
     <!-- Quick action bar -->
     <div class="flex items-center justify-between" style="flex-wrap:wrap;gap:0.75rem;margin-bottom:1rem;background:var(--gray-50);padding:0.75rem 1rem;border-radius:var(--radius-md);border:1px solid var(--gray-200);">
       <div class="flex items-center gap-2">
-        <input type="text" id="modal-daily-search" class="form-control" placeholder="🔍 Search student name/reg..." style="width:200px;font-size:0.82rem;padding:0.35rem 0.65rem;" />
+        <input type="text" id="modal-daily-search" class="form-control" placeholder="Search student name/reg..." style="width:200px;font-size:0.82rem;padding:0.35rem 0.65rem;" />
       </div>
       <div class="flex items-center gap-2">
-        <button type="button" class="btn btn-secondary btn-sm" id="modal-mark-all-p">✅ Mark All Present</button>
-        <button type="button" class="btn btn-secondary btn-sm" id="modal-mark-all-a">❌ Mark All Absent</button>
-        <button type="button" class="btn btn-secondary btn-sm" id="modal-mark-all-od">🟡 Mark All On-Duty</button>
+        <button type="button" class="btn btn-secondary btn-sm" id="modal-mark-all-p" style="display:inline-flex;align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><polyline points="20 6 9 17 4 12"/></svg> Mark All Present</button>
+        <button type="button" class="btn btn-secondary btn-sm" id="modal-mark-all-a" style="display:inline-flex;align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Mark All Absent</button>
+        <button type="button" class="btn btn-secondary btn-sm" id="modal-mark-all-od" style="display:inline-flex;align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Mark All On-Duty</button>
       </div>
     </div>
 
@@ -290,7 +290,7 @@
       <div class="flex gap-3">
         <button type="button" class="btn btn-secondary" id="modal-daily-cancel">Cancel</button>
         <button type="button" class="btn btn-primary" id="modal-daily-save" style="font-weight:700;">
-          💾 Resubmit & Save Changes
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Resubmit & Save Changes
         </button>
       </div>
     </div>
@@ -303,26 +303,26 @@
     <div class="flex items-center justify-between" style="margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid var(--gray-200);">
       <div>
         <h3 id="daily-status-modal-title" style="margin:0;color:var(--gray-900);display:flex;align-items:center;gap:0.5rem;">
-          <span>🔴</span> List of Absent Students
+          <span style="color:var(--danger);font-size:0.85rem;font-weight:700;">●</span> List of Absent Students
         </h3>
         <p class="text-xs" id="daily-status-modal-sub" style="margin-top:0.35rem;color:var(--gray-600);font-weight:600;">
           Showing students recorded for date: —
         </p>
       </div>
-      <button type="button" class="btn btn-secondary btn-sm" id="daily-status-modal-close" style="font-size:1rem;padding:0.25rem 0.6rem;">✕</button>
+      <button type="button" class="btn btn-secondary btn-sm" id="daily-status-modal-close" style="display:inline-flex;align-items:center;padding:0.35rem 0.5rem;" aria-label="Close"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
 
     <!-- Quick action bar -->
     <div class="flex items-center justify-between" style="flex-wrap:wrap;gap:0.75rem;margin-bottom:1rem;background:var(--gray-50);padding:0.75rem 1rem;border-radius:var(--radius-md);border:1px solid var(--gray-200);">
       <div class="flex items-center gap-2" style="flex:1;min-width:260px;">
-        <input type="text" id="daily-status-search" class="form-control" placeholder="🔍 Search by name or reg no..." style="font-size:0.82rem;padding:0.4rem 0.65rem;" />
+        <input type="text" id="daily-status-search" class="form-control" placeholder="Search by name or reg no..." style="font-size:0.82rem;padding:0.4rem 0.65rem;" />
         <select id="daily-status-class-filter" class="form-control" style="font-size:0.82rem;padding:0.4rem 0.65rem;max-width:180px;">
           <option value="ALL">All Classes</option>
         </select>
       </div>
       <div class="flex items-center gap-2">
         <button type="button" class="btn btn-primary btn-sm" id="daily-status-export-btn" style="display:flex;align-items:center;gap:0.4rem;font-weight:600;padding:0.45rem 0.9rem;">
-          <span>📥</span> Export as CSV
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export as CSV
         </button>
       </div>
     </div>
@@ -365,7 +365,7 @@
     <!-- Modal Action Controls (Hidden during print) -->
     <div class="no-print flex items-center justify-between" style="margin-bottom:1.25rem;padding-bottom:0.75rem;border-bottom:1px solid var(--gray-200);">
       <div class="flex items-center gap-2">
-        <span style="font-size:1.25rem;">📄</span>
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:var(--primary-subtle,#eff6ff);color:var(--primary,#1e40af);border-radius:6px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
         <div>
           <h3 id="docket-heading" style="margin:0;font-size:1.1rem;color:var(--gray-900);">Official Faculty Leave Sanction Docket</h3>
           <p class="text-xs text-muted" style="margin-top:0.2rem;">Physical Administrative Record Format · Ready for A4 Hard Copy Archival</p>
@@ -376,7 +376,7 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
           Print Sanction Order (A4)
         </button>
-        <button type="button" class="btn btn-secondary btn-sm" onclick="closeLeaveDocketModal()" style="font-size:1rem;padding:0.35rem 0.65rem;">✕</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeLeaveDocketModal()" style="display:inline-flex;align-items:center;padding:0.35rem 0.5rem;" aria-label="Close"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>
     </div>
 
@@ -560,17 +560,17 @@
       </div>
       <div class="flex items-center gap-3">
         <select id="global-dept-selector" class="form-control" style="font-size:0.8rem;padding:0.35rem 0.65rem;max-width:180px;font-weight:600;display:none;background:#f8fafc;border-color:#cbd5e1;">
-          <option value="ALL">🏛️ All Departments (9)</option>
-          <option value="CSE" selected>💻 CSE Dept</option>
-          <option value="IT">🌐 IT Dept</option>
-          <option value="AIDS">🤖 AI &amp; DS</option>
-          <option value="ECE">📡 ECE Dept</option>
-          <option value="MECH">⚙️ MECH Dept</option>
-          <option value="EEE">⚡ EEE Dept</option>
-          <option value="CYBER">🛡️ Cyber Security</option>
-          <option value="AIML">🧠 AI &amp; ML</option>
-          <option value="SH">📚 S &amp; H</option>
-          <option value="PLACEMENT">🎯 Placement &amp; Training</option>
+          <option value="ALL">All Departments (9)</option>
+          <option value="CSE" selected>CSE Dept</option>
+          <option value="IT">IT Dept</option>
+          <option value="AIDS">AI &amp; DS</option>
+          <option value="ECE">ECE Dept</option>
+          <option value="MECH">MECH Dept</option>
+          <option value="EEE">EEE Dept</option>
+          <option value="CYBER">Cyber Security</option>
+          <option value="AIML">AI &amp; ML</option>
+          <option value="SH">S &amp; H</option>
+          <option value="PLACEMENT">Placement &amp; Training</option>
         </select>
         <div class="live-sync-indicator" id="live-sync-badge" title="Real-time multi-device cloud synchronization active">
           <span class="live-pulse-dot"></span>
@@ -583,7 +583,7 @@
         <!-- In-App Notification Bell & Dropdown -->
         <div style="position:relative;" id="notif-bell-container">
           <button type="button" class="btn btn-secondary btn-sm" id="notif-bell-btn" style="position:relative;padding:0.35rem 0.65rem;" title="Notifications &amp; Leave Messages">
-            <span>🔔</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
             <span id="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;font-size:0.65rem;font-weight:700;border-radius:10px;padding:1px 5px;line-height:1.2;">0</span>
           </button>
           <div id="notif-dropdown" style="display:none;position:absolute;right:0;top:calc(100% + 8px);width:320px;max-height:380px;background:#ffffff;border:1px solid #cbd5e1;border-radius:8px;box-shadow:0 10px 25px rgba(0,0,0,0.15);z-index:1050;flex-direction:column;overflow:hidden;">
@@ -607,13 +607,13 @@
         <!-- Executive Banner -->
         <div class="exec-banner">
           <div class="flex items-center gap-3">
-            <div class="exec-emblem">🏛️</div>
+            <div class="exec-emblem"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="21" x2="21" y2="21"/><line x1="4" y1="10" x2="20" y2="10"/><polyline points="12 3 2 10 22 10 12 3"/><line x1="6" y1="10" x2="6" y2="21"/><line x1="10" y1="10" x2="10" y2="21"/><line x1="14" y1="10" x2="14" y2="21"/><line x1="18" y1="10" x2="18" y2="21"/></svg></div>
             <div>
               <h2 class="exec-title">Executive Academic Intelligence Cockpit</h2>
               <div class="exec-sub">
                 <span>Office of the Principal &amp; Vice Principal</span>
                 <span>·</span>
-                <span class="exec-pill exec-pill-live">🔴 Live Telemetry Active</span>
+                <span class="exec-pill exec-pill-live"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#ef4444;margin-right:5px;box-shadow:0 0 6px #ef4444;"></span>Live Telemetry Active</span>
                 <span class="exec-pill exec-pill-gold">8 Departments Monitored</span>
               </div>
             </div>
@@ -622,27 +622,27 @@
             <div class="flex items-center gap-2" style="background:rgba(255,255,255,0.14);padding:0.3rem 0.75rem;border-radius:var(--radius-md);border:1px solid rgba(255,255,255,0.25);">
               <label for="exec-department-filter" style="font-size:0.75rem;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.04em;cursor:pointer;">Branch Filter:</label>
               <select id="exec-department-filter" style="background:#0f172a;color:#fff;border:1px solid rgba(255,255,255,0.35);border-radius:4px;padding:0.3rem 0.65rem;font-size:0.82rem;font-weight:700;cursor:pointer;outline:none;">
-                <option value="ALL">🏛️ All Departments (College Wide)</option>
-                <option value="CSE">💻 CSE - Computer Science &amp; Engineering</option>
-                <option value="IT">🌐 IT - Information Technology</option>
-                <option value="AIDS">🤖 AIDS - Artificial Intelligence &amp; Data Science</option>
-                <option value="ECE">📡 ECE - Electronics &amp; Communication</option>
-                <option value="MECH">⚙️ MECH - Mechanical Engineering</option>
-                <option value="EEE">⚡ EEE - Electrical &amp; Electronics</option>
-                <option value="CYBER">🛡️ CYBER - Cyber Security</option>
-                <option value="AIML">🧠 AIML - AI &amp; Machine Learning</option>
-                <option value="SH">📚 SH - Science &amp; Humanities</option>
-                <option value="PLACEMENT">🎯 PLACEMENT - Training &amp; Placement</option>
+                <option value="ALL">All Departments (College Wide)</option>
+                <option value="CSE">CSE - Computer Science &amp; Engineering</option>
+                <option value="IT">IT - Information Technology</option>
+                <option value="AIDS">AIDS - Artificial Intelligence &amp; Data Science</option>
+                <option value="ECE">ECE - Electronics &amp; Communication</option>
+                <option value="MECH">MECH - Mechanical Engineering</option>
+                <option value="EEE">EEE - Electrical &amp; Electronics</option>
+                <option value="CYBER">CYBER - Cyber Security</option>
+                <option value="AIML">AIML - AI &amp; Machine Learning</option>
+                <option value="SH">SH - Science &amp; Humanities</option>
+                <option value="PLACEMENT">PLACEMENT - Training &amp; Placement</option>
               </select>
             </div>
             <button type="button" class="btn btn-secondary btn-sm" id="exec-refresh-btn" style="background:rgba(255,255,255,0.12);color:#fff;border-color:rgba(255,255,255,0.25);">
-              🔄 Refresh Telemetry
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Refresh Telemetry
             </button>
             <button type="button" class="btn btn-primary btn-sm" id="exec-export-naac-btn" style="background:#2563eb;border-color:#3b82f6;">
-              📥 Export NAAC Report
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export NAAC Report
             </button>
             <button type="button" class="btn btn-secondary btn-sm" id="exec-export-all-btn" style="background:#059669;border-color:#10b981;color:#fff;font-weight:700;">
-              📥 Export All Data (CSV/ZIP)
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export All Data (CSV/ZIP)
             </button>
           </div>
         </div>
@@ -721,7 +721,7 @@
             <div class="card-header flex items-center justify-between">
               <div>
                 <h3 style="display:flex;align-items:center;gap:0.5rem;color:var(--gray-900);">
-                  <span>📊</span> 8-Department Attendance Benchmark &amp; Live Ranking
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> 8-Department Attendance Benchmark &amp; Live Ranking
                 </h3>
                 <p class="text-xs text-muted" style="margin-top:0.25rem;">Real-time comparative performance across all institutional academic departments</p>
               </div>
@@ -759,7 +759,7 @@
             <div class="card" style="margin-bottom:0;flex:1;">
               <div class="card-header">
                 <h3 style="font-size:0.95rem;display:flex;align-items:center;gap:0.4rem;color:var(--gray-900);">
-                  <span>🎯</span> Defaulter Risk Distribution
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> Defaulter Risk Distribution
                 </h3>
                 <p class="text-xs text-muted">Anna University &lt;75% Eligibility</p>
               </div>
@@ -774,7 +774,7 @@
             <div class="card" style="margin-bottom:0;flex:1;">
               <div class="card-header">
                 <h3 style="font-size:0.95rem;display:flex;align-items:center;gap:0.4rem;color:var(--gray-900);">
-                  <span>📈</span> Today's Hourly Campus Telemetry
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg> Today\'s Hourly Campus Telemetry
                 </h3>
                 <p class="text-xs text-muted">Presence index H1 (9:00 AM) - H8 (4:00 PM)</p>
               </div>
@@ -794,12 +794,12 @@
             <div class="card-header flex items-center justify-between" style="border-left:4px solid #6366f1;">
               <div>
                 <h3 style="display:flex;align-items:center;gap:0.5rem;color:var(--gray-900);">
-                  <span>📝</span> Level-2 Faculty Leave Sign-Off Queue
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> Level-2 Faculty Leave Sign-Off Queue
                 </h3>
                 <p class="text-xs text-muted" style="margin-top:0.2rem;">HOD-recommended faculty leave requests awaiting Principal executive approval</p>
               </div>
               <button type="button" class="btn btn-primary btn-sm" id="exec-batch-approve-btn" style="background:#4f46e5;font-weight:700;">
-                ⚡ Batch Approve All Verified
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><polyline points="20 6 9 17 4 12"/></svg> Batch Approve All Verified
               </button>
             </div>
             <div class="card-body" style="max-height:480px;overflow-y:auto;padding:1rem;" id="exec-leaves-container">
@@ -812,7 +812,7 @@
             <div class="card-header flex items-center justify-between" style="flex-wrap:wrap;gap:0.5rem;">
               <div>
                 <h3 style="display:flex;align-items:center;gap:0.5rem;color:var(--gray-900);">
-                  <span>📡</span> Today's Live Submission Matrix
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/></svg> Today\'s Live Submission Matrix
                 </h3>
                 <p class="text-xs text-muted" style="margin-top:0.2rem;">Real-time tracking of class attendance submission across all 8 branches</p>
               </div>
@@ -863,12 +863,12 @@
           <div class="card-header flex items-center justify-between" style="flex-wrap:wrap;gap:1rem;">
             <div>
               <h3 style="display:flex;align-items:center;gap:0.5rem;color:var(--gray-900);">
-                <span>⚠️</span> Campus Defaulter Radar &amp; Academic Intervention
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Campus Defaulter Radar &amp; Academic Intervention
               </h3>
               <p class="text-xs text-muted" style="margin-top:0.25rem;">Students falling below statutory 75% attendance threshold categorized by detention risk</p>
             </div>
             <div class="flex items-center gap-2" style="flex-wrap:wrap;">
-              <input type="text" id="exec-def-search" class="form-control" placeholder="🔍 Search reg no / name..." style="width:180px;font-size:0.8rem;padding:0.35rem 0.65rem;" />
+              <input type="text" id="exec-def-search" class="form-control" placeholder="Search reg no / name..." style="width:180px;font-size:0.8rem;padding:0.35rem 0.65rem;" />
               <select id="exec-def-filter-dept" class="form-control" style="width:120px;font-size:0.8rem;padding:0.35rem 0.65rem;">
                 <option value="ALL">All Branches (9)</option>
                 <option value="CSE">CSE</option>
@@ -883,8 +883,8 @@
               </select>
               <select id="exec-def-filter-risk" class="form-control" style="width:130px;font-size:0.8rem;padding:0.35rem 0.65rem;">
                 <option value="ALL">All Risk Levels</option>
-                <option value="CRITICAL">🔴 Critical (&lt;65%)</option>
-                <option value="WARNING">🟡 Warning (65-75%)</option>
+                <option value="CRITICAL">Critical (&lt;65%)</option>
+                <option value="WARNING">Warning (65-75%)</option>
               </select>
               <span class="badge badge-danger" id="exec-defaulters-count-badge" style="font-size:0.8rem;padding:0.4rem 0.75rem;">— Students</span>
             </div>
@@ -916,7 +916,7 @@
           <div class="card-header flex items-center justify-between" style="flex-wrap:wrap;gap:1rem;border-left:4px solid #10b981;">
             <div>
               <h3 style="display:flex;align-items:center;gap:0.5rem;color:var(--gray-900);">
-                <span>🖨️</span> Officially Sanctioned Faculty Leaves &amp; Hard Copy Docket Archive
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Officially Sanctioned Faculty Leaves &amp; Hard Copy Docket Archive
               </h3>
               <p class="text-xs text-muted" style="margin-top:0.25rem;">Executive repository of signed-off leaves with official proceedings and printable A4 sanction orders</p>
             </div>
@@ -951,7 +951,7 @@
           <div class="card-header flex items-center justify-between" style="flex-wrap:wrap;gap:1rem;border-left:4px solid #64748b;">
             <div>
               <h3 style="display:flex;align-items:center;gap:0.5rem;color:var(--gray-900);">
-                <span>🔒</span> Executive Governance &amp; Administrative Security Audit Trail
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Executive Governance &amp; Administrative Security Audit Trail
               </h3>
               <p class="text-xs text-muted" style="margin-top:0.25rem;">Immutable cryptographic log of multi-tier leave endorsements, reviews, and executive approvals</p>
             </div>
@@ -987,12 +987,12 @@
           <div class="card-header flex items-center justify-between" style="flex-wrap:wrap;gap:1rem;">
             <div>
               <h3 style="display:flex;align-items:center;gap:0.5rem;color:var(--gray-900);">
-                <span>🏫</span> Section-Wise & Class Performance Report
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="21" x2="21" y2="21"/><line x1="4" y1="10" x2="20" y2="10"/><polyline points="12 3 2 10 22 10 12 3"/><line x1="6" y1="10" x2="6" y2="21"/><line x1="10" y1="10" x2="10" y2="21"/><line x1="14" y1="10" x2="14" y2="21"/><line x1="18" y1="10" x2="18" y2="21"/></svg> Section-Wise &amp; Class Performance Report
               </h3>
               <p class="text-xs text-muted" style="margin-top:0.25rem;">Overall attendance intelligence, section comparisons, and subject drilldowns</p>
             </div>
             <div class="flex items-center gap-2" style="flex-wrap:wrap;">
-              <input type="text" id="section-table-search" class="form-control" placeholder="🔍 Search class / section..." style="width:180px;font-size:0.8rem;padding:0.35rem 0.65rem;" />
+              <input type="text" id="section-table-search" class="form-control" placeholder="Search class / section..." style="width:180px;font-size:0.8rem;padding:0.35rem 0.65rem;" />
               <select id="section-filter-year" class="form-control" style="width:130px;font-size:0.8rem;padding:0.35rem 0.65rem;">
                 <option value="ALL">All Years</option>
               </select>
@@ -1000,13 +1000,13 @@
                 <option value="ALL">All Sections</option>
               </select>
               <button class="btn btn-secondary" id="refresh-analytics-btn" style="font-size:0.8rem;padding:0.35rem 0.75rem;">
-                🔄 Refresh
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Refresh
               </button>
               <button class="btn btn-primary" id="export-section-report-btn" style="font-size:0.8rem;padding:0.35rem 0.75rem;">
-                📥 Export Report CSV
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export Report CSV
               </button>
               <button class="btn btn-secondary" id="export-defaulters-top-btn" style="font-size:0.8rem;padding:0.35rem 0.75rem;">
-                ⚠️ Export Defaulters
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export Defaulters
               </button>
             </div>
           </div>
@@ -1041,7 +1041,7 @@
             <div class="card" style="margin-top:1.25rem;background:#0d1117;border:1px solid #30363d;border-radius:var(--radius-md);overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.15);">
               <div style="background:#161b22;padding:0.6rem 1rem;border-bottom:1px solid #30363d;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
                 <div style="display:flex;align-items:center;gap:0.5rem;font-family:var(--font-mono);font-size:0.78rem;font-weight:700;color:#58a6ff;text-transform:uppercase;letter-spacing:0.05em;">
-                  <span>⚡</span> ATTENDTRAX LIVE DEPARTMENT TELEMETRY &amp; SUMMARY
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> ATTENDTRAX LIVE DEPARTMENT TELEMETRY &amp; SUMMARY
                 </div>
                 <div style="display:flex;align-items:center;gap:0.5rem;">
                   <span class="pulse-dot" style="background:#3fb950;width:8px;height:8px;border-radius:50%;display:inline-block;"></span>
@@ -1051,25 +1051,25 @@
               <div style="padding:1rem 1.25rem;font-family:var(--font-mono);font-size:0.82rem;line-height:1.7;color:#c9d1d9;">
                 <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:1rem;">
                   <div style="background:#161b22;padding:0.75rem 1rem;border-radius:6px;border:1px solid #21262d;">
-                    <div style="color:#8b949e;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;">📊 OVERALL ATTENDANCE RATE</div>
+                    <div style="color:#8b949e;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;">OVERALL ATTENDANCE RATE</div>
                     <div id="telemetry-overall" style="font-size:1.35rem;font-weight:800;color:#58a6ff;margin-top:0.25rem;">—%</div>
                     <div id="telemetry-overall-sub" style="font-size:0.75rem;color:#8b949e;margin-top:0.2rem;">Total records logged: —</div>
                   </div>
 
                   <div style="background:#161b22;padding:0.75rem 1rem;border-radius:6px;border:1px solid #21262d;">
-                    <div style="color:#8b949e;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;">📅 TODAY'S ATTENDANCE RATE</div>
+                    <div style="color:#8b949e;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;">TODAY\'S ATTENDANCE RATE</div>
                     <div id="telemetry-today-rate" style="font-size:1.35rem;font-weight:800;color:#3fb950;margin-top:0.25rem;">—%</div>
                     <div id="telemetry-today-counts" style="font-size:0.75rem;color:#8b949e;margin-top:0.2rem;">Present: — | Absent: — | On-Duty: —</div>
                   </div>
 
                   <div style="background:#161b22;padding:0.75rem 1rem;border-radius:6px;border:1px solid #21262d;">
-                    <div style="color:#8b949e;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;">🧑‍🎓 ACTIVE ENROLLED STUDENTS</div>
+                    <div style="color:#8b949e;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;">ACTIVE ENROLLED STUDENTS</div>
                     <div id="telemetry-students" style="font-size:1.35rem;font-weight:800;color:#d2a8ff;margin-top:0.25rem;">— Students</div>
                     <div id="telemetry-students-sub" style="font-size:0.75rem;color:#8b949e;margin-top:0.2rem;">5 Active Class Sections</div>
                   </div>
 
                   <div style="background:#161b22;padding:0.75rem 1rem;border-radius:6px;border:1px solid #21262d;">
-                    <div style="color:#8b949e;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;">⚠️ ATTENDANCE DEFAULTERS (&lt;75%)</div>
+                    <div style="color:#8b949e;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;">ATTENDANCE DEFAULTERS (&lt;75%)</div>
                     <div id="telemetry-defaulters" style="font-size:1.35rem;font-weight:800;color:#f0883e;margin-top:0.25rem;">— Defaulters</div>
                     <div id="telemetry-defaulters-sub" style="font-size:0.75rem;color:#8b949e;margin-top:0.2rem;">Action required for low attendance</div>
                   </div>
@@ -1085,7 +1085,7 @@
           <div class="chart-card">
             <div class="chart-card-header">
               <div>
-                <div class="chart-card-title">📈 Daily Attendance Rate Trend</div>
+                <div class="chart-card-title">Daily Attendance Rate Trend</div>
                 <div class="chart-card-sub">Institution-wide attendance % over the last 14 active days</div>
               </div>
               <span class="badge badge-info" id="trend-badge">Last 14 Days</span>
@@ -1098,7 +1098,7 @@
           <div class="chart-card">
             <div class="chart-card-header">
               <div>
-                <div class="chart-card-title">🍩 Overall Status Distribution</div>
+                <div class="chart-card-title">Overall Status Distribution</div>
                 <div class="chart-card-sub">Breakdown of all recorded sessions</div>
               </div>
             </div>
@@ -1113,7 +1113,7 @@
           <div class="chart-card">
             <div class="chart-card-header">
               <div>
-                <div class="chart-card-title">🏫 Class-wise Attendance Comparison</div>
+                <div class="chart-card-title">Class-wise Attendance Comparison</div>
                 <div class="chart-card-sub">Average attendance percentage per active class</div>
               </div>
             </div>
@@ -1125,7 +1125,7 @@
           <div class="chart-card">
             <div class="chart-card-header">
               <div>
-                <div class="chart-card-title">⏰ Period / Hour Distribution (H1 – H8)</div>
+                <div class="chart-card-title">Period / Hour Distribution (H1 – H8)</div>
               </div>
             </div>
             <div class="chart-container">
@@ -1141,12 +1141,12 @@
             <div class="card-header flex items-center justify-between" style="flex-wrap:wrap;gap:0.75rem;">
               <div>
                 <h3 style="color:var(--danger);display:flex;align-items:center;gap:0.5rem;">
-                  <span>⚠️</span> Attendance Defaulters (&lt; 75%)
+                  Attendance Defaulters (&lt; 75%)
                 </h3>
                 <p class="text-xs text-muted" style="margin-top:0.25rem;">Students requiring mandatory attendance counseling</p>
               </div>
               <div class="flex items-center gap-2">
-                <input type="text" id="defaulters-search" class="form-control" placeholder="🔍 Search name / reg no..." style="width:190px;font-size:0.8rem;padding:0.35rem 0.65rem;" />
+                <input type="text" id="defaulters-search" class="form-control" placeholder="Search name / reg no..." style="width:190px;font-size:0.8rem;padding:0.35rem 0.65rem;" />
                 <select id="defaulters-class-filter" class="form-control" style="width:140px;font-size:0.8rem;padding:0.35rem 0.65rem;">
                   <option value="ALL">All Classes</option>
                 </select>
@@ -1176,7 +1176,7 @@
           <div class="flex flex-col gap-4">
             <!-- Leaderboard -->
             <div class="card" style="margin:0;flex:1;">
-              <div class="card-header"><h4 style="font-size:0.95rem;">🏆 Class Performance Ranking</h4></div>
+              <div class="card-header"><h4 style="font-size:0.95rem;">Class Performance Ranking</h4></div>
               <div class="card-body" style="padding:0.75rem 1rem;" id="class-leaderboard-container">
                 <p class="text-xs text-muted">Calculating rankings…</p>
               </div>
@@ -1191,7 +1191,7 @@
         <div class="card" style="margin-bottom:1.5rem;">
           <div class="card-header">
             <h3 style="display:flex;align-items:center;gap:0.5rem;color:var(--gray-900);">
-              <span>📅</span> Daily Attendance Overview & Control
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Daily Attendance Overview &amp; Control
             </h3>
             <p class="text-xs text-muted" style="margin-top:0.25rem;">Select any date to view all submitted attendance sessions by faculty, monitor pending classes, and edit or correct daily student records.</p>
           </div>
@@ -1205,7 +1205,7 @@
 
               <div style="margin-bottom:1rem;display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
                 <button class="btn btn-primary" id="load-daily-overview-btn" style="padding:0.55rem 1.35rem;font-weight:600;">
-                  🔍 Load Attendance
+                  Load Attendance
                 </button>
                 <button type="button" class="btn btn-secondary" id="daily-quick-today-btn" style="padding:0.55rem 0.85rem;font-size:0.82rem;">
                   Today
@@ -1224,12 +1224,12 @@
                 <span class="text-xs text-muted">Configured classes</span>
               </div>
               <div class="card" style="margin:0;background:#f0fdf4;border:1px solid #bbf7d0;padding:0.9rem 1.1rem;">
-                <span class="text-xs font-bold" style="color:#166534;text-transform:uppercase;letter-spacing:0.05em;">✅ Submitted Sessions</span>
+                <span class="text-xs font-bold" style="color:#166534;text-transform:uppercase;letter-spacing:0.05em;">Submitted Sessions</span>
                 <div id="daily-stat-submitted" class="font-bold text-2xl" style="color:#15803d;margin-top:0.25rem;">0</div>
                 <span class="text-xs" style="color:#166534;">Marked by faculty</span>
               </div>
               <div class="card" style="margin:0;background:#fffbeb;border:1px solid #fde68a;padding:0.9rem 1.1rem;">
-                <span class="text-xs font-bold" style="color:#92400e;text-transform:uppercase;letter-spacing:0.05em;">⏳ Not-Submitted Classes</span>
+                <span class="text-xs font-bold" style="color:#92400e;text-transform:uppercase;letter-spacing:0.05em;">Not-Submitted Classes</span>
                 <div id="daily-stat-pending" class="font-bold text-2xl" style="color:#b45309;margin-top:0.25rem;">0</div>
                 <span class="text-xs" style="color:#92400e;">Awaiting submission</span>
               </div>
@@ -1242,16 +1242,16 @@
           <div class="card-header flex items-center justify-between" style="flex-wrap:wrap;gap:0.75rem;">
             <div>
               <h3 style="display:flex;align-items:center;gap:0.5rem;color:var(--gray-900);">
-                <span>✅</span> Submitted Attendances (by Faculty)
+                Submitted Attendances (by Faculty)
               </h3>
               <p class="text-xs text-muted" id="daily-submitted-sub">Sessions recorded for the selected date. Click "Edit Attendance" to modify student records.</p>
             </div>
             <div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;">
               <button type="button" class="btn btn-sm btn-danger" id="daily-view-absent-btn" style="display:flex;align-items:center;gap:0.4rem;padding:0.4rem 0.85rem;font-weight:600;font-size:0.82rem;box-shadow:0 1px 3px rgba(220,38,38,0.25);" title="View students absent on this day and export CSV">
-                <span>🔴</span> List of Absent Students (<span id="daily-absent-count">0</span>)
+                <span style="color:var(--danger);font-size:0.85rem;font-weight:700;">●</span> List of Absent Students (<span id="daily-absent-count">0</span>)
               </button>
               <button type="button" class="btn btn-sm" id="daily-view-od-btn" style="display:flex;align-items:center;gap:0.4rem;padding:0.4rem 0.85rem;font-weight:600;font-size:0.82rem;background:#fef3c7;color:#b45309;border:1px solid #fde68a;box-shadow:0 1px 3px rgba(180,83,9,0.15);" title="View On-Duty students on this day and export CSV">
-                <span>🟡</span> List of OD Students (<span id="daily-od-count">0</span>)
+                <span style="color:var(--warning);font-size:0.85rem;font-weight:700;">●</span> List of OD Students (<span id="daily-od-count">0</span>)
               </button>
               <span id="daily-submitted-badge" class="badge badge-present">0 Submitted</span>
             </div>
@@ -1283,7 +1283,7 @@
           <div class="card-header flex items-center justify-between" style="flex-wrap:wrap;gap:0.75rem;">
             <div>
               <h3 style="display:flex;align-items:center;gap:0.5rem;color:var(--gray-900);">
-                <span>⏳</span> Not-Submitted Classes
+                Not-Submitted Classes
               </h3>
               <p class="text-xs text-muted">Classes that have not yet submitted attendance for this date.</p>
             </div>
@@ -1314,7 +1314,7 @@
       <!-- ═══════════ CLASSES ═══════════ -->
       <section class="section" id="section-classes">
         <div class="action-bar">
-          <button class="btn btn-primary" id="add-class-btn">➕ Add Class</button>
+          <button class="btn btn-primary" id="add-class-btn" style="display:inline-flex;align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Class</button>
         </div>
         <div class="card">
           <div class="card-body" style="padding:0;">
@@ -1336,7 +1336,7 @@
       <section class="section" id="section-students">
         <div id="placement-students-banner" style="display:none;margin-bottom:1rem;background:linear-gradient(135deg, #065f46 0%, #047857 100%);color:#fff;border-radius:8px;padding:0.75rem 1.25rem;align-items:center;justify-content:space-between;box-shadow:0 4px 12px rgba(4,120,87,0.15);">
           <div style="display:flex;align-items:center;gap:0.75rem;">
-            <span style="font-size:1.4rem;">🎯</span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
             <div>
               <strong style="font-size:0.9rem;letter-spacing:0.02em;">PLACEMENT &amp; TRAINING STUDENT DIRECTORY</strong>
               <div style="font-size:0.75rem;opacity:0.9;">Universal Student Pool: Accessing eligible candidate rosters across all 9 institutional academic branches.</div>
@@ -1346,22 +1346,22 @@
         </div>
         <div class="flex items-center gap-3" style="margin-bottom:1rem;flex-wrap:wrap;">
           <div class="form-group" id="student-dept-wrap" style="flex:1;min-width:180px;margin-bottom:0;display:none;">
-            <label class="form-label" style="font-size:0.8rem;font-weight:700;">🏛️ Branch / Department</label>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;">Branch / Department</label>
             <select id="student-dept-filter" class="form-control" style="font-size:0.85rem;">
-              <option value="ALL">🏛️ All 9 Academic Departments</option>
-              <option value="CSE">💻 CSE</option>
-              <option value="IT">🌐 IT</option>
-              <option value="AIDS">🤖 AI &amp; DS</option>
-              <option value="ECE">📡 ECE</option>
-              <option value="MECH">⚙️ MECH</option>
-              <option value="EEE">⚡ EEE</option>
-              <option value="CYBER">🛡️ Cyber Security</option>
-              <option value="AIML">🧠 AI &amp; ML</option>
-              <option value="SH">📚 S &amp; H</option>
+              <option value="ALL">️ All 9 Academic Departments</option>
+              <option value="CSE">CSE</option>
+              <option value="IT">IT</option>
+              <option value="AIDS">AI &amp; DS</option>
+              <option value="ECE">ECE</option>
+              <option value="MECH">️ MECH</option>
+              <option value="EEE">EEE</option>
+              <option value="CYBER">Cyber Security</option>
+              <option value="AIML">AI &amp; ML</option>
+              <option value="SH">S &amp; H</option>
             </select>
           </div>
           <div class="form-group" id="student-year-wrap" style="flex:1;min-width:160px;margin-bottom:0;display:none;">
-            <label class="form-label" style="font-size:0.8rem;font-weight:700;">🎓 Graduation Year</label>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;">Graduation Year</label>
             <select id="student-year-filter" class="form-control" style="font-size:0.85rem;">
               <option value="ALL">All Years (I - IV)</option>
               <option value="4">IV Year (Final Year Batch)</option>
@@ -1371,53 +1371,53 @@
             </select>
           </div>
           <div class="form-group" id="student-scholar-wrap" style="flex:1;min-width:150px;margin-bottom:0;">
-            <label class="form-label" style="font-size:0.8rem;font-weight:700;">🏠 Scholar Type</label>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;">Scholar Type</label>
             <select id="student-scholar-filter" class="form-control" style="font-size:0.85rem;">
               <option value="ALL">All Scholars</option>
-              <option value="DAY_SCHOLAR">🚶 Day Scholar</option>
-              <option value="HOSTELLER">🏢 Hosteller</option>
+              <option value="DAY_SCHOLAR">Day Scholar</option>
+              <option value="HOSTELLER">Hosteller</option>
             </select>
           </div>
           <div class="form-group" id="student-gender-wrap" style="flex:1;min-width:130px;margin-bottom:0;">
-            <label class="form-label" style="font-size:0.8rem;font-weight:700;">👤 Gender</label>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;">Gender</label>
             <select id="student-gender-filter" class="form-control" style="font-size:0.85rem;">
               <option value="ALL">All Genders</option>
-              <option value="MALE">👦 Male</option>
-              <option value="FEMALE">👧 Female</option>
-              <option value="OTHER">⚧ Other</option>
+              <option value="MALE">Male</option>
+              <option value="FEMALE">Female</option>
+              <option value="OTHER">Other</option>
             </select>
           </div>
           <div class="form-group" id="student-willingness-wrap" style="flex:1;min-width:170px;margin-bottom:0;">
-            <label class="form-label" style="font-size:0.8rem;font-weight:700;">🎯 Placement Standing</label>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;">Placement Standing</label>
             <select id="student-willingness-filter" class="form-control" style="font-size:0.85rem;">
               <option value="ALL">All Students</option>
-              <option value="active">🟢 Willing (Active Trainees)</option>
-              <option value="inactive">⚪ Unwilling (Excluded)</option>
+              <option value="active">Willing (Active Trainees)</option>
+              <option value="inactive">Unwilling (Excluded)</option>
             </select>
           </div>
           <div class="form-group" style="flex:1.2;min-width:180px;margin-bottom:0;">
             <label class="form-label" style="font-size:0.8rem;font-weight:700;">Filter by Class</label>
             <select id="student-class-filter" class="form-control" style="font-size:0.85rem;">
-              <option value="ALL">🌐 All Classes (View All)</option>
+              <option value="ALL">All Classes (View All)</option>
             </select>
           </div>
           <div style="align-self:flex-end;">
-            <button class="btn btn-primary" id="add-student-btn">➕ Add Student</button>
+            <button class="btn btn-primary" id="add-student-btn" style="display:inline-flex;align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Student</button>
           </div>
         </div>
         <div id="placement-bulk-bar" class="flex items-center justify-between" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;padding:0.6rem 1rem;border-radius:var(--radius-md);margin-bottom:1rem;flex-wrap:wrap;gap:0.75rem;">
           <div class="flex items-center gap-2">
-            <span style="font-size:1.1rem;">🎯</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
             <span class="text-xs font-semibold" style="color:#065f46;">
               <span id="placement-selected-count">0</span> student(s) selected
             </span>
           </div>
           <div class="flex items-center gap-2">
             <button type="button" class="btn btn-sm btn-success" id="bulk-mark-willing-btn" style="font-size:0.8rem;padding:0.35rem 0.75rem;background:#059669;color:#fff;">
-              ✅ Include in Placement (Willing)
+              Include in Placement (Willing)
             </button>
             <button type="button" class="btn btn-sm" id="bulk-mark-unwilling-btn" style="font-size:0.8rem;padding:0.35rem 0.75rem;background:#fff;color:#b91c1c;border:1px solid #fca5a5;">
-              ❌ Exclude from Placement (Unwilling)
+              Exclude from Placement (Unwilling)
             </button>
           </div>
         </div>
@@ -1452,25 +1452,25 @@
       <section class="section" id="section-faculty">
         <div class="action-bar" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1rem;">
           <div class="flex items-center gap-3">
-            <button class="btn btn-primary" id="add-faculty-btn">➕ Add Faculty</button>
+            <button class="btn btn-primary" id="add-faculty-btn" style="display:inline-flex;align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Faculty</button>
             <span id="hod-faculty-badge" class="badge badge-info" style="display:none;font-size:0.82rem;padding:0.45rem 0.8rem;">
-              🔒 Department Sandbox
+              Department Sandbox
             </span>
           </div>
           <div class="flex items-center gap-2" id="faculty-dept-filter-wrap">
             <label for="faculty-dept-filter" style="font-size:0.8rem;font-weight:700;color:var(--gray-600);">Department:</label>
             <select id="faculty-dept-filter" class="form-control" style="max-width:240px;font-weight:600;font-size:0.82rem;padding:0.35rem 0.65rem;">
-              <option value="ALL">🏛️ All Departments (9)</option>
-              <option value="CSE">💻 CSE - Computer Science &amp; Engg</option>
-              <option value="IT">🌐 IT - Information Technology</option>
-              <option value="AIDS">🤖 AI &amp; DS - Data Science</option>
-              <option value="ECE">📡 ECE - Electronics &amp; Comm</option>
-              <option value="MECH">⚙️ MECH - Mechanical Engg</option>
-              <option value="EEE">⚡ EEE - Electrical &amp; Electronics</option>
-              <option value="CYBER">🛡️ Cyber Security</option>
-              <option value="AIML">🧠 AI &amp; ML - Machine Learning</option>
-              <option value="SH">📚 S &amp; H - Science &amp; Humanities</option>
-              <option value="PLACEMENT">🎯 PLACEMENT - Training &amp; Placement</option>
+              <option value="ALL">All Departments (9)</option>
+              <option value="CSE">CSE - Computer Science &amp; Engg</option>
+              <option value="IT">IT - Information Technology</option>
+              <option value="AIDS">AI &amp; DS - Data Science</option>
+              <option value="ECE">ECE - Electronics &amp; Comm</option>
+              <option value="MECH">️ MECH - Mechanical Engg</option>
+              <option value="EEE">EEE - Electrical &amp; Electronics</option>
+              <option value="CYBER">Cyber Security</option>
+              <option value="AIML">AI &amp; ML - Machine Learning</option>
+              <option value="SH">S &amp; H - Science &amp; Humanities</option>
+              <option value="PLACEMENT">PLACEMENT - Training &amp; Placement</option>
             </select>
           </div>
         </div>
@@ -1504,27 +1504,27 @@
           <div class="form-group" id="subject-dept-wrap" style="flex:1;min-width:200px;">
             <label class="form-label" style="font-weight:700;">Filter by Department</label>
             <select id="subject-dept-filter" class="form-control" style="font-weight:600;">
-              <option value="ALL">🌐 All Departments</option>
-              <option value="PLACEMENT">🎯 PLACEMENT - Training &amp; Placement</option>
-              <option value="CSE">💻 CSE - Computer Science &amp; Engineering</option>
-              <option value="IT">🌐 IT - Information Technology</option>
-              <option value="AIDS">🤖 AIDS - Artificial Intelligence &amp; Data Science</option>
-              <option value="ECE">📡 ECE - Electronics &amp; Communication</option>
-              <option value="MECH">⚙️ MECH - Mechanical Engineering</option>
-              <option value="EEE">⚡ EEE - Electrical &amp; Electronics</option>
-              <option value="CYBER">🛡️ CYBER - Cyber Security</option>
-              <option value="AIML">🧠 AIML - AI &amp; Machine Learning</option>
-              <option value="SH">📚 SH - Science &amp; Humanities</option>
+              <option value="ALL">All Departments</option>
+              <option value="PLACEMENT">PLACEMENT - Training &amp; Placement</option>
+              <option value="CSE">CSE - Computer Science &amp; Engineering</option>
+              <option value="IT">IT - Information Technology</option>
+              <option value="AIDS">AIDS - Artificial Intelligence &amp; Data Science</option>
+              <option value="ECE">ECE - Electronics &amp; Communication</option>
+              <option value="MECH">MECH - Mechanical Engineering</option>
+              <option value="EEE">EEE - Electrical &amp; Electronics</option>
+              <option value="CYBER">CYBER - Cyber Security</option>
+              <option value="AIML">AIML - AI &amp; Machine Learning</option>
+              <option value="SH">SH - Science &amp; Humanities</option>
             </select>
           </div>
           <div class="form-group" style="flex:1;min-width:200px;">
             <label class="form-label">Filter by Class</label>
             <select id="subject-class-filter" class="form-control">
-              <option value="ALL">🌐 All Classes (View All)</option>
+              <option value="ALL">All Classes (View All)</option>
             </select>
           </div>
           <div style="align-self:flex-end;">
-            <button class="btn btn-primary" id="add-subject-btn">➕ Add Subject</button>
+            <button class="btn btn-primary" id="add-subject-btn" style="display:inline-flex;align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Subject</button>
           </div>
         </div>
         <div class="card">
@@ -1551,32 +1551,32 @@
             <div class="card-body flex items-center justify-between" style="flex-wrap:wrap;gap:1rem;">
               <div class="flex items-center gap-3" style="flex-wrap:wrap;flex:1;">
                 <div class="form-group" style="min-width:240px;margin-bottom:0;">
-                  <label class="form-label" style="font-weight:700;">🏛️ Department Filter</label>
+                  <label class="form-label" style="font-weight:700;">Department Filter</label>
                   <select id="report-dept-selector" class="form-control" style="font-weight:600;">
-                    <option value="ALL">🏛️ All Departments (College-wide)</option>
-                    <option value="CSE" selected>💻 Computer Science &amp; Engineering (CSE)</option>
-                    <option value="IT">🌐 Information Technology (IT)</option>
-                    <option value="AIDS">🤖 AI &amp; Data Science (AI &amp; DS)</option>
-                    <option value="ECE">📡 Electronics &amp; Communication (ECE)</option>
-                    <option value="MECH">⚙️ Mechanical Engineering (MECH)</option>
-                    <option value="EEE">⚡ Electrical &amp; Electronics (EEE)</option>
-                    <option value="CYBER">🛡️ Cyber Security (CYBER)</option>
-                    <option value="AIML">🧠 AI &amp; Machine Learning (AI &amp; ML)</option>
-                    <option value="SH">📚 Science &amp; Humanities (S &amp; H)</option>
-                    <option value="PLACEMENT">🎯 Training &amp; Placement (PLACEMENT)</option>
+                    <option value="ALL">️ All Departments (College-wide)</option>
+                    <option value="CSE" selected>Computer Science &amp; Engineering (CSE)</option>
+                    <option value="IT">Information Technology (IT)</option>
+                    <option value="AIDS">AI &amp; Data Science (AI &amp; DS)</option>
+                    <option value="ECE">Electronics &amp; Communication (ECE)</option>
+                    <option value="MECH">️ Mechanical Engineering (MECH)</option>
+                    <option value="EEE">Electrical &amp; Electronics (EEE)</option>
+                    <option value="CYBER">️ Cyber Security (CYBER)</option>
+                    <option value="AIML">AI &amp; Machine Learning (AI &amp; ML)</option>
+                    <option value="SH">Science &amp; Humanities (S &amp; H)</option>
+                    <option value="PLACEMENT">Training &amp; Placement (PLACEMENT)</option>
                   </select>
                 </div>
                 <div class="form-group" style="min-width:240px;margin-bottom:0;">
-                  <label class="form-label" style="font-weight:700;">🏫 Section Student Roster</label>
+                  <label class="form-label" style="font-weight:700;">Section Student Roster</label>
                   <select id="report-class-filter" class="form-control">
                     <option value="">— Select Section to View Roster —</option>
                   </select>
                 </div>
               </div>
               <div style="display:flex;gap:0.5rem;align-self:flex-end;flex-wrap:wrap;">
-                <button class="btn btn-primary" id="load-report-btn">📊 View Student Roster</button>
-                <button class="btn btn-secondary" id="export-csv-btn">📥 Export Roster CSV</button>
-                <button class="btn btn-secondary" id="export-matrix-csv-btn" style="background:#0284c7;border-color:#0284c7;color:#fff;font-weight:600;">📅 Export 31-Day Matrix CSV</button>
+                <button class="btn btn-primary" id="load-report-btn" style="display:inline-flex;align-items:center;">View Student Roster</button>
+                <button class="btn btn-secondary" id="export-csv-btn" style="display:inline-flex;align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export Roster CSV</button>
+                <button class="btn btn-secondary" id="export-matrix-csv-btn" style="background:#0284c7;border-color:#0284c7;color:#fff;font-weight:600;display:inline-flex;align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Export 31-Day Matrix CSV</button>
               </div>
             </div>
           </div>
@@ -1644,8 +1644,8 @@
                   <p class="text-xs text-muted" style="margin-top:0.2rem;" id="report-subtitle">Individual student attendance records</p>
                 </div>
                 <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-                  <button class="btn btn-sm btn-secondary" id="export-roster-top-btn">📥 Export Roster CSV</button>
-                  <button class="btn btn-sm btn-primary" id="export-matrix-top-btn" style="background:#0284c7;border-color:#0284c7;">📅 Export 31-Day Matrix CSV</button>
+                  <button class="btn btn-sm btn-secondary" id="export-roster-top-btn" style="display:inline-flex;align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export Roster CSV</button>
+                  <button class="btn btn-sm btn-primary" id="export-matrix-top-btn" style="background:#0284c7;border-color:#0284c7;display:inline-flex;align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Export 31-Day Matrix CSV</button>
                 </div>
               </div>
               <div class="card-body" style="padding:0;">
@@ -1668,14 +1668,14 @@
         <div class="card" style="max-width:680px;margin:0 auto;">
           <div class="card-header">
             <div>
-              <h3>📥 Import Attendance Registers &amp; Records</h3>
+              <h3>Import Attendance Registers &amp; Records</h3>
               <p class="text-xs text-muted" style="margin-top:2px;">Upload institutional monthly registers or batch logs across all classes</p>
             </div>
           </div>
           <div class="card-body">
             <div style="background:var(--brand-50, #eff6ff);border:1px solid var(--brand-100, #dbeafe);border-radius:10px;padding:0.875rem 1rem;margin-bottom:1.25rem;">
               <p class="text-xs font-semibold text-brand" style="margin-bottom:0.25rem;display:flex;align-items:center;gap:0.4rem;">
-                <span>✨</span> Supported Formats (Auto-Detected)
+                Supported Formats (Auto-Detected)
               </p>
               <ul class="text-xs text-muted" style="padding-left:1.2rem;margin:0;line-height:1.5;">
                 <li><strong>Monthly Register Matrix (.xlsx / .csv):</strong> Contains header banner (e.g. <code>DAILY ATTENDANCE REGISTER | CSE 2A | JULY 2026</code>) with date columns <code>01-07-2026</code> … <code>31-07-2026</code>.</li>
@@ -1684,30 +1684,30 @@
             </div>
 
             <div class="drop-zone" id="drop-zone">
-              <div class="drop-icon">📑</div>
+              <div class="drop-icon"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
               <p class="font-semibold" style="margin-bottom:.25rem;">Drop your .xlsx or .csv register here</p>
               <p class="text-sm text-muted">or click to browse from device</p>
               <input type="file" id="import-file" accept=".xlsx,.csv" style="display:none;" />
             </div>
 
             <div id="file-chosen" class="hidden" style="margin-top:.75rem;padding:.75rem 1rem;background:var(--surface);border:1px solid var(--gray-200);border-radius:8px;display:flex;align-items:center;gap:.75rem;">
-              <span style="font-size:1.25rem;">📄</span>
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:var(--primary-subtle,#eff6ff);color:var(--primary,#1e40af);border-radius:6px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
               <div style="min-width:0;flex:1;">
                 <p id="file-name" class="text-sm font-semibold truncate" style="margin:0;"></p>
                 <p id="file-size" class="text-xs text-muted" style="margin:0;"></p>
               </div>
-              <button class="btn btn-sm btn-secondary" id="clear-file-btn">✕ Clear</button>
+              <button class="btn btn-sm btn-secondary" id="clear-file-btn" style="display:inline-flex;align-items:center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Clear</button>
             </div>
 
             <div id="import-result" class="hidden" style="margin-top:1rem;padding:1rem;border-radius:8px;"></div>
 
             <button class="btn btn-primary w-full" id="upload-btn" style="margin-top:1.25rem;" disabled>
-              <span id="upload-btn-text">📤 Upload &amp; Ingest Attendance</span>
+              <span id="upload-btn-text" style="display:inline-flex;align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload &amp; Ingest Attendance</span>
             </button>
 
             <!-- Template Download Section -->
             <div style="margin-top:1.75rem;border-top:1px solid var(--gray-100);padding-top:1.25rem;">
-              <h4 style="margin-bottom:0.35rem;font-size:0.95rem;">📋 Download Class Attendance Register Template</h4>
+              <h4 style="margin-bottom:0.35rem;font-size:0.95rem;">Download Class Attendance Register Template</h4>
               <p class="text-xs text-muted" style="margin-bottom:1rem;">Generate an institutional monthly register pre-filled with your class roster &amp; dates</p>
               
               <div class="grid grid-2 gap-3" style="margin-bottom:1rem;">
@@ -1744,15 +1744,15 @@
       <section class="section" id="section-bulk">
         <!-- Sub-tabs -->
         <div class="tab-pills">
-          <button class="tab-pill active" data-bulk-tab="bulk-students">🧑‍🎓 Bulk Students</button>
-          <button class="tab-pill"        data-bulk-tab="bulk-faculty">👨‍🏫 Bulk Faculty</button>
-          <button class="tab-pill"        data-bulk-tab="bulk-subjects">📚 Bulk Subjects</button>
+          <button class="tab-pill active" data-bulk-tab="bulk-students">Bulk Students</button>
+          <button class="tab-pill"        data-bulk-tab="bulk-faculty">Bulk Faculty</button>
+          <button class="tab-pill"        data-bulk-tab="bulk-subjects">Bulk Subjects</button>
         </div>
 
         <!-- ── STUDENTS ── -->
         <div class="admin-tab active" id="bulk-students">
           <div class="card" style="max-width:640px;margin:0 auto;">
-            <div class="card-header"><h3>📥 Bulk Import &amp; Update Students</h3></div>
+            <div class="card-header"><h3>Bulk Import &amp; Update Students</h3></div>
             <div class="card-body">
               <p class="text-sm text-muted" style="margin-bottom:0.75rem;">
                 Upload an <strong>.xlsx</strong> or <strong>.csv</strong> file with these columns:
@@ -1770,28 +1770,28 @@
                 <strong>Smart Upsert:</strong> Existing students are updated with new details; new students are automatically enrolled. Scholar Type supports <em>Day Scholar</em> &amp; <em>Hosteller</em>. Gender supports <em>MALE / FEMALE / OTHER</em>.
               </p>
               <div class="drop-zone" id="drop-zone-students">
-                <div class="drop-icon">📄</div>
+                <div class="drop-icon"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
                 <p class="font-semibold" style="margin-bottom:.25rem;">Drop your .xlsx or .csv here</p>
                 <p class="text-sm text-muted">or click to browse</p>
                 <input type="file" id="import-file-students" accept=".xlsx,.csv" style="display:none;" />
               </div>
               <div id="file-chosen-students" class="hidden" style="margin-top:.75rem;padding:.75rem;background:var(--brand-50);border-radius:8px;display:flex;align-items:center;gap:.5rem;">
-                <span>📄</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                 <span id="file-name-students" class="text-sm font-semibold"></span>
-                <button class="btn btn-sm btn-secondary" id="clear-file-students" style="margin-left:auto;">✕ Clear</button>
+                <button class="btn btn-sm btn-secondary" id="clear-file-students" style="margin-left:auto;display:inline-flex;align-items:center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Clear</button>
               </div>
               <div id="import-result-students" class="hidden" style="margin-top:1rem;padding:1rem;border-radius:8px;"></div>
               <button class="btn btn-primary w-full" id="upload-btn-students" style="margin-top:1.25rem;" disabled>
-                <span id="upload-btn-text-students">📤 Upload &amp; Import Students</span>
+                <span id="upload-btn-text-students" style="display:inline-flex;align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload &amp; Import Students</span>
               </button>
               <div style="margin-top:1.5rem;border-top:1px solid var(--gray-100);padding-top:1.25rem;">
-                <h4 style="margin-bottom:.75rem;">📋 Download Student Onboarding Template</h4>
+                <h4 style="margin-bottom:.75rem;">Download Student Onboarding Template</h4>
                 <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
-                  <button class="btn btn-primary" id="dl-template-students" style="font-weight:700;">⬇️ Download Excel Template (.xlsx)</button>
-                  <button class="btn btn-secondary" id="dl-template-students-csv" style="font-weight:600;">⬇️ Download CSV Template (.csv)</button>
+                  <button class="btn btn-primary" id="dl-template-students" style="font-weight:700;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download Excel Template (.xlsx)</button>
+                  <button class="btn btn-secondary" id="dl-template-students-csv" style="font-weight:600;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download CSV Template (.csv)</button>
                 </div>
                 <p class="text-xs text-muted" style="margin-top:0.6rem;line-height:1.4;">
-                  ✨ Includes all 9 institutional parameters: <strong>Register No</strong>, <strong>Roll No (Roster)</strong>, <strong>Student Name</strong>, <strong>Gender (MALE/FEMALE/OTHER)</strong>, <strong>Scholar Type (DAY_SCHOLAR/HOSTELLER)</strong>, <strong>Class ID</strong>, <strong>Placement Standing (active/inactive)</strong>, <strong>Username</strong>, and <strong>Password</strong>.
+                  Includes all 9 institutional parameters: <strong>Register No</strong>, <strong>Roll No (Roster)</strong>, <strong>Student Name</strong>, <strong>Gender (MALE/FEMALE/OTHER)</strong>, <strong>Scholar Type (DAY_SCHOLAR/HOSTELLER)</strong>, <strong>Class ID</strong>, <strong>Placement Standing (active/inactive)</strong>, <strong>Username</strong>, and <strong>Password</strong>.
                 </p>
               </div>
             </div>
@@ -1801,7 +1801,7 @@
         <!-- ── FACULTY ── -->
         <div class="admin-tab" id="bulk-faculty">
           <div class="card" style="max-width:640px;margin:0 auto;">
-            <div class="card-header"><h3>📥 Bulk Import Faculty</h3></div>
+            <div class="card-header"><h3>Bulk Import Faculty</h3></div>
             <div class="card-body">
               <p class="text-sm text-muted" style="margin-bottom:1rem;">
                 Upload an <strong>.xlsx</strong> file with:
@@ -1812,23 +1812,23 @@
               </p>
               <p class="text-xs text-muted" style="margin-bottom:1rem;">Rows with a Username that already exists are skipped.</p>
               <div class="drop-zone" id="drop-zone-faculty">
-                <div class="drop-icon">📄</div>
+                <div class="drop-icon"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
                 <p class="font-semibold" style="margin-bottom:.25rem;">Drop your .xlsx here</p>
                 <p class="text-sm text-muted">or click to browse</p>
                 <input type="file" id="import-file-faculty" accept=".xlsx" style="display:none;" />
               </div>
               <div id="file-chosen-faculty" class="hidden" style="margin-top:.75rem;padding:.75rem;background:var(--brand-50);border-radius:8px;display:flex;align-items:center;gap:.5rem;">
-                <span>📄</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                 <span id="file-name-faculty" class="text-sm font-semibold"></span>
-                <button class="btn btn-sm btn-secondary" id="clear-file-faculty" style="margin-left:auto;">✕ Clear</button>
+                <button class="btn btn-sm btn-secondary" id="clear-file-faculty" style="margin-left:auto;display:inline-flex;align-items:center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Clear</button>
               </div>
               <div id="import-result-faculty" class="hidden" style="margin-top:1rem;padding:1rem;border-radius:8px;"></div>
               <button class="btn btn-primary w-full" id="upload-btn-faculty" style="margin-top:1.25rem;" disabled>
-                <span id="upload-btn-text-faculty">📤 Upload &amp; Import Faculty</span>
+                <span id="upload-btn-text-faculty" style="display:inline-flex;align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload &amp; Import Faculty</span>
               </button>
               <div style="margin-top:1.5rem;border-top:1px solid var(--gray-100);padding-top:1.25rem;">
-                <h4 style="margin-bottom:.75rem;">📋 Download Template</h4>
-                <button class="btn btn-secondary" id="dl-template-faculty">⬇️ Faculty Template (.xlsx)</button>
+                <h4 style="margin-bottom:.75rem;">Download Template</h4>
+                <button class="btn btn-secondary" id="dl-template-faculty"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Faculty Template (.xlsx)</button>
               </div>
             </div>
           </div>
@@ -1837,7 +1837,7 @@
         <!-- ── SUBJECTS ── -->
         <div class="admin-tab" id="bulk-subjects">
           <div class="card" style="max-width:640px;margin:0 auto;">
-            <div class="card-header"><h3>📥 Bulk Import Subjects</h3></div>
+            <div class="card-header"><h3>Bulk Import Subjects</h3></div>
             <div class="card-body">
               <p class="text-sm text-muted" style="margin-bottom:1rem;">
                 Upload an <strong>.xlsx</strong> file with:
@@ -1848,22 +1848,22 @@
               </p>
               <p class="text-xs text-muted" style="margin-bottom:1rem;">ClassID must already exist in the Classes registry.</p>
               <div class="drop-zone" id="drop-zone-subjects">
-                <div class="drop-icon">📄</div>
+                <div class="drop-icon"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
                 <p class="font-semibold" style="margin-bottom:.25rem;">Drop your .xlsx here</p>
                 <p class="text-sm text-muted">or click to browse</p>
                 <input type="file" id="import-file-subjects" accept=".xlsx" style="display:none;" />
               </div>
               <div id="file-chosen-subjects" class="hidden" style="margin-top:.75rem;padding:.75rem;background:var(--brand-50);border-radius:8px;display:flex;align-items:center;gap:.5rem;">
-                <span>📄</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                 <span id="file-name-subjects" class="text-sm font-semibold"></span>
-                <button class="btn btn-sm btn-secondary" id="clear-file-subjects" style="margin-left:auto;">✕ Clear</button>
+                <button class="btn btn-sm btn-secondary" id="clear-file-subjects" style="margin-left:auto;display:inline-flex;align-items:center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Clear</button>
               </div>
               <div id="import-result-subjects" class="hidden" style="margin-top:1rem;padding:1rem;border-radius:8px;"></div>
               <button class="btn btn-primary w-full" id="upload-btn-subjects" style="margin-top:1.25rem;" disabled>
-                <span id="upload-btn-text-subjects">📤 Upload &amp; Import Subjects</span>
+                <span id="upload-btn-text-subjects" style="display:inline-flex;align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload &amp; Import Subjects</span>
               </button>
               <div style="margin-top:1.5rem;border-top:1px solid var(--gray-100);padding-top:1.25rem;">
-                <h4 style="margin-bottom:.75rem;">📋 Download Template</h4>
+                <h4 style="margin-bottom:.75rem;">Download Template</h4>
                 <button class="btn btn-secondary" id="dl-template-subjects">⬇️ Subjects Template (.xlsx)</button>
               </div>
             </div>
@@ -1885,7 +1885,7 @@
                 </p>
               </div>
               <button type="button" class="btn btn-secondary btn-sm" id="refresh-all-leave-queues-btn" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">
-                🔄 Refresh All Queues
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Refresh All Queues
               </button>
             </div>
           </div>
@@ -1895,26 +1895,26 @@
             <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;border-left:4px solid #10b981;">
               <div>
                 <h3 style="margin:0;display:flex;align-items:center;gap:0.5rem;">
-                  <span>📅</span> Daily Faculty Leave Register (Active Leaves for Date)
+                  Daily Faculty Leave Register (Active Leaves for Date)
                 </h3>
                 <p class="text-xs text-muted" style="margin-top:0.2rem;">Real-time roster of faculty members on approved leave on selected date across departments with 1-click official docket printing</p>
               </div>
               <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
                 <input type="date" id="daily-leaves-date" class="form-control" style="width:150px;font-size:0.8rem;padding:0.35rem 0.65rem;">
                 <select id="daily-leaves-dept" class="form-control" style="width:140px;font-size:0.8rem;padding:0.35rem 0.65rem;">
-                  <option value="ALL">🏛️ All Depts (10)</option>
-                  <option value="CSE">💻 CSE</option>
-                  <option value="IT">🌐 IT</option>
-                  <option value="AIDS">🤖 AI &amp; DS</option>
-                  <option value="ECE">📡 ECE</option>
-                  <option value="MECH">⚙️ MECH</option>
-                  <option value="EEE">⚡ EEE</option>
-                  <option value="CYBER">🛡️ CYBER</option>
-                  <option value="AIML">🧠 AI &amp; ML</option>
-                  <option value="SH">📚 S &amp; H</option>
-                  <option value="PLACEMENT">🎯 PLACEMENT</option>
+                  <option value="ALL">️ All Depts (10)</option>
+                  <option value="CSE">CSE</option>
+                  <option value="IT">IT</option>
+                  <option value="AIDS">AI &amp; DS</option>
+                  <option value="ECE">ECE</option>
+                  <option value="MECH">️ MECH</option>
+                  <option value="EEE">EEE</option>
+                  <option value="CYBER">️ CYBER</option>
+                  <option value="AIML">AI &amp; ML</option>
+                  <option value="SH">S &amp; H</option>
+                  <option value="PLACEMENT">PLACEMENT</option>
                 </select>
-                <button type="button" class="btn btn-secondary btn-sm" id="refresh-daily-leaves-btn">🔄 Refresh</button>
+                <button type="button" class="btn btn-secondary btn-sm" id="refresh-daily-leaves-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Refresh</button>
               </div>
             </div>
             <div class="card-body" style="padding:0;">
@@ -1946,7 +1946,7 @@
             <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;border-left:4px solid #6366f1;">
               <div>
                 <h3 style="margin:0;display:flex;align-items:center;gap:0.5rem;">
-                  <span>👑</span> Executive Faculty Leave Sign-Off (Principal / Vice Principal)
+                  Executive Faculty Leave Sign-Off (Principal / Vice Principal)
                 </h3>
                 <p class="text-xs text-muted" style="margin-top:0.2rem;">Level 2 final authorization for HOD-recommended faculty leave requests across all 8 departments</p>
               </div>
@@ -1980,7 +1980,7 @@
             <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
               <div>
                 <h3 style="margin:0;display:flex;align-items:center;gap:0.5rem;">
-                  <span>👨‍🏫</span> Pending Faculty Leave Tickets (Department HOD Review)
+                  Pending Faculty Leave Tickets (Department HOD Review)
                 </h3>
                 <p class="text-xs text-muted" style="margin-top:0.2rem;">Level 1 recommendation: Review departmental staff leaves and advance to Principal</p>
               </div>
@@ -2013,7 +2013,7 @@
             <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
               <div>
                 <h3 style="margin:0;display:flex;align-items:center;gap:0.5rem;">
-                  <span>🎓</span> Pending Student Leaves &amp; Outpasses (HOD Approval)
+                  Pending Student Leaves &amp; Outpasses (HOD Approval)
                 </h3>
                 <p class="text-xs text-muted" style="margin-top:0.2rem;">Level 2 approval: Verified by Class Incharge. Approving Day Scholars grants leave; Hostellers route to Warden.</p>
               </div>
@@ -2060,7 +2060,7 @@
               <div style="display:flex;align-items:center;gap:0.75rem;">
                 <span class="badge" id="page-sanctioned-count-badge" style="background:#10b981;color:#fff;font-size:0.85rem;padding:0.4rem 0.8rem;font-weight:700;">— Sanctioned</span>
                 <button type="button" class="btn btn-secondary btn-sm" id="page-archive-refresh-btn" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">
-                  🔄 Refresh Archive
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Refresh Archive
                 </button>
               </div>
             </div>
@@ -2069,19 +2069,19 @@
           <div class="card">
             <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
               <div style="display:flex;align-items:center;gap:0.75rem;flex:1;min-width:280px;">
-                <input type="text" id="page-archive-search" class="form-control" placeholder="🔍 Search docket ref, faculty name, reason..." style="max-width:320px;">
+                <input type="text" id="page-archive-search" class="form-control" placeholder="Search docket ref, faculty name, reason..." style="max-width:320px;">
                 <select id="page-archive-filter-dept" class="form-control" style="max-width:180px;">
-                  <option value="ALL">🏛️ All Departments (10)</option>
-                  <option value="CSE">💻 CSE Dept</option>
-                  <option value="IT">🌐 IT Dept</option>
-                  <option value="AIDS">🤖 AI &amp; DS</option>
-                  <option value="ECE">📡 ECE Dept</option>
-                  <option value="MECH">⚙️ MECH Dept</option>
-                  <option value="EEE">⚡ EEE Dept</option>
-                  <option value="CYBER">🛡️ Cyber Security</option>
-                  <option value="AIML">🧠 AI &amp; ML</option>
-                  <option value="SH">📚 S &amp; H</option>
-                  <option value="PLACEMENT">🎯 Placement Dept</option>
+                  <option value="ALL">️ All Departments (10)</option>
+                  <option value="CSE">CSE Dept</option>
+                  <option value="IT">IT Dept</option>
+                  <option value="AIDS">AI &amp; DS</option>
+                  <option value="ECE">ECE Dept</option>
+                  <option value="MECH">MECH Dept</option>
+                  <option value="EEE">EEE Dept</option>
+                  <option value="CYBER">Cyber Security</option>
+                  <option value="AIML">AI &amp; ML</option>
+                  <option value="SH">S &amp; H</option>
+                  <option value="PLACEMENT">Placement Dept</option>
                 </select>
               </div>
             </div>
@@ -2126,7 +2126,7 @@
               <div style="display:flex;align-items:center;gap:0.75rem;">
                 <span class="badge" id="page-audit-count-badge" style="background:#3b82f6;color:#fff;font-size:0.85rem;padding:0.4rem 0.8rem;font-weight:700;">— Entries</span>
                 <button type="button" class="btn btn-secondary btn-sm" id="page-audit-refresh-btn" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">
-                  🔄 Refresh Logs
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Refresh Logs
                 </button>
               </div>
             </div>
@@ -2135,7 +2135,7 @@
           <div class="card">
             <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
               <div style="display:flex;align-items:center;gap:0.75rem;flex:1;min-width:280px;">
-                <input type="text" id="page-audit-search" class="form-control" placeholder="🔍 Search action, user, IP, or details..." style="max-width:320px;">
+                <input type="text" id="page-audit-search" class="form-control" placeholder="Search action, user, IP, or details..." style="max-width:320px;">
               </div>
             </div>
             <div class="card-body" style="padding:0;">
@@ -2169,7 +2169,7 @@
           <div class="card" style="background:linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);color:#fff;border:1px solid #334155;">
             <div style="padding:1.5rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
               <div>
-                <span style="font-size:0.75rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#f59e0b;">🛡️ Restricted Administrative Zone</span>
+                <span style="font-size:0.75rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#f59e0b;">Restricted Administrative Zone</span>
                 <h2 style="color:#fff;margin:0.25rem 0 0.5rem;font-size:1.4rem;">Institutional System Maintenance &amp; Danger Zone</h2>
                 <p style="color:#cbd5e1;font-size:0.875rem;max-width:750px;margin:0;">
                   Protected administrative controls for institutional database backups, live telemetry diagnostics, attendance baseline resets, and academic cohort purging. All destructive actions require Principal password re-authentication and are immutably logged.
@@ -2177,7 +2177,7 @@
               </div>
               <div style="display:flex;align-items:center;gap:0.75rem;">
                 <button type="button" class="btn btn-secondary btn-sm" id="maint-refresh-diag-btn" style="background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3);">
-                  🔄 Refresh Diagnostics
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Refresh Diagnostics
                 </button>
               </div>
             </div>
@@ -2188,7 +2188,7 @@
             <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
               <div>
                 <h3 style="font-size:1.05rem;font-weight:700;color:#0f172a;margin:0 0 0.25rem;display:flex;align-items:center;gap:0.5rem;">
-                  <span>📥</span> Institutional Master Data Backup (Pre-Maintenance Snapshot)
+                  Institutional Master Data Backup (Pre-Maintenance Snapshot)
                 </h3>
                 <p style="color:#64748b;font-size:0.85rem;margin:0;">
                   Download a complete compressed ZIP archive containing all students, classes, faculty, departments, and attendance records before performing any maintenance.
@@ -2196,7 +2196,7 @@
               </div>
               <div>
                 <button type="button" class="btn btn-secondary btn-sm" id="maint-export-zip-btn" style="background:#059669;border-color:#10b981;color:#fff;font-weight:700;padding:0.45rem 1rem;">
-                  📥 Download Master Backup (.ZIP)
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download Master Backup (.ZIP)
                 </button>
               </div>
             </div>
@@ -2207,7 +2207,7 @@
             <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
               <div>
                 <h3 style="font-size:1.05rem;font-weight:700;color:#0f172a;margin:0 0 0.25rem;display:flex;align-items:center;gap:0.5rem;">
-                  <span>🩺</span> System Health, Database Telemetry &amp; Table Statistics
+                  System Health, Database Telemetry &amp; Table Statistics
                 </h3>
                 <p style="color:#64748b;font-size:0.85rem;margin:0;">
                   Real-time database connectivity, Singapore Supabase round-trip latency, table row distribution, and referential integrity audit.
@@ -2228,7 +2228,7 @@
           <div style="border:1px solid #fca5a5;border-radius:8px;background:#fff5f5;padding:1.5rem;">
             <div style="margin-bottom:1.25rem;border-bottom:1px solid #fed7d7;padding-bottom:0.75rem;">
               <h3 style="font-size:1.15rem;font-weight:800;color:#991b1b;margin:0 0 0.25rem;display:flex;align-items:center;gap:0.5rem;">
-                <span>⚠️</span> Irreversible Destructive Operations (Danger Zone)
+                Irreversible Destructive Operations (Danger Zone)
               </h3>
               <p style="color:#7f1d1d;font-size:0.85rem;margin:0;">
                 Actions in this section permanently delete live records from Supabase PostgreSQL. Accidental execution is prevented by mandatory typed confirmation phrases and Principal password re-authentication.
@@ -2241,7 +2241,7 @@
               <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;background:#fff;padding:1.25rem;border-radius:6px;border:1px solid #fecaca;">
                 <div style="max-width:700px;">
                   <strong style="color:#9a3412;font-size:0.95rem;display:block;margin-bottom:0.25rem;">
-                    ⚠️ Reset Attendance Logs (Factory Default Baseline)
+                    Reset Attendance Logs (Factory Default Baseline)
                   </strong>
                   <p style="color:#64748b;font-size:0.825rem;margin:0;line-height:1.4;">
                     Permanently deletes all student attendance records and sessions under attendance reports, setting attendance rates to zero. <strong>Student profiles, classes, faculty accounts, and departments remain completely intact.</strong>
@@ -2249,7 +2249,7 @@
                 </div>
                 <div>
                   <button type="button" class="btn btn-secondary btn-sm" id="maint-factory-reset-btn" style="background:#d97706;border-color:#f59e0b;color:#fff;font-weight:700;padding:0.45rem 1rem;">
-                    ⚠️ Reset Attendance Baseline
+                    Reset Attendance Baseline
                   </button>
                 </div>
               </div>
@@ -2258,7 +2258,7 @@
               <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;background:#fff;padding:1.25rem;border-radius:6px;border:1px solid #fca5a5;">
                 <div style="max-width:700px;">
                   <strong style="color:#991b1b;font-size:0.95rem;display:block;margin-bottom:0.25rem;">
-                    🗑️ Complete Institutional Cohort Purge (All Students, Classes &amp; Records)
+                    Complete Institutional Cohort Purge (All Students, Classes &amp; Records)
                   </strong>
                   <p style="color:#64748b;font-size:0.825rem;margin:0;line-height:1.4;">
                     Permanently wipes <strong>all student profiles, student user accounts, classes, class allocations, student leave requests, hostel gate passes, and past attendance sessions</strong> across the institution. Departments, faculty accounts, and HOD accounts remain intact for fresh academic year onboarding.
@@ -2266,7 +2266,7 @@
                 </div>
                 <div>
                   <button type="button" class="btn btn-danger btn-sm" id="maint-purge-cohorts-btn" style="background:#dc2626;border-color:#ef4444;color:#fff;font-weight:700;padding:0.45rem 1rem;">
-                    🗑️ Erase All Academic Cohorts
+                    Erase All Academic Cohorts
                   </button>
                 </div>
               </div>
@@ -2501,7 +2501,7 @@
           <!-- Section 3: Open for Projects & Collaboration Banner -->
           <div class="about-cta-card">
             <div class="about-cta-content">
-              <h4>🚀 Open for Collaboration &amp; Upcoming Projects</h4>
+              <h4>Open for Collaboration &amp; Upcoming Projects</h4>
               <p>
                 Have an ambitious software concept, departmental digital requirement, or development project? We design and deploy robust, high-performance software systems tailored to institutional excellence.
               </p>
@@ -2558,7 +2558,7 @@
     <footer class="app-footer">
       <div class="footer-inner">
         <div class="footer-brand">
-          <span class="footer-logo">⚡ AttendTrax</span>
+          <span class="footer-logo">AttendTrax</span>
           <span class="footer-desc">· Department Attendance &amp; Analytics Platform</span>
         </div>
         <div class="footer-credit-badge">
@@ -2853,7 +2853,7 @@ function renderTrendChart(trend) {
       emptyMsg = document.createElement('div');
       emptyMsg.className = 'chart-empty-msg text-center text-muted';
       emptyMsg.style.cssText = 'padding: 3.5rem 1rem; font-size: 0.9rem; color: #64748b; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;';
-      emptyMsg.innerHTML = '<div style="font-size:2.2rem;margin-bottom:0.5rem;opacity:0.6;">📈</div><div style="font-weight:600;">No attendance trend records for this department.</div><div style="font-size:0.75rem;margin-top:0.25rem;">Attendance rate trend will plot here once daily sessions are marked.</div>';
+      emptyMsg.innerHTML = '<div style="margin-bottom:0.75rem;opacity:0.6;"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div style="font-weight:600;">No attendance trend records for this department.</div><div style="font-size:0.75rem;margin-top:0.25rem;">Attendance rate trend will plot here once daily sessions are marked.</div>';
       container.appendChild(emptyMsg);
     } else {
       emptyMsg.style.display = 'flex';
@@ -2930,7 +2930,7 @@ function renderStatusChart(dist) {
       emptyMsg = document.createElement('div');
       emptyMsg.className = 'chart-empty-msg text-center text-muted';
       emptyMsg.style.cssText = 'padding: 3.5rem 1rem; font-size: 0.9rem; color: #64748b; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;';
-      emptyMsg.innerHTML = '<div style="font-size:2.2rem;margin-bottom:0.5rem;opacity:0.6;">🍩</div><div style="font-weight:600;">No attendance status records for this department.</div><div style="font-size:0.75rem;margin-top:0.25rem;">Present/Absent/On-Duty distribution will appear here once sessions are marked.</div>';
+      emptyMsg.innerHTML = '<div style="margin-bottom:0.75rem;opacity:0.6;"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg></div><div style="font-weight:600;">No attendance status records for this department.</div><div style="font-size:0.75rem;margin-top:0.25rem;">Present/Absent/On-Duty distribution will appear here once sessions are marked.</div>';
       container.appendChild(emptyMsg);
     } else {
       emptyMsg.style.display = 'flex';
@@ -3151,15 +3151,15 @@ function filterSectionTable() {
   filtered.forEach(c => {
     const pct = c.percentage;
     const barCls = pct >= 80 ? 'progress-success' : pct >= 65 ? 'progress-warn' : 'progress-danger';
-    const healthBadge = pct >= 80 ? '<span class="health-badge health-healthy">🟢 Healthy</span>' : pct >= 65 ? '<span class="health-badge health-moderate">🟡 Moderate</span>' : '<span class="health-badge health-critical">🔴 At Risk</span>';
-    const defaulterBadge = c.defaulters_count > 0 ? `<span class="badge badge-absent" style="font-weight:700;">⚠️ ${c.defaulters_count} Defaulters</span>` : '<span class="badge badge-present">🟢 0</span>';
+    const healthBadge = pct >= 80 ? '<span class="health-badge health-healthy">Healthy</span>' : pct >= 65 ? '<span class="health-badge health-moderate">Moderate</span>' : '<span class="health-badge health-critical">At Risk</span>';
+    const defaulterBadge = c.defaulters_count > 0 ? `<span class="badge badge-absent" style="font-weight:700;">${c.defaulters_count} Defaulters</span>` : '<span class="badge badge-present">0 Defaulters</span>';
     
-    let todayDisplay = '<span class="text-muted text-xs">⏳ Not Marked Yet</span>';
+    let todayDisplay = '<span class="text-muted text-xs">Not Marked Yet</span>';
     if (c.today_total > 0) {
       if (c.today_present > 0 || c.today_absent > 0) {
         todayDisplay = `<div style="font-weight:600;font-size:0.85rem;"><span style="color:var(--success);">${c.today_present} Pres</span> · <span style="color:var(--danger);">${c.today_absent} Abs</span></div><div class="text-xs text-muted">Today: ${c.today_percentage}%</div>`;
       } else if (c.today_od > 0) {
-        todayDisplay = `<span class="badge badge-info" style="font-size:0.75rem;">🛡️ ${c.today_od} On-Duty (OD)</span>`;
+        todayDisplay = `<span class="badge badge-info" style="font-size:0.75rem;">${c.today_od} On-Duty (OD)</span>`;
       }
     }
 
@@ -3188,7 +3188,7 @@ function filterSectionTable() {
         <td>${healthBadge}</td>
         <td>
           <button class="btn btn-secondary btn-sm" onclick="openClassDrilldownModal('${c.class_id}')" style="font-size:0.75rem;padding:0.3rem 0.6rem;display:inline-flex;align-items:center;gap:0.3rem;">
-            🔍 Drilldown
+            Drilldown
           </button>
         </td>
       </tr>`;
@@ -3252,7 +3252,7 @@ function openClassDrilldownModal(classId) {
       </div>
 
       <div>
-        <h5 style="margin:0.5rem 0 0.25rem 0;font-size:0.9rem;color:var(--gray-800);">📚 Subject-Wise Attendance Breakdown</h5>
+        <h5 style="margin:0.5rem 0 0.25rem 0;font-size:0.9rem;color:var(--gray-800);">Subject-Wise Attendance Breakdown</h5>
         <div class="subject-breakdown-list">
           ${subRows}
         </div>
@@ -3260,7 +3260,7 @@ function openClassDrilldownModal(classId) {
     </div>
   `;
 
-  openFormModal(`🔍 Class & Section Performance Drilldown`, modalHtml);
+  openFormModal(`Class & Section Performance Drilldown`, modalHtml);
 }
 
 function exportSectionReportCsv() {
@@ -3318,7 +3318,7 @@ function filterDefaulters() {
   });
 
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:2rem;">🎉 No defaulters found in this selection (&lt; 75%).</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:2rem;">No defaulters found in this selection (&lt; 75%).</td></tr>';
     return;
   }
 
@@ -3375,13 +3375,13 @@ function renderLeaderboards(classes) {
     return;
   }
   const topClasses = classes.slice(0, 3);
-  const medals = ['🥇', '🥈', '🥉'];
+  const medals = ['#1', '#2', '#3'];
   let html = '<div style="display:flex;flex-direction:column;gap:0.5rem;">';
   topClasses.forEach((c, idx) => {
     html += `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:0.4rem 0.6rem;background:var(--gray-50);border-radius:6px;">
         <div class="flex items-center gap-2">
-          <span>${medals[idx] || '⭐'}</span>
+          <span class=\"exec-rank-badge rank-${idx + 1}\">#${idx + 1}</span>
           <div>
             <div style="font-weight:700;font-size:0.85rem;">${c.class_name || c.class_id}</div>
             <div style="font-size:0.72rem;color:var(--gray-500);">${c.student_count} students</div>
@@ -3406,7 +3406,7 @@ function renderRecentActivity(activity) {
     list.innerHTML += `
       <li class="activity-feed-item">
         <div class="feed-left">
-          <span class="feed-icon">📝</span>
+          <span class="feed-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span>
           <div>
             <div class="feed-main">${a.class_name || a.class_id} · ${a.hour} (${a.subject_id})</div>
             <div class="feed-sub">Marked by ${a.faculty_id} · ${a.date}</div>
@@ -3502,7 +3502,7 @@ function renderDailyAttendanceOverview(data) {
       subTbody.innerHTML = `
         <tr>
           <td colspan="7" class="text-center text-muted" style="padding:2.5rem 1rem;">
-            <div style="font-size:1.75rem;margin-bottom:0.5rem;">📭</div>
+            <div style="margin-bottom:0.5rem;opacity:0.6;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
             <div class="font-semibold" style="color:var(--gray-700);">No attendance sessions submitted for this date yet.</div>
             <div class="text-xs text-muted" style="margin-top:0.25rem;">Faculties have not submitted records, or it might be a holiday/weekend.</div>
           </td>
@@ -3541,23 +3541,23 @@ function renderDailyAttendanceOverview(data) {
             </td>
             <td>
               <div class="flex items-center gap-1" style="flex-wrap:wrap;">
-                <span class="font-bold" style="color:var(--indigo-700);font-size:0.85rem;">👨‍🏫 ${facName}</span>
+                <span class="font-bold" style="color:var(--indigo-700);font-size:0.85rem;">${facName}</span>
                 ${facId ? `<span class="text-xs text-muted font-mono">(${facId})</span>` : ''}
               </div>
               <span class="text-xs text-muted" style="display:block;margin-top:0.15rem;">Submitted by Faculty</span>
             </td>
             <td>
               <div style="font-size:0.82rem;margin-bottom:0.25rem;">
-                <span style="color:var(--success);font-weight:700;">🟢 ${p} P</span> &nbsp;·&nbsp;
-                <span style="color:var(--danger);font-weight:700;">🔴 ${a} A</span>
-                ${od > 0 ? `&nbsp;·&nbsp; <span style="color:var(--warning);font-weight:700;">🟡 ${od} OD</span>` : ''}
+                <span style="color:var(--success);font-weight:700;">${p} Present</span> &nbsp;·&nbsp;
+                <span style="color:var(--danger);font-weight:700;">${a} Absent</span>
+                ${od > 0 ? `&nbsp;·&nbsp; <span style="color:var(--warning);font-weight:700;">${od} On-Duty</span>` : ''}
               </div>
               <span class="badge ${pctBadgeClass}" style="font-size:0.75rem;">${pct}% Present</span>
             </td>
             <td class="text-xs text-muted font-mono">${timeStr}</td>
             <td style="text-align:center;">
               <button type="button" class="btn btn-primary btn-sm" onclick="openDailyEditModal('${cid}', '${escapeHtml(data.date)}', '${hr}', '${sid}')" style="font-weight:600;padding:0.35rem 0.75rem;font-size:0.8rem;">
-                ✏️ Edit Attendance
+                Edit Attendance
               </button>
             </td>
           </tr>`;
@@ -3579,7 +3579,7 @@ function renderDailyAttendanceOverview(data) {
       pendTbody.innerHTML = `
         <tr>
           <td colspan="6" class="text-center text-muted" style="padding:2rem 1rem;">
-            <div style="font-size:1.5rem;margin-bottom:0.35rem;">🎉</div>
+            <div style="margin-bottom:0.35rem;color:var(--success);"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
             <div class="font-semibold" style="color:var(--success);">All configured classes have submitted attendance for this date!</div>
           </td>
         </tr>`;
@@ -3596,10 +3596,10 @@ function renderDailyAttendanceOverview(data) {
             <td class="font-semibold" style="color:var(--gray-900);">${cname}</td>
             <td class="text-muted text-sm">${yrSec}</td>
             <td><span class="font-semibold">${stCount}</span> <span class="text-xs text-muted">students</span></td>
-            <td><span class="badge badge-warning" style="font-size:0.75rem;">⏳ Not Submitted</span></td>
+            <td><span class="badge badge-warning" style="font-size:0.75rem;">Not Submitted</span></td>
             <td style="text-align:center;">
               <button type="button" class="btn btn-secondary btn-sm" onclick="openDailyEditModal('${cid}', '${escapeHtml(data.date)}', 'DAY', '')" style="font-weight:600;padding:0.35rem 0.75rem;font-size:0.8rem;">
-                ➕ Enter Attendance
+                Enter Attendance
               </button>
             </td>
           </tr>`;
@@ -3632,11 +3632,11 @@ function renderDailyAttendanceModal(data) {
 
   if (searchInput) searchInput.value = '';
 
-  title.innerHTML = `<span>✏️</span> Edit Attendance — ${data.class_id} (${data.date} · ${data.hour || 'DAY'})`;
+  title.innerHTML = `Edit Attendance — ${data.class_id} (${data.date} · ${data.hour || 'DAY'})`;
   if (data.is_submitted) {
-    facEl.innerHTML = `<strong>Submitted by Faculty:</strong> 👨‍🏫 ${escapeHtml(data.faculty_name || data.faculty_id || 'Faculty Staff')} &nbsp;·&nbsp; <span class="text-muted">Recorded: ${escapeHtml(data.last_timestamp || 'Earlier')}</span>`;
+    facEl.innerHTML = `<strong>Submitted by Faculty:</strong> ${escapeHtml(data.faculty_name || data.faculty_id || 'Faculty Staff')} &nbsp;·&nbsp; <span class="text-muted">Recorded: ${escapeHtml(data.last_timestamp || 'Earlier')}</span>`;
   } else {
-    facEl.innerHTML = `<span style="color:var(--warning);">⏳ Not yet submitted by faculty — entering as Admin.</span>`;
+    facEl.innerHTML = `<span style="color:var(--warning);">Not yet submitted by faculty — entering as Admin.</span>`;
   }
 
   tbody.innerHTML = '';
@@ -3656,13 +3656,13 @@ function renderDailyAttendanceModal(data) {
           <td style="text-align:center;">
             <div style="display:inline-flex;gap:0.4rem;">
               <label class="status-pill-opt ${st === 'P' ? 'active-p' : ''}">
-                <input type="radio" name="modal_st_${reg}" value="P" ${st === 'P' ? 'checked' : ''} onchange="onModalStatusChange('${reg}', 'P')" /> 🟢 Present (P)
+                <input type="radio" name="modal_st_${reg}" value="P" ${st === 'P' ? 'checked' : ''} onchange="onModalStatusChange('${reg}', 'P')" /> Present (P)
               </label>
               <label class="status-pill-opt ${st === 'A' ? 'active-a' : ''}">
-                <input type="radio" name="modal_st_${reg}" value="A" ${st === 'A' ? 'checked' : ''} onchange="onModalStatusChange('${reg}', 'A')" /> 🔴 Absent (A)
+                <input type="radio" name="modal_st_${reg}" value="A" ${st === 'A' ? 'checked' : ''} onchange="onModalStatusChange('${reg}', 'A')" /> Absent (A)
               </label>
               <label class="status-pill-opt ${st === 'OD' ? 'active-od' : ''}">
-                <input type="radio" name="modal_st_${reg}" value="OD" ${st === 'OD' ? 'checked' : ''} onchange="onModalStatusChange('${reg}', 'OD')" /> 🟡 On-Duty (OD)
+                <input type="radio" name="modal_st_${reg}" value="OD" ${st === 'OD' ? 'checked' : ''} onchange="onModalStatusChange('${reg}', 'OD')" /> On-Duty (OD)
               </label>
             </div>
           </td>
@@ -3704,7 +3704,7 @@ function updateModalDailySummaryCounts() {
   });
   const summaryEl = document.getElementById('modal-daily-summary-counts');
   if (summaryEl) {
-    summaryEl.innerHTML = `<strong>Summary:</strong> &nbsp;<span style="color:var(--success);font-weight:700;">🟢 Present: ${p}</span> &nbsp;·&nbsp; <span style="color:var(--danger);font-weight:700;">🔴 Absent: ${a}</span> &nbsp;·&nbsp; <span style="color:var(--warning);font-weight:700;">🟡 On-Duty: ${od}</span> &nbsp;(Total: ${rows.length})`;
+    summaryEl.innerHTML = `<strong>Summary:</strong> &nbsp;<span style="color:var(--success);font-weight:700;">Present: ${p}</span> &nbsp;·&nbsp; <span style="color:var(--danger);font-weight:700;">Absent: ${a}</span> &nbsp;·&nbsp; <span style="color:var(--warning);font-weight:700;">On-Duty: ${od}</span> &nbsp;(Total: ${rows.length})`;
   }
 }
 
@@ -3758,7 +3758,7 @@ async function saveModalModifiedAttendance() {
     api.clearCache();
     const res = await api.post('/admin/attendance/modify', payload);
     api.clearCache();
-    showToast(res.message || 'Daily attendance modified and resubmitted successfully! 🎉', 'success', 4000);
+    showToast(res.message || 'Daily attendance modified and resubmitted successfully.', 'success', 4000);
     // Immediate refresh of daily overview & admin dashboard analytics & active reports
     await loadDailyAttendanceOverview();
     if (typeof loadDashboardAnalytics === 'function') {
@@ -3852,9 +3852,9 @@ async function openDailyStatusModal(statusFilter) {
   const modalSub = document.getElementById('daily-status-modal-sub');
   
   if (statusFilter === 'A') {
-    modalTitle.innerHTML = '<span>🔴</span> List of Absent Students';
+    modalTitle.innerHTML = '<span style="color:var(--danger);font-size:0.85rem;font-weight:700;">●</span> List of Absent Students';
   } else {
-    modalTitle.innerHTML = '<span>🟡</span> List of On-Duty (OD) Students';
+    modalTitle.innerHTML = 'List of On-Duty (OD) Students';
   }
   modalSub.textContent = `Showing ${statusFilter === 'A' ? 'absent' : 'on-duty'} students recorded on ${dateStr}`;
 
@@ -4005,8 +4005,8 @@ function renderClasses(classes) {
         <td><span class="badge ${c.Status==='ACTIVE'?'badge-info':'badge-absent'}">${c.Status}</span></td>
         <td>
           <div class="flex gap-2">
-            <button class="btn btn-sm btn-secondary rename-class-btn" data-id="${c.ClassID}" data-name="${escapeHtml(c.ClassName)}" data-incharge="${escapeHtml(c.InchargeUsername || c.InchargeFacultyID || '')}">✏️ Edit / Incharge</button>
-            <button class="btn btn-sm btn-danger deactivate-class-btn" data-id="${c.ClassID}">🗑️</button>
+            <button class="btn btn-sm btn-secondary rename-class-btn" data-id="${c.ClassID}" data-name="${escapeHtml(c.ClassName)}" data-incharge="${escapeHtml(c.InchargeUsername || c.InchargeFacultyID || '')}">Edit / Incharge</button>
+            <button class="btn btn-sm btn-danger deactivate-class-btn" data-id="${c.ClassID}" title="Deactivate class"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>
           </div>
         </td>
       </tr>`;
@@ -4043,36 +4043,36 @@ document.getElementById('add-class-btn').addEventListener('click', async () => {
 
   const deptFieldHtml = (isHod && hodDept !== 'PLACEMENT')
     ? `<div class="form-group" style="background:var(--brand-50,#eff6ff);border:1px solid var(--brand-100,#dbeafe);padding:0.75rem;border-radius:8px;">
-         <label class="form-label" style="font-weight:700;color:var(--brand-800,#1e40af);margin-bottom:0.25rem;">🏛️ Department Sandbox</label>
+         <label class="form-label" style="font-weight:700;color:var(--brand-800,#1e40af);margin-bottom:0.25rem;">Department Sandbox</label>
          <div style="font-size:0.9rem;font-weight:600;color:var(--brand-900,#1e3a8a);">${hodDept} Department</div>
          <input type="hidden" data-field="department_code" value="${hodDept}" />
        </div>`
     : `<div class="form-group">
          <label class="form-label">Department</label>
          <select data-field="department_code" class="form-control">
-           <option value="CSE">💻 CSE - Computer Science &amp; Engg</option>
-           <option value="IT">🌐 IT - Information Technology</option>
-           <option value="AIDS">🤖 AI &amp; DS - Data Science</option>
-           <option value="ECE">📡 ECE - Electronics &amp; Comm</option>
-           <option value="MECH">⚙️ MECH - Mechanical Engg</option>
-           <option value="EEE">⚡ EEE - Electrical &amp; Electronics</option>
-           <option value="CYBER">🛡️ Cyber Security</option>
-           <option value="AIML">🧠 AI &amp; ML - Machine Learning</option>
-           <option value="SH">📚 S &amp; H - Science &amp; Humanities</option>
-           <option value="PLACEMENT">🎯 PLACEMENT - Training &amp; Placement</option>
+           <option value="CSE">CSE - Computer Science &amp; Engg</option>
+           <option value="IT">IT - Information Technology</option>
+           <option value="AIDS">AI &amp; DS - Data Science</option>
+           <option value="ECE">ECE - Electronics &amp; Comm</option>
+           <option value="MECH">️ MECH - Mechanical Engg</option>
+           <option value="EEE">EEE - Electrical &amp; Electronics</option>
+           <option value="CYBER">Cyber Security</option>
+           <option value="AIML">AI &amp; ML - Machine Learning</option>
+           <option value="SH">S &amp; H - Science &amp; Humanities</option>
+           <option value="PLACEMENT">PLACEMENT - Training &amp; Placement</option>
          </select>
        </div>`;
 
   const placeholderId = (isHod && hodDept !== 'PLACEMENT') ? `e.g. ${hodDept}3A` : 'e.g. CSE3A';
   const placeholderName = (isHod && hodDept !== 'PLACEMENT') ? `e.g. ${hodDept} III Year A` : 'e.g. CSE III Year A';
 
-  const result = await openFormModal('➕ Add New Class', `
+  const result = await openFormModal('Add New Class', `
     <div class="form-stack" style="gap:1rem;">
       ${deptFieldHtml}
       <div class="form-group"><label class="form-label">Class ID / Code</label><input data-field="class_id" class="form-control" placeholder="${placeholderId}" required /></div>
       <div class="form-group"><label class="form-label">Class Name</label><input data-field="class_name" class="form-control" placeholder="${placeholderName}" required /></div>
       <div class="form-group">
-        <label class="form-label">Class Incharge (Faculty) 🧑‍🏫</label>
+        <label class="form-label">Class Incharge (Faculty)</label>
         <select data-field="incharge_id" class="form-control">
           ${facultyOpts}
         </select>
@@ -4120,14 +4120,14 @@ async function renameClass(e) {
       return `<option value="${escapeHtml(val)}" ${isSel}>${escapeHtml(f.Name)}${deptPart} (${escapeHtml(f.FacultyID || f.Username)})</option>`;
     }).join('');
 
-  const result = await openFormModal('✏️ Edit Class / Assign Incharge', `
+  const result = await openFormModal('Edit Class / Assign Incharge', `
     <div class="form-stack" style="gap:1rem;">
       <div class="form-group">
         <label class="form-label">Class Name</label>
         <input data-field="new_name" class="form-control" value="${escapeHtml(name)}" required />
       </div>
       <div class="form-group">
-        <label class="form-label">Class Incharge (Faculty) 🧑‍🏫</label>
+        <label class="form-label">Class Incharge (Faculty)</label>
         <select data-field="incharge_id" class="form-control">
           ${facultyOpts}
         </select>
@@ -4186,7 +4186,7 @@ async function populateStudentClassFilter() {
   const sel = document.getElementById('student-class-filter');
   if (sel.options.length > 1) return;
   const classes = await api.get('/admin/classes').catch(() => []);
-  sel.innerHTML = '<option value="ALL">🌐 All Classes (View All)</option>';
+  sel.innerHTML = '<option value="ALL">All Classes (View All)</option>';
   classes.forEach(c => {
     const o = document.createElement('option');
     o.value = c.ClassID; o.textContent = c.ClassName;
@@ -4257,23 +4257,23 @@ async function loadStudentsAdmin() {
           const willVal = ((s.placement_willingness || s.PlacementWillingness || 'active') + '').toLowerCase();
           const isWilling = willVal === 'active';
           const standingBadge = isWilling
-            ? '<span class="badge placement-standing-badge" style="background:#ecfdf5;color:#065f46;font-weight:700;font-size:0.75rem;">🟢 Willing</span>'
-            : '<span class="badge placement-standing-badge" style="background:#fef2f2;color:#991b1b;font-weight:700;font-size:0.75rem;">⚪ Unwilling</span>';
+            ? '<span class="badge placement-standing-badge" style="background:#ecfdf5;color:#065f46;font-weight:700;font-size:0.75rem;">Active (Willing)</span>'
+            : '<span class="badge placement-standing-badge" style="background:#fef2f2;color:#991b1b;font-weight:700;font-size:0.75rem;">Inactive (Unwilling)</span>';
 
           const gVal = (s.Gender || s.gender || '').toUpperCase();
           let genderBadge = '<span class="text-muted" style="font-size:0.8rem;">—</span>';
           if (gVal === 'MALE') {
-            genderBadge = '<span class="badge" style="background:#eff6ff;color:#1d4ed8;font-weight:700;font-size:0.75rem;">👦 Male</span>';
+            genderBadge = '<span class="badge" style="background:#eff6ff;color:#1d4ed8;font-weight:700;font-size:0.75rem;">Male</span>';
           } else if (gVal === 'FEMALE') {
-            genderBadge = '<span class="badge" style="background:#fdf2f8;color:#be185d;font-weight:700;font-size:0.75rem;">👧 Female</span>';
+            genderBadge = '<span class="badge" style="background:#fdf2f8;color:#be185d;font-weight:700;font-size:0.75rem;">Female</span>';
           } else if (gVal === 'OTHER') {
-            genderBadge = '<span class="badge" style="background:#faf5ff;color:#7e22ce;font-weight:700;font-size:0.75rem;">⚧ Other</span>';
+            genderBadge = '<span class="badge" style="background:#faf5ff;color:#7e22ce;font-weight:700;font-size:0.75rem;">Other</span>';
           }
 
           const resVal = (s.ResidenceType || s.residence_type || 'DAY_SCHOLAR').toUpperCase();
           const scholarBadge = resVal === 'HOSTELLER'
-            ? `<span class="badge" style="background:#fef3c7;color:#92400e;font-weight:700;font-size:0.75rem;">🏢 Hosteller</span>`
-            : '<span class="badge" style="background:#f1f5f9;color:#475569;font-weight:600;font-size:0.75rem;">🚶 Day Scholar</span>';
+            ? `<span class="badge" style="background:#fef3c7;color:#92400e;font-weight:700;font-size:0.75rem;">Hosteller</span>`
+            : '<span class="badge" style="background:#f1f5f9;color:#475569;font-weight:600;font-size:0.75rem;">Day Scholar</span>';
 
           const rollVal = s.RollNo || s.roll_no;
           const rollHtml = rollVal ? `<span class="tag font-mono" style="font-size:0.78rem;font-weight:600;">${escapeHtml(rollVal)}</span>` : '<span class="text-muted" style="font-size:0.8rem;">—</span>';
@@ -4303,8 +4303,8 @@ async function loadStudentsAdmin() {
               <td>
                 <div class="flex items-center gap-1">
                   ${toggleBtn}
-                  <button class="btn btn-sm btn-outline edit-student-btn" data-reg="${escapeHtml(s.RegNo)}" style="font-size:0.75rem;padding:0.2rem 0.5rem;" title="Edit student profile">✏️</button>
-                  <button class="btn btn-sm btn-danger deactivate-student-btn" data-reg="${escapeHtml(s.RegNo)}" data-name="${escapeHtml(s.Name)}" style="font-size:0.75rem;padding:0.2rem 0.5rem;" title="Deactivate student">🗑️</button>
+                  <button class="btn btn-sm btn-outline edit-student-btn" data-reg="${escapeHtml(s.RegNo)}" style="font-size:0.75rem;padding:0.2rem 0.5rem;" title="Edit student profile"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+                  <button class="btn btn-sm btn-danger deactivate-student-btn" data-reg="${escapeHtml(s.RegNo)}" data-name="${escapeHtml(s.Name)}" style="font-size:0.75rem;padding:0.2rem 0.5rem;" title="Deactivate student"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>
                 </div>
               </td>
             </tr>`;
@@ -4333,8 +4333,8 @@ async function loadStudentsAdmin() {
           // 2. Instantly flip standing badge
           if (standingCell) {
             standingCell.innerHTML = willBeWilling
-              ? '<span class="badge placement-standing-badge" style="background:#ecfdf5;color:#065f46;font-weight:700;font-size:0.75rem;">🟢 Willing</span>'
-              : '<span class="badge placement-standing-badge" style="background:#fef2f2;color:#991b1b;font-weight:700;font-size:0.75rem;">⚪ Unwilling</span>';
+              ? '<span class="badge placement-standing-badge" style="background:#ecfdf5;color:#065f46;font-weight:700;font-size:0.75rem;">Active (Willing)</span>'
+              : '<span class="badge placement-standing-badge" style="background:#fef2f2;color:#991b1b;font-weight:700;font-size:0.75rem;">Inactive (Unwilling)</span>';
           }
 
           // 3. Update in-memory record if exists
@@ -4357,8 +4357,8 @@ async function loadStudentsAdmin() {
             btnEl.style.border = prevTarget === 'inactive' ? '1px solid #fca5a5' : '1px solid #6ee7b7';
             if (standingCell) {
               standingCell.innerHTML = !willBeWilling
-                ? '<span class="badge placement-standing-badge" style="background:#ecfdf5;color:#065f46;font-weight:700;font-size:0.75rem;">🟢 Willing</span>'
-                : '<span class="badge placement-standing-badge" style="background:#fef2f2;color:#991b1b;font-weight:700;font-size:0.75rem;">⚪ Unwilling</span>';
+                ? '<span class="badge placement-standing-badge" style="background:#ecfdf5;color:#065f46;font-weight:700;font-size:0.75rem;">Active (Willing)</span>'
+                : '<span class="badge placement-standing-badge" style="background:#fef2f2;color:#991b1b;font-weight:700;font-size:0.75rem;">Inactive (Unwilling)</span>';
             }
             if (found) {
               found.placement_willingness = prevTarget;
@@ -4410,16 +4410,16 @@ async function editStudent(reg) {
           <label class="form-label" style="font-weight:700;">Gender</label>
           <select data-field="gender" class="form-control">
             <option value="" ${!curGender ? 'selected' : ''}>— Select —</option>
-            <option value="MALE" ${curGender === 'MALE' ? 'selected' : ''}>👦 Male</option>
-            <option value="FEMALE" ${curGender === 'FEMALE' ? 'selected' : ''}>👧 Female</option>
-            <option value="OTHER" ${curGender === 'OTHER' ? 'selected' : ''}>⚧ Other</option>
+            <option value="MALE" ${curGender === \'MALE\' ? \'selected\' : \'\'}>Male</option>
+            <option value="FEMALE" ${curGender === \'FEMALE\' ? \'selected\' : \'\'}>Female</option>
+            <option value="OTHER" ${curGender === \'OTHER\' ? \'selected\' : \'\'}>Other</option>
           </select>
         </div>
         <div class="form-group" style="flex:1;">
           <label class="form-label" style="font-weight:700;">Scholar Type</label>
           <select data-field="residence_type" class="form-control">
-            <option value="DAY_SCHOLAR" ${curScholar === 'DAY_SCHOLAR' ? 'selected' : ''}>🚶 Day Scholar</option>
-            <option value="HOSTELLER" ${curScholar === 'HOSTELLER' ? 'selected' : ''}>🏢 Hosteller</option>
+            <option value="DAY_SCHOLAR" ${curScholar === \'DAY_SCHOLAR\' ? \'selected\' : \'\'}>Day Scholar</option>
+            <option value="HOSTELLER" ${curScholar === \'HOSTELLER\' ? \'selected\' : \'\'}>Hosteller</option>
           </select>
         </div>
       </div>
@@ -4434,15 +4434,15 @@ async function editStudent(reg) {
         <div class="form-group" style="flex:1;">
           <label class="form-label" style="font-weight:700;">Placement Standing</label>
           <select data-field="placement_willingness" class="form-control">
-            <option value="active" ${curWill === 'active' ? 'selected' : ''}>🟢 Willing</option>
-            <option value="inactive" ${curWill === 'inactive' ? 'selected' : ''}>⚪ Unwilling</option>
+            <option value="active" ${curWill === \'active\' ? \'selected\' : \'\'}>Active (Willing)</option>
+            <option value="inactive" ${curWill === \'inactive\' ? \'selected\' : \'\'}>Inactive (Unwilling)</option>
           </select>
         </div>
       </div>
     </div>
   `;
 
-  const result = await openFormModal(`✏️ Edit Student Profile: ${s.RegNo}`, modalHtml);
+  const result = await openFormModal(`Edit Student Profile: ${s.RegNo}`, modalHtml);
   if (!result) return;
 
   showLoader(true);
@@ -4468,7 +4468,7 @@ document.getElementById('add-student-btn').addEventListener('click', async () =>
   const classId = document.getElementById('student-class-filter')?.value || '';
   const classes = allClasses.length ? allClasses : await api.get('/admin/classes').catch(() => []);
   const opts = classes.map(c => `<option value="${c.ClassID}" ${c.ClassID===classId?'selected':''}>${c.ClassName || c.ClassID}</option>`).join('');
-  const result = await openFormModal('➕ Add Student to Roster', `
+  const result = await openFormModal('Add Student to Roster', `
     <div class="form-stack" style="gap:0.85rem;">
       <div style="display:flex;gap:0.75rem;">
         <div class="form-group" style="flex:1.2;">
@@ -4489,16 +4489,16 @@ document.getElementById('add-student-btn').addEventListener('click', async () =>
           <label class="form-label" style="font-weight:700;">Gender</label>
           <select data-field="gender" class="form-control">
             <option value="">— Select —</option>
-            <option value="MALE">👦 Male</option>
-            <option value="FEMALE">👧 Female</option>
-            <option value="OTHER">⚧ Other</option>
+            <option value="MALE">Male</option>
+            <option value="FEMALE">Female</option>
+            <option value="OTHER">Other</option>
           </select>
         </div>
         <div class="form-group" style="flex:1;">
           <label class="form-label" style="font-weight:700;">Scholar Type</label>
           <select data-field="residence_type" class="form-control">
-            <option value="DAY_SCHOLAR" selected>🚶 Day Scholar</option>
-            <option value="HOSTELLER">🏢 Hosteller</option>
+            <option value="DAY_SCHOLAR" selected>Day Scholar</option>
+            <option value="HOSTELLER">Hosteller</option>
           </select>
         </div>
       </div>
@@ -4513,8 +4513,8 @@ document.getElementById('add-student-btn').addEventListener('click', async () =>
         <div class="form-group" style="flex:1;">
           <label class="form-label" style="font-weight:700;">Placement Standing</label>
           <select data-field="placement_willingness" class="form-control">
-            <option value="active" selected>🟢 Willing</option>
-            <option value="inactive">⚪ Unwilling</option>
+            <option value="active" selected>Active (Willing)</option>
+            <option value="inactive">Inactive (Unwilling)</option>
           </select>
         </div>
       </div>
@@ -4574,7 +4574,7 @@ async function loadFaculty(deptCode) {
       if (filterWrap) filterWrap.style.display = 'none';
       if (hodBadge) {
         hodBadge.style.display = 'inline-flex';
-        hodBadge.textContent = `🔒 Department Sandbox: ${hodDept} Faculty Only`;
+        hodBadge.textContent = `Department Sandbox: ${hodDept} Faculty Only`;
       }
     } else {
       if (filterWrap) filterWrap.style.display = 'flex';
@@ -4587,7 +4587,7 @@ async function loadFaculty(deptCode) {
     const tbody = document.getElementById('faculty-tbody');
     tbody.innerHTML = '';
     if (!faculty || !faculty.length) {
-      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:2rem;">No faculty accounts found in this directory scope. Click ➕ Add Faculty above.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:2rem;">No faculty accounts found in this directory scope. Click Add Faculty above.</td></tr>';
       return;
     }
     faculty.forEach(f => {
@@ -4601,7 +4601,7 @@ async function loadFaculty(deptCode) {
           <td><span style="font-size:0.8rem;color:var(--gray-700);">${_esc(f.Designation || 'Assistant Professor')}</span></td>
           <td><span class="badge badge-success">${_esc(f.Status || 'ACTIVE')}</span></td>
           <td>
-            <button class="btn btn-sm btn-danger delete-faculty-btn" data-username="${_esc(f.Username)}" data-name="${_esc(f.Name)}" data-dept="${_esc(f.Department || '')}">🗑️ Delete</button>
+            <button class="btn btn-sm btn-danger delete-faculty-btn" style="display:inline-flex;align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> Delete</button>
           </td>
         </tr>`;
     });
@@ -4642,21 +4642,21 @@ document.getElementById('add-faculty-btn').addEventListener('click', async () =>
     ? `<div class="form-group">
          <label class="form-label" style="font-weight:700;">Department (Locked to HOD Sandbox)</label>
          <input data-field="department" class="form-control" value="${hodDept}" disabled style="background:#f1f5f9;font-weight:700;color:#0f172a;" />
-         <small class="text-muted" style="font-size:0.75rem;margin-top:0.25rem;display:block;">🔒 Automatically assigned to your department (${hodDept})</small>
+         <small class="text-muted" style="font-size:0.75rem;margin-top:0.25rem;display:block;">Automatically assigned to your department (${hodDept})</small>
        </div>`
     : `<div class="form-group">
          <label class="form-label" style="font-weight:700;">Department</label>
          <select data-field="department" class="form-control" style="font-weight:600;">
-           <option value="CSE" selected>💻 CSE - Computer Science &amp; Engineering</option>
-           <option value="IT">🌐 IT - Information Technology</option>
-           <option value="AIDS">🤖 AIDS - Artificial Intelligence &amp; Data Science</option>
-           <option value="ECE">📡 ECE - Electronics &amp; Communication</option>
-           <option value="MECH">⚙️ MECH - Mechanical Engineering</option>
-           <option value="EEE">⚡ EEE - Electrical &amp; Electronics</option>
-           <option value="CYBER">🛡️ CYBER - Cyber Security</option>
-           <option value="AIML">🧠 AIML - AI &amp; Machine Learning</option>
-           <option value="SH">📚 SH - Science &amp; Humanities</option>
-           <option value="PLACEMENT">🎯 PLACEMENT - Training &amp; Placement</option>
+           <option value="CSE" selected>CSE - Computer Science &amp; Engineering</option>
+           <option value="IT">IT - Information Technology</option>
+           <option value="AIDS">AIDS - Artificial Intelligence &amp; Data Science</option>
+           <option value="ECE">ECE - Electronics &amp; Communication</option>
+           <option value="MECH">MECH - Mechanical Engineering</option>
+           <option value="EEE">EEE - Electrical &amp; Electronics</option>
+           <option value="CYBER">CYBER - Cyber Security</option>
+           <option value="AIML">AIML - AI &amp; Machine Learning</option>
+           <option value="SH">SH - Science &amp; Humanities</option>
+           <option value="PLACEMENT">PLACEMENT - Training &amp; Placement</option>
          </select>
        </div>`;
 
@@ -4691,7 +4691,7 @@ document.getElementById('add-faculty-btn').addEventListener('click', async () =>
       </div>
     </div>`;
 
-  const result = await openFormModal('➕ Add Faculty Account', modalHtml);
+  const result = await openFormModal('Add Faculty Account', modalHtml);
   if (!result?.faculty_id || !result?.name || !result?.username || !result?.password) {
     showToast('Faculty ID, Name, Username, and Password are required.','warning');
     return;
@@ -4737,7 +4737,7 @@ async function populateSubjectClassFilter() {
   const sel = document.getElementById('subject-class-filter');
   if (sel && sel.options.length <= 1) {
     const classes = allClasses.length ? allClasses : await api.get('/admin/classes').catch(() => []);
-    sel.innerHTML = '<option value="ALL">🌐 All Classes (View All)</option>';
+    sel.innerHTML = '<option value="ALL">All Classes (View All)</option>';
     classes.forEach(c => {
       const o = document.createElement('option');
       o.value = c.ClassID; o.textContent = c.ClassName;
@@ -4782,7 +4782,7 @@ async function loadSubjectsAdmin() {
           <td><span class="badge badge-info" style="font-size:0.75rem;">${escapeHtml(deptCode)}</span></td>
           <td><span class="badge ${typeBadge}" style="font-size:0.75rem;">${escapeHtml(s.SubjectType || 'THEORY')}</span></td>
           <td>
-            <button class="btn btn-sm btn-danger del-subject-btn" data-id="${escapeHtml(s.SubjectID || s.subject_id)}" data-name="${escapeHtml(s.SubjectName || s.subject_name)}">🗑️ Remove</button>
+            <button class="btn btn-sm btn-danger del-subject-btn" style="display:inline-flex;align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> Remove</button>
           </td>
         </tr>`;
     });
@@ -4814,25 +4814,25 @@ document.getElementById('add-subject-btn').addEventListener('click', async () =>
     ? `<div class="form-group">
          <label class="form-label" style="font-weight:700;">Department (Locked to HOD Sandbox)</label>
          <input data-field="department_code" class="form-control" value="${hodDept}" disabled style="background:#f1f5f9;font-weight:700;color:#0f172a;" />
-         <small class="text-muted" style="font-size:0.75rem;margin-top:0.25rem;display:block;">🔒 Automatically assigned to your department (${hodDept})</small>
+         <small class="text-muted" style="font-size:0.75rem;margin-top:0.25rem;display:block;">Automatically assigned to your department (${hodDept})</small>
        </div>`
     : `<div class="form-group">
          <label class="form-label" style="font-weight:700;">Department</label>
          <select data-field="department_code" class="form-control" style="font-weight:600;">
-           <option value="PLACEMENT">🎯 PLACEMENT - Training &amp; Placement</option>
-           <option value="CSE" selected>💻 CSE - Computer Science &amp; Engineering</option>
-           <option value="IT">🌐 IT - Information Technology</option>
-           <option value="AIDS">🤖 AIDS - Artificial Intelligence &amp; Data Science</option>
-           <option value="ECE">📡 ECE - Electronics &amp; Communication</option>
-           <option value="MECH">⚙️ MECH - Mechanical Engineering</option>
-           <option value="EEE">⚡ EEE - Electrical &amp; Electronics</option>
-           <option value="CYBER">🛡️ CYBER - Cyber Security</option>
-           <option value="AIML">🧠 AIML - AI &amp; Machine Learning</option>
-           <option value="SH">📚 SH - Science &amp; Humanities</option>
+           <option value="PLACEMENT">PLACEMENT - Training &amp; Placement</option>
+           <option value="CSE" selected>CSE - Computer Science &amp; Engineering</option>
+           <option value="IT">IT - Information Technology</option>
+           <option value="AIDS">AIDS - Artificial Intelligence &amp; Data Science</option>
+           <option value="ECE">ECE - Electronics &amp; Communication</option>
+           <option value="MECH">MECH - Mechanical Engineering</option>
+           <option value="EEE">EEE - Electrical &amp; Electronics</option>
+           <option value="CYBER">CYBER - Cyber Security</option>
+           <option value="AIML">AIML - AI &amp; Machine Learning</option>
+           <option value="SH">SH - Science &amp; Humanities</option>
          </select>
        </div>`;
 
-  const result = await openFormModal('➕ Add Subject', `
+  const result = await openFormModal('Add Subject', `
     <div class="form-stack" style="gap:1rem;">
       ${deptHtml}
       <div class="form-group"><label class="form-label" style="font-weight:700;">Subject Code / ID</label><input data-field="subject_id" class="form-control" placeholder="e.g. CS301 or PLC101" required /></div>
@@ -5075,7 +5075,7 @@ document.getElementById('upload-btn').addEventListener('click', async () => {
     if (res.format === 'monthly_register') {
       resultEl.innerHTML = `
         <div style="color:#065f46;font-weight:700;margin-bottom:0.4rem;display:flex;align-items:center;gap:0.4rem;">
-          <span>✅</span> Institutional Register Ingested!
+          Institutional Register Ingested!
         </div>
         <p class="text-xs" style="color:#047857;margin-bottom:0.6rem;">${res.message}</p>
         <div class="flex flex-wrap gap-2" style="margin-top:0.4rem;">
@@ -5084,11 +5084,11 @@ document.getElementById('upload-btn').addEventListener('click', async () => {
           <span class="badge badge-info">Students: ${res.total_students}</span>
           <span class="badge badge-info">Dates: ${res.total_dates} days</span>
           <span class="badge badge-success">Inserted: ${res.inserted}</span>
-          <span class="badge badge-primary">⚡ Stored in Supabase</span>
+          <span class="badge badge-primary">Stored in Supabase</span>
         </div>`;
     } else {
       resultEl.innerHTML = `
-        <p style="color:#065f46;font-weight:700;margin-bottom:0.5rem;">✅ Import Successful!</p>
+        <p style="color:#065f46;font-weight:700;margin-bottom:0.5rem;">Import Successful!</p>
         <p class="text-sm">${res.message}</p>
         <div class="flex gap-4" style="margin-top:0.5rem;">
           <span class="badge badge-info">Total rows: ${res.total_rows}</span>
@@ -5106,11 +5106,11 @@ document.getElementById('upload-btn').addEventListener('click', async () => {
     }
   } catch(e) {
     resultEl.style.background = '#fee2e2';
-    resultEl.innerHTML = `<p style="color:#991b1b;font-weight:700;">❌ Import Failed</p><p class="text-sm" style="color:#b91c1c;">${e.message || 'Validation error while parsing attendance records.'}</p>`;
+    resultEl.innerHTML = `<p style="color:#991b1b;font-weight:700;">Import Failed</p><p class="text-sm" style="color:#b91c1c;">${e.message || 'Validation error while parsing attendance records.'}</p>`;
     resultEl.classList.remove('hidden');
   } finally {
     btn.disabled  = false;
-    btnText.textContent = '📤 Upload & Ingest Attendance';
+    btnText.textContent = 'Upload & Ingest Attendance';
   }
 });
 
@@ -5217,8 +5217,8 @@ function wireBulkUpload({ dropId, inputId, fileChosenId, fileNameId, clearBtnId,
       resultEl.style.cssText = 'background:#d1fae5;border:1px solid #6ee7b7;';
       resultEl.innerHTML = `
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-bottom:.5rem;">
-          <p style="color:#065f46;font-weight:700;margin:0;">✅ Import Successful!</p>
-          <span class="badge" style="background:#10b981;color:#fff;font-weight:700;">⚡ ${elapsedSec}s Execution</span>
+          <p style="color:#065f46;font-weight:700;margin:0;">Import Successful!</p>
+          <span class="badge" style="background:#10b981;color:#fff;font-weight:700;">${elapsedSec}s Execution</span>
         </div>
         <p class="text-sm">${res.message}</p>
         <div class="flex gap-4" style="margin-top:.5rem;flex-wrap:wrap;">
@@ -5230,13 +5230,13 @@ function wireBulkUpload({ dropId, inputId, fileChosenId, fileNameId, clearBtnId,
       showToast(res.message, 'success');
     } catch(e) {
       resultEl.style.cssText = 'background:#fee2e2;border:1px solid #fca5a5;';
-      resultEl.innerHTML = `<p style="color:#991b1b;font-weight:700;">❌ Import Failed</p><p class="text-sm">${e.message}</p>`;
+      resultEl.innerHTML = `<p style="color:#991b1b;font-weight:700;">Import Failed</p><p class="text-sm">${e.message}</p>`;
       resultEl.classList.remove('hidden');
       showToast('Import failed. Check the error details.', 'error');
     } finally {
       btn.disabled  = false;
       btnText.innerHTML = btnText.innerHTML.replace(/<span.*<\/span>\s*/, '');
-      btnText.textContent = uploadBtnTextId.replace('upload-btn-text-', '📤 Upload & Import ');
+      btnText.textContent = uploadBtnTextId.replace('upload-btn-text-', 'Upload & Import ');
     }
   });
 
@@ -5420,7 +5420,7 @@ document.getElementById('topbar-refresh-btn')?.addEventListener('click', async (
     btn.disabled = false;
     btn.innerHTML = origHtml;
   }
-  showToast('Cloud attendance records up to date! ✅', 'success', 2000);
+  showToast('Cloud attendance records up to date!', 'success', 2000);
 });
 
 // ════════════════════════════════════════════════════════════════
@@ -5464,10 +5464,10 @@ async function loadExecutiveFacultyLeaves() {
           <td>
             <div style="display:flex;gap:0.4rem;">
               <button class="btn btn-success btn-sm" onclick="reviewExecutiveLeave(${item.id}, 'APPROVE')" style="padding:0.25rem 0.6rem;font-size:0.75rem;">
-                ✓ Approve
+                Approve
               </button>
               <button class="btn btn-danger btn-sm" onclick="reviewExecutiveLeave(${item.id}, 'REJECT')" style="padding:0.25rem 0.6rem;font-size:0.75rem;">
-                ✕ Reject
+                Reject
               </button>
             </div>
           </td>
@@ -5508,10 +5508,10 @@ async function loadHodFacultyLeaves() {
           <td>
             <div style="display:flex;gap:0.4rem;">
               <button class="btn btn-success btn-sm" onclick="reviewHodFacultyLeave(${item.id}, 'APPROVE')" style="padding:0.25rem 0.6rem;font-size:0.75rem;">
-                ✓ Recommend
+                Recommend
               </button>
               <button class="btn btn-danger btn-sm" onclick="reviewHodFacultyLeave(${item.id}, 'REJECT')" style="padding:0.25rem 0.6rem;font-size:0.75rem;">
-                ✕ Reject
+                Reject
               </button>
             </div>
           </td>
@@ -5556,10 +5556,10 @@ async function loadHodStudentLeaves() {
           <td>
             <div style="display:flex;gap:0.4rem;">
               <button class="btn btn-success btn-sm" onclick="reviewHodStudentLeave(${item.id}, 'APPROVE', '${item.residence_type}')" style="padding:0.25rem 0.6rem;font-size:0.75rem;">
-                ✓ Approve
+                Approve
               </button>
               <button class="btn btn-danger btn-sm" onclick="reviewHodStudentLeave(${item.id}, 'REJECT', '${item.residence_type}')" style="padding:0.25rem 0.6rem;font-size:0.75rem;">
-                ✕ Reject
+                Reject
               </button>
             </div>
           </td>

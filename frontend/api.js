@@ -67,7 +67,7 @@ window.clearAuth = clearAuth;
 let _warmupPillEl = null;
 let _warmupDismissTimer = null;
 
-function showWarmupPill(show, text = '⚡ Connecting to live server…') {
+function showWarmupPill(show, text = 'Connecting to live server…') {
   if (typeof document === 'undefined') return;
   if (!_warmupPillEl) {
     _warmupPillEl = document.createElement('div');
@@ -169,7 +169,7 @@ async function apiFetch(path, options = {}) {
 
   // Start background warm-up indicator if request takes > 2.2s
   const warmupTimer = setTimeout(() => {
-    showWarmupPill(true, '⚡ Waking up live cloud backend… Please hold on a moment.');
+    showWarmupPill(true, 'Waking up live cloud backend… Please hold on a moment.');
   }, 2200);
 
   let res;
@@ -247,10 +247,15 @@ const api = {
 function showToast(message, type = 'info', duration = 4000) {
   const container = document.getElementById('toast-container');
   if (!container) return;
-  const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
+  const icons = {
+    success: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>',
+    error: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+    info: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+    warning: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+  };
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
-  toast.innerHTML = `<span class="toast-icon">${icons[type] || 'ℹ️'}</span><span>${message}</span>`;
+  toast.innerHTML = `<span class="toast-icon" style="display:inline-flex;align-items:center;">${icons[type] || icons.info}</span><span>${message}</span>`;
   container.appendChild(toast);
   setTimeout(() => {
     toast.classList.add('leaving');
